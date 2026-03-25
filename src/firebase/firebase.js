@@ -11,6 +11,7 @@ import { getFirestore } from "firebase/firestore";
 /* Configuración de Firebase
     Debes reemplazar estos valores con los de tu proyecto de Firebase
     Puedes obtenerlos en la consola de Firebase, desde descripcion general, en general
+    Primero el mío
 */
 const firebaseConfig = {
     apiKey: "AIzaSyC6-R06FdoD1pTsyZkkHQAa-DVEfQVjlyY",
