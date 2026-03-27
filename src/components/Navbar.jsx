@@ -1,66 +1,87 @@
-import { useAuth } from "../auth/AuthProvider";
-import { FiLogOut, FiMenu, FiBell } from "react-icons/fi";
+import React, { useState } from "react";
+import { Search, Bell, HelpCircle, LayoutDashboard, LogOut, Menu } from 'lucide-react';
+import { useAuth } from '../auth/AuthProvider'; 
+import { useNavigate } from "react-router-dom";
 
-export default function Navbar() {
+export default function Navbar({ setIsMobileOpen }) {
+    const [showLogout, setShowLogout] = useState(false);
     const { logout } = useAuth();
+    const navigate = useNavigate();
+
+    const handleLogout = async () => {
+        try {
+            await logout();
+            navigate("/login");
+        } catch (error) {
+            console.error("Error al cerrar sesión:", error);
+        }
+    };
 
     return (
-        <nav className="flex items-center justify-between px-6 py-4 bg-white/80 backdrop-blur-md shadow-sm border-b border-gray-100 sticky top-0 z-50">
+        <div className="bg-white/80 backdrop-blur-md h-20 px-4 md:px-8 flex items-center justify-between sticky top-0 z-10">
             
-            {/* Sección Izquierda: Título y menú móvil */}
-            <div className="flex items-center gap-4">
-                <button className="lg:hidden p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-                    <FiMenu size={20} />
-                </button>
-                <div>
-                    <h1 className="text-lg font-bold text-gray-800 tracking-tight">Panel de Control</h1>
-                    <p className="text-xs text-gray-500 font-medium">Portal Administrativo</p>
-                </div>
-            </div>
-
-            {/* Sección Derecha: Notificaciones y Perfil/Logout */}
-            <div className="flex items-center gap-4">
-                
-                {/* Botón de notificaciones de adorno */}
-                <button className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors relative">
-                    <FiBell size={20} />
-                    <span className="absolute top-1 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
-                </button>
-
-                <div className="h-6 w-px bg-gray-200 mx-2 hidden sm:block"></div>
-
-                {/* Info del usuario (Oculto en celulares pequeños) */}
-                <div className="hidden sm:block text-right">
-                    <p className="text-sm font-semibold text-gray-700">Admin</p>
-                </div>
-
-                {/* Botón de Cerrar Sesión Mejorado */}
-                <button
-                    onClick={logout}
-                    className="flex items-center gap-2 bg-red-50 hover:bg-red-500 text-red-600 hover:text-white px-4 py-2 rounded-lg text-sm font-bold transition-all duration-200 shadow-sm"
-                    title="Cerrar sesión"
+            {/* LADO IZQUIERDO: Breadcrumbs y Hamburguesa */}
+            <div className="flex items-center gap-4 text-sm font-medium">
+                {/* Botón Hamburguesa (Solo en Móvil) */}
+                <button 
+                    className="md:hidden p-2 -ml-2 text-gray-500 hover:text-black hover:bg-gray-100 rounded-lg transition-colors"
+                    onClick={() => setIsMobileOpen(true)}
                 >
-                    <span className="hidden sm:inline">Cerrar Sesión</span>
-                    <FiLogOut size={18} />
+                    <Menu className="w-6 h-6" />
                 </button>
+
+                <div className="hidden sm:flex items-center gap-2">
+                    <span className="text-gray-400">General</span>
+                    <span className="text-gray-300">›</span>
+                    <span className="text-[#7C3AED] flex items-center gap-2">
+                        <LayoutDashboard className="w-4 h-4" /> Dashboard
+                    </span>
+                </div>
             </div>
-            
-        </nav>
+
+            {/* Íconos y Perfil derecho */}
+            <div className="flex items-center gap-4 md:gap-6">
+                <div className="hidden sm:flex items-center gap-4 text-gray-400">
+                    <Search className="w-5 h-5 hover:text-gray-600 cursor-pointer transition-colors" />
+                    <div className="relative">
+                        <Bell className="w-5 h-5 hover:text-gray-600 cursor-pointer transition-colors" />
+                        <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                    </div>
+                    <HelpCircle className="w-5 h-5 hover:text-gray-600 cursor-pointer transition-colors" />
+                </div>
+                
+                <div className="hidden sm:block h-6 w-px bg-gray-200"></div>
+
+                {/* CONTENEDOR DEL PERFIL */}
+                <div className="relative">
+                    <div 
+                        className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 p-2 rounded-xl transition-colors"
+                        onClick={() => setShowLogout(!showLogout)}
+                    >
+                        <div className="text-right hidden sm:block">
+                            <p className="text-sm font-bold text-[#020817]">Edward Maradiaga</p>
+                            <p className="text-[11px] text-[#7C3AED] font-medium">Administrador</p>
+                        </div>
+                        <div className="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center text-lg shadow-sm">
+                            🦖
+                        </div>
+                    </div>
+
+                    {/* MENÚ FLOTANTE DE CERRAR SESIÓN */}
+                    {showLogout && (
+                        <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-100 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] py-2 z-50">
+                            <button 
+                                onClick={handleLogout}
+                                className="w-full text-left px-4 py-2 text-sm font-bold text-red-500 hover:bg-red-50 transition-colors flex items-center gap-3"
+                            >
+                                <LogOut className="w-4 h-4" />
+                                Cerrar Sesión
+                            </button>
+                        </div>
+                    )}
+                </div>
+
+            </div>
+        </div>
     );
 }
-
-
-// import {useAuth} from "../auth/AuthProvider";
-// 
-// export default function Navbar() {
-//     const { logout } = useAuth();
-// 
-//     return (
-//         <button
-//             onClick={logout}
-//             className="bg-red-500 text-white px-4 py-2 rounded"
-//         >
-//             Cerrar sesión
-//         </button>
-//     );
-// }
