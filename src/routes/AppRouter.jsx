@@ -3,11 +3,11 @@ import Login from '../pages/Login';
 import AdminLayout from '../layouts/AdminLayout';
 import ProtectedRoute from '../auth/ProtectedRoute';
 
-// --- PÁGINAS QUE YA TENÉS CREADAS ---
+import RecuperarPassword from '../pages/RecuperarPassword';
+import NuevaPassword from '../pages/NuevaPassword';
 import Dashboard from '../pages/Dashboard_Inicio';
 import Usuarios from '../pages/Gest_Usuarios';
 
-// --- PÁGINAS FUTURAS (Descomentalas cuando crees el archivo con la plantilla) ---
 import Empleados from '../pages/Gest_Empleados';
 import Configuraciones from '../pages/Gest_Configuraciones';
 import Inventario from '../pages/Gest_Inventario';
@@ -24,6 +24,8 @@ export default function AppRouter() {
         <Routes>
             {/* --- RUTA PÚBLICA --- */}
             <Route path="/login" element={<Login />} />
+            <Route path="/recuperar-password" element={<RecuperarPassword />} />
+            <Route path="/nueva-contrasena" element={<NuevaPassword />} />
 
             {/* --- RUTAS PROTEGIDAS (Requieren inicio de sesión) --- */}
             <Route 
