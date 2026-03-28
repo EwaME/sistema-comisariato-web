@@ -410,7 +410,6 @@ export default function Dashboard() {
   );
 }
 
-// Pequeño componente Filter porque me faltó importarlo arriba
 function Filter(props) {
   return (
     <svg
