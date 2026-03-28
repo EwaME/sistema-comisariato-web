@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useAuth } from "../auth/AuthProvider";
 import { useNavigate } from "react-router-dom";
 import { Mail, Eye, EyeOff, Lock } from "lucide-react";
+import { Link } from 'react-router-dom';
 
 export default function Login() {
     const [email, setEmail] = useState("");
@@ -139,9 +140,9 @@ export default function Login() {
 
                             {/* OLVIDASTE CONTRASEÑA */}
                             <div className="flex justify-end pt-1">
-                                <a href="#" className="text-[11px] font-bold text-[#7C3AED] hover:underline">
+                                <Link to="/recuperar-password" className="text-[11px] text-[#7C3AED] font-bold hover:underline">
                                     ¿Olvidaste tu contraseña?
-                                </a>
+                                </Link>
                             </div>
 
                             {/* MENSAJE DE ERROR (Movido abajo como en tu imagen 2) */}
