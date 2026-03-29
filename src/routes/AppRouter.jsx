@@ -29,6 +29,8 @@ export default function AppRouter() {
         <Routes>
             {/* --- RUTA PÚBLICA --- */}
             <Route path="/login" element={<Login />} />
+            <Route path="/recuperar-password" element={<RecuperarPassword />} />
+            <Route path="/nueva-contrasena" element={<NuevaPassword />} />
 
             {/* --- RUTAS PROTEGIDAS (Requieren inicio de sesión) --- */}
             <Route 
