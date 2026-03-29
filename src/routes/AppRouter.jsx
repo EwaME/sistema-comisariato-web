@@ -1,23 +1,28 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import Login from '../pages/Login';
 import AdminLayout from '../layouts/AdminLayout';
 import ProtectedRoute from '../auth/ProtectedRoute';
 
-// --- PÁGINAS QUE YA TENÉS CREADAS ---
-import Dashboard from '../pages/Dashboard_Inicio';
-import Usuarios from '../pages/Gest_Usuarios';
+import Login from '../pages/Authentication/Login';
+import RecuperarPassword from '../pages/Authentication/RecuperarPassword';
+import NuevaPassword from '../pages/Authentication/NuevaPassword';
 
-// --- PÁGINAS FUTURAS (Descomentalas cuando crees el archivo con la plantilla) ---
-import Empleados from '../pages/Gest_Empleados';
-import Configuraciones from '../pages/Gest_Configuraciones';
-import Inventario from '../pages/Gest_Inventario';
-import Categorias from '../pages/Gest_Categorias';
-import Creditos from '../pages/Gest_Creditos';
-import Sugerencias from '../pages/Gest_Sugerencias';
+import Dashboard from '../pages/Dashboards/Dashboard_Inicio';
+
+import Usuarios from '../pages/Manage/Gest_Usuarios';
+
+import Empleados from '../pages/Manage/Empleados/Gest_Empleados';
+import CrearEmpleado from '../pages/Manage/Empleados/CrearEmpleado';
+import DetalleEmpleado from '../pages/Manage/Empleados/DetalleEmpleado';
+
+import Configuraciones from '../pages/Manage/Gest_Configuraciones';
+import Inventario from '../pages/Manage/Gest_Inventario';
+import Categorias from '../pages/Manage/Gest_Categorias';
+import Creditos from '../pages/Manage/Gest_Creditos';
+import Sugerencias from '../pages/Manage/Gest_Sugerencias';
 import GuiasyAyudas from '../pages/GuiasyAyudas';
-import Reclamos from '../pages/Gest_Reclamos'; 
-import Reportes from '../pages/Gest_Reportes';
-import Comentarios from '../pages/Gest_Comentarios';
+import Reclamos from '../pages/Manage/Gest_Reclamos'; 
+import Reportes from '../pages/Manage/Gest_Reportes';
+import Comentarios from '../pages/Manage/Gest_Comentarios';
 
 export default function AppRouter() {
     return (
@@ -42,7 +47,11 @@ export default function AppRouter() {
 
                 {/* 2. Administración */}
                 <Route path="usuarios" element={<Usuarios />} />
-                <Route path="empleados" element={<Empleados />} /> 
+
+                <Route path="empleados" element={<Empleados />} />
+                <Route path="empleados/nuevo" element={<CrearEmpleado />} />
+                <Route path="empleados/editar/:id" element={<CrearEmpleado />} />
+                <Route path="empleados/detalle/:id" element={<DetalleEmpleado />} />
                 <Route path="configuraciones" element={<Configuraciones />} /> 
 
                 {/* 3. Gestión de Stock */}
