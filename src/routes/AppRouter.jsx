@@ -70,7 +70,7 @@ export default function AppRouter() {
                 {/* 6. Comunidad */}
                 <Route path="sugerencias" element={<Sugerencias />} />
                 <Route path="comentarios" element={<Comentarios />} />
-                <Route path="guias" element={<GuiasyAyudas />} /> */
+                <Route path="guias" element={<GuiasyAyudas />} />
             </Route>
 
             {/* --- RUTA 404 (Si el usuario escribe una URL que no existe) --- */}
