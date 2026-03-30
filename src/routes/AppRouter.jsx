@@ -8,12 +8,22 @@ import NuevaPassword from '../pages/NuevaPassword';
 import Dashboard from '../pages/Dashboard_Inicio';
 import Usuarios from '../pages/Gest_Usuarios';
 
-import Empleados from '../pages/Gest_Empleados';
-import Configuraciones from '../pages/Gest_Configuraciones';
-import Inventario from '../pages/Gest_Inventario';
-import Categorias from '../pages/Gest_Categorias';
-import Creditos from '../pages/Gest_Creditos';
-import Sugerencias from '../pages/Gest_Sugerencias';
+import Dashboard from '../pages/Dashboards/Dashboard_Inicio';
+
+import Usuarios from '../pages/Manage/Usuarios/Gest_Usuarios';
+import CrearUsuario from '../pages/Manage/Usuarios/CrearUsuario';
+
+import Empleados from '../pages/Manage/Empleados/Gest_Empleados';
+import CrearEmpleado from '../pages/Manage/Empleados/CrearEmpleado';
+import DetalleEmpleado from '../pages/Manage/Empleados/DetalleEmpleado';
+
+import Inventario from '../pages/Manage/Productos/Gest_Inventario';
+
+import Configuraciones from '../pages/Manage/Gest_Configuraciones';
+
+import Categorias from '../pages/Manage/Gest_Categorias';
+import Creditos from '../pages/Manage/Gest_Creditos';
+import Sugerencias from '../pages/Manage/Gest_Sugerencias';
 import GuiasyAyudas from '../pages/GuiasyAyudas';
 import Reclamos from '../pages/Gest_Reclamos'; 
 import Reportes from '../pages/Gest_Reportes';
@@ -44,7 +54,12 @@ export default function AppRouter() {
 
                 {/* 2. Administración */}
                 <Route path="usuarios" element={<Usuarios />} />
-                <Route path="empleados" element={<Empleados />} /> 
+                <Route path="usuarios/nuevo" element={<CrearUsuario />} />
+
+                <Route path="empleados" element={<Empleados />} />
+                <Route path="empleados/nuevo" element={<CrearEmpleado />} />
+                <Route path="empleados/editar/:id" element={<CrearEmpleado />} />
+                <Route path="empleados/detalle/:id" element={<DetalleEmpleado />} />
                 <Route path="configuraciones" element={<Configuraciones />} /> 
 
                 {/* 3. Gestión de Stock */}
