@@ -16,11 +16,18 @@ import CrearEmpleado from '../pages/Manage/Empleados/CrearEmpleado';
 import DetalleEmpleado from '../pages/Manage/Empleados/DetalleEmpleado';
 
 import Inventario from '../pages/Manage/Productos/Gest_Inventario';
+import Categorias from '../pages/Manage/Productos/Gest_Categorias';
+
+import Sugerencias from '../pages/Manage/Gest_Sugerencias';
 
 import Configuraciones from '../pages/Manage/Gest_Configuraciones';
+
+import Creditos from '../pages/Manage/Gest_Creditos';
+
 import Reclamos from '../pages/Manage/Gest_Reclamos'; 
 import Reportes from '../pages/Manage/Gest_Reportes';
 import Comentarios from '../pages/Manage/Gest_Comentarios';
+import GuiasyAyudas from '../pages/GuiasyAyudas';
 
 export default function AppRouter() {
     return (
@@ -58,6 +65,7 @@ export default function AppRouter() {
                 {/* 3. Gestión de Stock */}
                 <Route path="inventario" element={<Inventario />} /> 
                 <Route path="categorias" element={<Categorias />} /> 
+                
 
                 {/* 4. Acreditaciones */}
                 <Route path="creditos" element={<Creditos />} /> 
