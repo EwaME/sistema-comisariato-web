@@ -1,12 +1,10 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import Login from '../pages/Login';
 import AdminLayout from '../layouts/AdminLayout';
 import ProtectedRoute from '../auth/ProtectedRoute';
 
-import RecuperarPassword from '../pages/RecuperarPassword';
-import NuevaPassword from '../pages/NuevaPassword';
-import Dashboard from '../pages/Dashboard_Inicio';
-import Usuarios from '../pages/Gest_Usuarios';
+import Login from '../pages/Authentication/Login';
+import RecuperarPassword from '../pages/Authentication/RecuperarPassword';
+import NuevaPassword from '../pages/Authentication/NuevaPassword';
 
 import Dashboard from '../pages/Dashboards/Dashboard_Inicio';
 
@@ -20,14 +18,9 @@ import DetalleEmpleado from '../pages/Manage/Empleados/DetalleEmpleado';
 import Inventario from '../pages/Manage/Productos/Gest_Inventario';
 
 import Configuraciones from '../pages/Manage/Gest_Configuraciones';
-
-import Categorias from '../pages/Manage/Gest_Categorias';
-import Creditos from '../pages/Manage/Gest_Creditos';
-import Sugerencias from '../pages/Manage/Gest_Sugerencias';
-import GuiasyAyudas from '../pages/GuiasyAyudas';
-import Reclamos from '../pages/Gest_Reclamos'; 
-import Reportes from '../pages/Gest_Reportes';
-import Comentarios from '../pages/Gest_Comentarios';
+import Reclamos from '../pages/Manage/Gest_Reclamos'; 
+import Reportes from '../pages/Manage/Gest_Reportes';
+import Comentarios from '../pages/Manage/Gest_Comentarios';
 
 export default function AppRouter() {
     return (
