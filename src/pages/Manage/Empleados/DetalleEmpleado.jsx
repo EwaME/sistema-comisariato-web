@@ -90,9 +90,6 @@ export default function DetalleEmpleado() {
             
             {/* Breadcrumb y Botón Regresar */}
             <div className="mb-6">
-                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-4">
-                    General <span className="mx-2 text-gray-300">&gt;</span> Empleados <span className="mx-2 text-gray-300">&gt;</span> <span className="text-[#7C3AED]">Detalle</span>
-                </p>
                 <button 
                     onClick={() => navigate('/empleados')} 
                     className="flex items-center gap-2 text-sm font-bold text-gray-500 hover:text-[#020817] transition-colors"
@@ -107,10 +104,14 @@ export default function DetalleEmpleado() {
                     
                     <div className="flex items-center gap-6">
                         {/* Avatar */}
-                        <div className={`w-24 h-24 rounded-full flex items-center justify-center text-3xl font-bold shadow-inner shrink-0
+                        <div className={`w-24 h-24 rounded-full flex items-center justify-center text-3xl font-bold shadow-inner shrink-0 overflow-hidden
                             ${activo ? 'bg-purple-100 text-[#7C3AED]' : 'bg-gray-100 text-gray-400'}
-                        `}>
-                            {empleado.nombres.charAt(0)}{empleado.apellidos.charAt(0)}
+                            `}>
+                            {empleado.fotoUrl ? (
+                                <img src={empleado.fotoUrl} alt="Perfil" className="w-full h-full object-cover" />
+                            ) : (
+                                <>{empleado.nombres.charAt(0)}{empleado.apellidos.charAt(0)}</>
+                            )}
                         </div>
                         
                         <div>
