@@ -24,11 +24,15 @@ import CrearCargo from '../pages/Manage/Cargos/CrearCargo';
 import Gest_Departamentos from '../pages/Manage/Departamentos/Gest_Departamentos';
 import CrearDepartamento from '../pages/Manage/Departamentos/CrearDepartamento';
 
-import Inventario from '../pages/Manage/Inventario/Gest_Inventario';
+import Inventario from '../pages/Manage/Inventario/Gest_Inventario.jsx';
 import CrearProducto from '../pages/Manage/Inventario/CrearProducto.jsx';
-import Categorias from '../pages/Manage/Inventario/Gest_Categorias';
+import DetalleProducto from '../pages/Manage/Inventario/DetalleProducto.jsx';
+import Gest_Comentarios_Producto from "../pages/Manage/Inventario/Gest_Comentarios_Producto.jsx";
 
-import Sugerencias from "../pages/Manage/Gest_Sugerencias";
+import Categorias from '../pages/Manage/Inventario/Gest_Categorias';
+import CrearCategoria from "../pages/Manage/Inventario/CrearCategoria";
+
+import Sugerencias from '../pages/Manage/Gest_Sugerencias';
 
 import Configuraciones from "../pages/Manage/Gest_Configuraciones";
 
@@ -38,7 +42,6 @@ import DetalleCredito from "../pages/Manage/Creditos/DetalleCredito";
 
 import Reclamos from "../pages/Manage/Gest_Reclamos";
 import Reportes from "../pages/Manage/Gest_Reportes";
-import Comentarios from "../pages/Manage/Gest_Comentarios";
 import GuiasyAyudas from "../pages/GuiasyAyudas";
 
 export default function AppRouter() {
@@ -94,7 +97,12 @@ export default function AppRouter() {
                 <Route path="inventario" element={<Inventario />} /> 
                 <Route path="inventario/nuevo" element={<CrearProducto />} />
                 <Route path="inventario/editar/:id" element={<CrearProducto />} />
+                <Route path="inventario/detalle/:id" element={<DetalleProducto />} />
+                <Route path="inventario/comentarios/:id" element={<Gest_Comentarios_Producto />} />
+
                 <Route path="categorias" element={<Categorias />} /> 
+                <Route path="categorias/nuevo" element={<CrearCategoria />} />
+                <Route path="categorias/editar/:id" element={<CrearCategoria />} />
 
                 {/* 7. Acreditaciones */}
                 <Route path="creditos" element={<Creditos />} />
@@ -107,7 +115,6 @@ export default function AppRouter() {
 
                 {/* 9. Comunidad */}
                 <Route path="sugerencias" element={<Sugerencias />} />
-                <Route path="comentarios" element={<Comentarios />} />
                 <Route path="guias" element={<GuiasyAyudas />} />
             </Route>
 

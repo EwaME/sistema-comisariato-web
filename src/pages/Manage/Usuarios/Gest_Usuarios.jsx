@@ -1,15 +1,31 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, MoreHorizontal, ChevronRight, Loader2, ChevronLeft, XCircle, AlertCircle, X, ShieldAlert } from 'lucide-react'; 
+import { Search, MoreHorizontal, ChevronRight, Loader2, ChevronLeft, XCircle, AlertCircle, X, ShieldAlert, Filter } from 'lucide-react'; 
 import { Link } from 'react-router-dom';
 import { obtenerUsuarios, actualizarUsuario, asignarRolWebYAuth } from '../../../services/usuariosService';
+
+// IMPORTAMOS PARA CARGAR LOS ROLES DESDE FIRESTORE
+import { collection, query, where, getDocs } from "firebase/firestore";
+import { db } from '../../../firebase/firebase'; 
 
 export default function Gest_Usuarios() {
     const [usuarios, setUsuarios] = useState([]);
     const [cargando, setCargando] = useState(true);
     
+    // --- ESTADO PARA ROLES DE LA DB ---
+    const [rolesDb, setRolesDb] = useState([]);
+    
+    // ==========================================
+    // ESTADOS DE BÚSQUEDA, FILTROS Y PAGINACIÓN
+    // ==========================================
     const [busqueda, setBusqueda] = useState('');
     const [paginaActual, setPaginaActual] = useState(1);
     const itemsPorPagina = 10;
+
+    // Filtros
+    const [mostrarFiltros, setMostrarFiltros] = useState(false);
+    const filtroRef = useRef(null);
+    const [filtrosTemp, setFiltrosTemp] = useState({ rol: '', estado: '' });
+    const [filtrosAplicados, setFiltrosAplicados] = useState({ rol: '', estado: '' });
 
     const [menuActivo, setMenuActivo] = useState(null);
     const menuRef = useRef(null);
@@ -20,16 +36,14 @@ export default function Gest_Usuarios() {
     const [inputConfirmacion, setInputConfirmacion] = useState("");
     const [procesandoEstado, setProcesandoEstado] = useState(false);
 
-    // --- ESTADOS PARA EL MODAL DE CAMBIO DE ROL (NUEVO DISEÑO) ---
+    // --- ESTADOS PARA EL MODAL DE CAMBIO DE ROL ---
     const [modalRol, setModalRol] = useState(false);
     const [rolDestino, setRolDestino] = useState("");
     const [procesandoRol, setProcesandoRol] = useState(false);
-    
-    // Roles disponibles para asignar (Excluyendo EMPLEADO que es fijo)
-    const ROLES_DISPONIBLES = ['ADMINISTRADOR', 'ACREDITADOR', 'GESTOR DE INVENTARIO', 'MODERADOR'];
 
     useEffect(() => {
         cargarDatos();
+        cargarRoles(); // Llamamos a la DB para traer los roles
     }, []);
 
     const cargarDatos = async () => {
@@ -44,11 +58,31 @@ export default function Gest_Usuarios() {
         }
     };
 
-    // Cerrar menú al hacer clic fuera
+    // FUNCIÓN PARA TRAER ROLES ACTIVOS 
+    const cargarRoles = async () => {
+        try {
+            const q = query(collection(db, 'roles'), where('estado', '==', 'ACTIVO'));
+            const querySnapshot = await getDocs(q);
+            
+            // Filtramos los roles base
+            const rolesFiltrados = querySnapshot.docs
+                .map(doc => doc.id.toUpperCase())
+                .filter(rolId => rolId !== 'USUARIO/EMPLEADO' && rolId !== 'EMPLEADO');
+
+            setRolesDb(rolesFiltrados);
+        } catch (error) {
+            console.error("Error al cargar roles:", error);
+        }
+    };
+
+    // Cerrar menú o filtros al hacer clic fuera
     useEffect(() => {
         const handleClickFuera = (event) => {
             if (menuRef.current && !menuRef.current.contains(event.target)) {
                 setMenuActivo(null);
+            }
+            if (filtroRef.current && !filtroRef.current.contains(event.target)) {
+                setMostrarFiltros(false);
             }
         };
         document.addEventListener("mousedown", handleClickFuera);
@@ -57,6 +91,27 @@ export default function Gest_Usuarios() {
 
     const toggleMenu = (idUsuario) => {
         setMenuActivo(menuActivo === idUsuario ? null : idUsuario);
+    };
+
+    // ==========================================
+    // LÓGICA DE BOTONES DE FILTRO
+    // ==========================================
+    const isFiltroActivo = filtrosAplicados.rol !== '' || filtrosAplicados.estado !== '';
+
+    const handleBotonFiltroClick = () => {
+        if (isFiltroActivo) {
+            setFiltrosAplicados({ rol: '', estado: '' });
+            setFiltrosTemp({ rol: '', estado: '' });
+            setPaginaActual(1);
+        } else {
+            setMostrarFiltros(!mostrarFiltros);
+        }
+    };
+
+    const aplicarFiltros = () => {
+        setFiltrosAplicados(filtrosTemp);
+        setMostrarFiltros(false);
+        setPaginaActual(1);
     };
 
     // ==========================================
@@ -93,12 +148,11 @@ export default function Gest_Usuarios() {
     };
 
     // ==========================================
-    // LÓGICA DEL MODAL DE CAMBIO DE ROL (MEJORADO)
+    // LÓGICA DEL MODAL DE CAMBIO DE ROL
     // ==========================================
     const abrirModalSelectorRol = (user) => {
         setUsuarioSeleccionado(user);
         
-        // Detectar el rol extra actual (si lo tiene) para pre-seleccionarlo
         const rolesArray = Array.isArray(user.rol) ? user.rol : (user.rol ? String(user.rol).split(', ') : []);
         const rolExtra = rolesArray.find(r => r !== 'EMPLEADO');
         setRolDestino(rolExtra || "");
@@ -120,10 +174,8 @@ export default function Gest_Usuarios() {
 
         setProcesandoRol(true);
         try {
-            // Reutilizamos la función del servicio que mantiene 'EMPLEADO' y asegura el Auth
             await asignarRolWebYAuth(usuarioSeleccionado, rolDestino);
             
-            // Actualizamos la vista local
             const rolesFinales = ['EMPLEADO', rolDestino];
             setUsuarios(usuarios.map(u => u.id === usuarioSeleccionado.id ? { ...u, rol: rolesFinales } : u));
             cerrarModalRol();
@@ -134,16 +186,40 @@ export default function Gest_Usuarios() {
         }
     };
 
+    // ==========================================
+    // LÓGICA DE FILTRADO DE LA TABLA
+    // ==========================================
     const usuariosFiltrados = usuarios.filter(user => {
+        // 1. Filtro de Búsqueda
         const termino = busqueda.toLowerCase();
-        return user.nombre?.toLowerCase().includes(termino) || 
-               user.correo?.toLowerCase().includes(termino) ||
-               user.empleadoId?.toLowerCase().includes(termino);
+        const matchBusqueda = user.nombre?.toLowerCase().includes(termino) || 
+                              user.correo?.toLowerCase().includes(termino) ||
+                              user.empleadoId?.toLowerCase().includes(termino);
+
+        // 2. Filtro por Rol
+        let matchRol = true;
+        if (filtrosAplicados.rol !== '') {
+            const rolesArray = Array.isArray(user.rol) ? user.rol : (user.rol ? String(user.rol).split(', ') : []);
+            // Filtramos si el arreglo de roles del usuario incluye el rol seleccionado
+            matchRol = rolesArray.includes(filtrosAplicados.rol);
+        }
+
+        // 3. Filtro por Estado
+        const matchEstado = filtrosAplicados.estado === '' || user.estado?.toUpperCase() === filtrosAplicados.estado;
+
+        return matchBusqueda && matchRol && matchEstado;
     });
 
-    const totalPaginas = Math.ceil(usuariosFiltrados.length / itemsPorPagina);
+    const totalPaginas = Math.ceil(usuariosFiltrados.length / itemsPorPagina) || 1;
     const startIndex = (paginaActual - 1) * itemsPorPagina;
     const usuariosPaginados = usuariosFiltrados.slice(startIndex, startIndex + itemsPorPagina);
+
+    // Si la búsqueda reduce los resultados y la página actual queda vacía, regresamos a la pag 1
+    useEffect(() => {
+        if (paginaActual > totalPaginas && totalPaginas > 0) {
+            setPaginaActual(1);
+        }
+    }, [usuariosFiltrados.length, paginaActual, totalPaginas]);
 
     return (
         <div className="p-4 max-w-[1600px] mx-auto bg-[#F8F9FF] min-h-screen relative">
@@ -154,6 +230,7 @@ export default function Gest_Usuarios() {
 
             <div className="bg-white p-6 rounded-[1.5rem] shadow-[0_2px_20px_rgb(0,0,0,0.02)] border border-gray-50 relative z-10">
                 
+                {/* BARRA DE HERRAMIENTAS */}
                 <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
                     <div className="relative w-full md:w-96">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -165,21 +242,89 @@ export default function Gest_Usuarios() {
                             className="w-full bg-[#F8F9FF] border border-gray-200 text-sm font-medium pl-10 pr-10 py-2.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/20 focus:border-[#7C3AED] transition-all"
                         />
                         {busqueda && (
-                            <button onClick={() => { setBusqueda(''); setPaginaActual(1); }} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                            <button onClick={() => { setBusqueda(''); setPaginaActual(1); }} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none">
                                 <XCircle className="w-4 h-4" />
                             </button>
                         )}
                     </div>
-                    <Link to="/usuarios/nuevo" className="bg-[#020817] text-white text-[11px] font-bold px-5 py-2.5 rounded-xl flex items-center justify-center gap-2 hover:bg-black transition-colors shadow-md w-full md:w-auto uppercase tracking-widest">
-                        Nuevo Usuario
-                    </Link>
+
+                    <div className="flex gap-3 w-full md:w-auto relative">
+                        {/* BOTÓN DE FILTROS DINÁMICO */}
+                        <button 
+                            onClick={handleBotonFiltroClick}
+                            className={`border text-[11px] font-bold px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 transition-colors w-full md:w-auto
+                                ${isFiltroActivo 
+                                    ? 'bg-purple-50 border-purple-200 text-[#7C3AED] hover:bg-purple-100' 
+                                    : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                                }
+                            `}
+                        >
+                            {isFiltroActivo ? <XCircle className="w-4 h-4" /> : <Filter className="w-4 h-4" />} 
+                            {isFiltroActivo ? 'QUITAR FILTROS' : 'FILTRAR'}
+                        </button>
+
+                        {/* MENÚ DROPDOWN DE FILTROS */}
+                        {mostrarFiltros && (
+                            <div ref={filtroRef} className="absolute top-12 right-0 md:right-36 w-64 bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-gray-100 z-50 p-4">
+                                <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 border-b border-gray-50 pb-2">Opciones de Filtro</h4>
+                                
+                                <div className="mb-4">
+                                    <label className="block text-xs font-bold text-[#020817] mb-2">Rol Asignado</label>
+                                    <select 
+                                        value={filtrosTemp.rol}
+                                        onChange={(e) => setFiltrosTemp({...filtrosTemp, rol: e.target.value})}
+                                        className="w-full bg-[#F8F9FF] border border-gray-100 text-sm font-medium px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/20"
+                                    >
+                                        <option value="">Todos los roles</option>
+                                        <option value="EMPLEADO">Empleado (Base)</option>
+                                        {rolesDb.map(rol => (
+                                            <option key={rol} value={rol}>{rol}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="mb-6">
+                                    <label className="block text-xs font-bold text-[#020817] mb-2">Estado</label>
+                                    <select 
+                                        value={filtrosTemp.estado}
+                                        onChange={(e) => setFiltrosTemp({...filtrosTemp, estado: e.target.value})}
+                                        className="w-full bg-[#F8F9FF] border border-gray-100 text-sm font-medium px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/20"
+                                    >
+                                        <option value="">Todos los estados</option>
+                                        <option value="ACTIVO">Activos</option>
+                                        <option value="INACTIVO">Inactivos</option>
+                                    </select>
+                                </div>
+
+                                <button 
+                                    onClick={aplicarFiltros}
+                                    className="w-full bg-[#020817] text-white text-[11px] font-bold py-2.5 rounded-xl hover:bg-black transition-colors uppercase tracking-widest"
+                                >
+                                    Aplicar Filtros
+                                </button>
+                            </div>
+                        )}
+
+                        <Link to="/usuarios/nuevo" className="bg-[#020817] text-white text-[11px] font-bold px-5 py-2.5 rounded-xl flex items-center justify-center gap-2 hover:bg-black transition-colors shadow-md w-full md:w-auto uppercase tracking-widest">
+                            Nuevo Usuario
+                        </Link>
+                    </div>
                 </div>
 
                 <div className="w-full overflow-visible min-h-[400px]"> 
                     {cargando ? (
-                        <div className="flex flex-col items-center justify-center py-20 text-gray-400"><Loader2 className="w-8 h-8 animate-spin mb-4 text-[#7C3AED]" /></div>
+                        <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+                            <Loader2 className="w-8 h-8 animate-spin mb-4 text-[#7C3AED]" />
+                        </div>
                     ) : usuariosPaginados.length === 0 ? (
-                        <div className="text-center py-20"><p className="text-gray-400 font-bold uppercase text-sm mb-2">No se encontraron usuarios</p></div>
+                        <div className="text-center py-20">
+                            <p className="text-gray-400 font-bold uppercase text-sm mb-2">
+                                {usuarios.length === 0 ? "No hay usuarios registrados" : "No se encontraron resultados"}
+                            </p>
+                            <p className="text-xs text-gray-400">
+                                {usuarios.length === 0 ? "Haz clic en 'Nuevo Usuario' para comenzar." : "Intenta buscar con otros términos o cambia los filtros."}
+                            </p>
+                        </div>
                     ) : (
                         <table className="w-full text-left border-collapse">
                             <thead>
@@ -245,7 +390,6 @@ export default function Gest_Usuarios() {
                                                         </button>
                                                         
                                                         {activo && (
-                                                            // NUEVO BOTÓN SIMPLE (Sin submenú traicionero)
                                                             <button 
                                                                 onClick={() => abrirModalSelectorRol(user)}
                                                                 className="w-full px-4 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 text-left transition-colors"
@@ -371,26 +515,30 @@ export default function Gest_Usuarios() {
                         </div>
 
                         <div className="p-6">
-                            {/* Selector de Rol interactivo */}
+                            {/* Selector de Rol interactivo dinámico */}
                             <div className="mb-6">
                                 <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">
                                     Selecciona el nuevo rol:
                                 </label>
                                 <div className="grid grid-cols-1 gap-2">
-                                    {ROLES_DISPONIBLES.map(r => (
-                                        <button
-                                            key={r}
-                                            onClick={() => setRolDestino(r)}
-                                            className={`w-full px-4 py-3 text-xs font-bold rounded-xl transition-all border text-left flex items-center justify-between ${
-                                                rolDestino === r 
-                                                    ? 'bg-purple-50 text-purple-700 border-purple-300 shadow-sm' 
-                                                    : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
-                                            }`}
-                                        >
-                                            {r}
-                                            {rolDestino === r && <span className="w-2 h-2 rounded-full bg-purple-600"></span>}
-                                        </button>
-                                    ))}
+                                    {rolesDb.length === 0 ? (
+                                        <p className="text-xs text-center text-gray-400 italic">No hay roles activos en la base de datos...</p>
+                                    ) : (
+                                        rolesDb.map(r => (
+                                            <button
+                                                key={r}
+                                                onClick={() => setRolDestino(r)}
+                                                className={`w-full px-4 py-3 text-xs font-bold rounded-xl transition-all border text-left flex items-center justify-between ${
+                                                    rolDestino === r 
+                                                        ? 'bg-purple-50 text-purple-700 border-purple-300 shadow-sm' 
+                                                        : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
+                                                }`}
+                                            >
+                                                {r}
+                                                {rolDestino === r && <span className="w-2 h-2 rounded-full bg-purple-600"></span>}
+                                            </button>
+                                        ))
+                                    )}
                                 </div>
                             </div>
 

@@ -3,6 +3,10 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ChevronLeft, Camera, Upload } from 'lucide-react';
 import { crearEmpleado, obtenerEmpleados, obtenerEmpleadoPorId, actualizarEmpleado, subirImagenEmpleado } from '../../../services/empleadosService';
 
+// 1. IMPORTAMOS LO NECESARIO PARA LAS CONSULTAS
+import { collection, query, where, getDocs } from "firebase/firestore";
+import { db } from '../../../firebase/firebase'; 
+
 export default function CrearEmpleado() {
     const navigate = useNavigate();
     const { id } = useParams(); 
@@ -11,9 +15,12 @@ export default function CrearEmpleado() {
     const [cargando, setCargando] = useState(false);
     const [cargandoDatos, setCargandoDatos] = useState(isEdit); 
 
+    // Estados para las listas dinámicas
+    const [departamentos, setDepartamentos] = useState([]);
+    const [cargos, setCargos] = useState([]);
+
     const hoy = new Date().toISOString().split('T')[0];
 
-    // REFERENCIA Y ESTADOS PARA LA IMAGEN
     const fileInputRef = useRef(null);
     const [imagenArchivo, setImagenArchivo] = useState(null);
     const [imagenPreview, setImagenPreview] = useState(null);
@@ -34,7 +41,23 @@ export default function CrearEmpleado() {
     });
 
     useEffect(() => {
+        const cargarListasDinamicas = async () => {
+            try {
+                const [deptSnap, cargosSnap] = await Promise.all([
+                    getDocs(query(collection(db, 'departamentos'), where('estado', '==', 'ACTIVO'))),
+                    getDocs(query(collection(db, 'cargos'), where('estado', '==', 'ACTIVO'))),
+                ]);
+
+                setDepartamentos(deptSnap.docs.map(doc => ({ id: doc.id, nombre: doc.data().nombre })));
+                setCargos(cargosSnap.docs.map(doc => ({ id: doc.id, nombre: doc.data().nombre })));
+            } catch (error) {
+                console.error("Error al cargar listas desplegables:", error);
+            }
+        };
+
         const inicializarFormulario = async () => {
+            await cargarListasDinamicas(); // Cargamos listas antes de los datos del usuario
+
             if (isEdit) {
                 try {
                     const empleadoAEditar = await obtenerEmpleadoPorId(id);
@@ -78,12 +101,7 @@ export default function CrearEmpleado() {
         inicializarFormulario();
     }, [id, isEdit, navigate]);
 
-    // ==========================================
-    // MANEJO DE IMAGEN
-    // ==========================================
-    const handleClickImagen = () => {
-        fileInputRef.current.click();
-    };
+    const handleClickImagen = () => fileInputRef.current.click();
 
     const handleImagenChange = (e) => {
         const file = e.target.files[0];
@@ -98,9 +116,6 @@ export default function CrearEmpleado() {
         setImagenPreview(URL.createObjectURL(file)); 
     };
 
-    // ==========================================
-    // MÁSCARAS Y CAMBIOS
-    // ==========================================
     const formatearDNI = (valor) => {
         const soloNumeros = valor.replace(/\D/g, '');
         let formateado = soloNumeros;
@@ -129,9 +144,6 @@ export default function CrearEmpleado() {
         setFormData({ ...formData, [name]: valorFinal });
     };
 
-    // ==========================================
-    // GUARDAR O ACTUALIZAR
-    // ==========================================
     const handleSubmit = async (e) => {
         e.preventDefault();
         setCargando(true);
@@ -280,20 +292,26 @@ export default function CrearEmpleado() {
                         <input required name="telefono" value={formData.telefono} onChange={handleChange} placeholder="+504 0000-0000" maxLength="14" className="w-full bg-[#F8F9FF] border border-gray-100 text-sm font-medium px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/20 focus:border-[#7C3AED]" />
                     </div>
 
+                    {/* NUEVO: Departamento Dinámico */}
                     <div>
                         <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Departamento</label>
-                        <select required name="departamento" value={formData.departamento} onChange={handleChange} className="w-full bg-[#F8F9FF] border border-gray-100 text-sm font-medium px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/20 focus:border-[#7C3AED]">
+                        <select required name="departamento" value={formData.departamento} onChange={handleChange} className="w-full bg-[#F8F9FF] border border-gray-100 text-sm font-medium px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/20 focus:border-[#7C3AED] appearance-none">
                             <option value="">Seleccionar departamento</option>
-                            <option value="Molienda">Molienda</option>
-                            <option value="Logística">Logística</option>
-                            <option value="Mantenimiento">Mantenimiento</option>
-                            <option value="Administración">Administración</option>
+                            {departamentos.map(dep => (
+                                <option key={dep.id} value={dep.nombre}>{dep.nombre}</option>
+                            ))}
                         </select>
                     </div>
 
+                    {/* NUEVO: Cargo Dinámico */}
                     <div>
                         <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Cargo / Posición</label>
-                        <input required name="cargo" value={formData.cargo} onChange={handleChange} placeholder="Ej. Supervisor de Planta" className="w-full bg-[#F8F9FF] border border-gray-100 text-sm font-medium px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/20 focus:border-[#7C3AED]" />
+                        <select required name="cargo" value={formData.cargo} onChange={handleChange} className="w-full bg-[#F8F9FF] border border-gray-100 text-sm font-medium px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/20 focus:border-[#7C3AED] appearance-none">
+                            <option value="">Seleccionar cargo</option>
+                            {cargos.map(car => (
+                                <option key={car.id} value={car.nombre}>{car.nombre}</option>
+                            ))}
+                        </select>
                     </div>
 
                     <div>
@@ -306,9 +324,9 @@ export default function CrearEmpleado() {
                         <input type="date" required name="fechaIngreso" value={formData.fechaIngreso} onChange={handleChange} className="w-full bg-[#F8F9FF] border border-gray-100 text-sm text-gray-500 font-medium px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/20 focus:border-[#7C3AED]" />
                     </div>
 
-                    <div className="md:col-span-2">
-                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Salario Base Mensual (Lempiras)</label>
-                        <input type="number" required name="salario" value={formData.salario} onChange={handleChange} placeholder="Ej. 15000" min="0" step="0.01" className="w-full md:w-1/2 bg-[#F8F9FF] border border-gray-100 text-sm font-medium px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/20 focus:border-[#7C3AED]" />
+                    <div>
+                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Salario Base Mensual (L)</label>
+                        <input type="number" required name="salario" value={formData.salario} onChange={handleChange} placeholder="Ej. 15000" min="0" step="0.01" className="w-full bg-[#F8F9FF] border border-gray-100 text-sm font-medium px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/20 focus:border-[#7C3AED]" />
                     </div>
                 </div>
 
