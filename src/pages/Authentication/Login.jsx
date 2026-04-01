@@ -4,6 +4,10 @@ import { useNavigate } from "react-router-dom";
 import { Mail, Eye, EyeOff, Lock } from "lucide-react";
 import { Link } from 'react-router-dom';
 
+import { collection, query, where, getDocs } from "firebase/firestore";
+import { db } from "../../firebase/firebase"; 
+import { getAuth, signOut } from "firebase/auth";
+
 export default function Login() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -20,11 +24,33 @@ export default function Login() {
         console.log("1. Iniciando proceso de autenticación...");
 
         try {
-            console.log("2. Llamando a Firebase...");
+            console.log("2. Llamando a Firebase Auth...");
             await login(email, password);
 
-            console.log("3. ¡Login exitoso! Redirigiendo...");
+            console.log("3. Verificando estado en la base de datos...");
+            
+            const q = query(collection(db, "usuarios"), where("correo", "==", email)); 
+            const querySnapshot = await getDocs(q);
+
+            if (!querySnapshot.empty) {
+                const userData = querySnapshot.docs[0].data();
+                
+                if (userData.estado === "INACTIVO") {
+                    console.log("¡Alerta! Usuario inactivo detectado. Cerrando sesión...");
+                    
+                    const auth = getAuth();
+                    await signOut(auth);
+                    
+                    setError("Acceso denegado: Tu cuenta ha sido inhabilitada.");
+                    return; 
+                }
+            } else {
+                console.log("El usuario no tiene un registro en la colección de usuarios.");
+            }
+
+            console.log("4. ¡Login exitoso y validado! Redirigiendo...");
             navigate("/");
+            
         } catch (err) {
             console.error("Error capturado:", err.code);
             if (err.code === 'auth/invalid-credential') {
@@ -36,10 +62,8 @@ export default function Login() {
     };
 
     return (
-        // Fondo general de la página (gris súper clarito)
         <div className="min-h-screen flex bg-[#F8FAFC] relative">
             
-            {/* ESTILO PARA MATAR EL AUTOFILL AMARILLO DE CHROME */}
             <style>{`
                 input:-webkit-autofill,
                 input:-webkit-autofill:hover, 
@@ -51,18 +75,12 @@ export default function Login() {
                 }
             `}</style>
 
-            {/* --- COLUMNA IZQUIERDA (Panel Oscuro) --- */}
+            {/* --- COLUMNA IZQUIERDA --- */}
             <div className="hidden md:flex w-1/2 p-4 sm:p-6 lg:p-8">
                 <div className="relative w-full h-full bg-gradient-to-br from-[#020817] to-[#1c0836] rounded-[2.5rem] flex flex-col justify-center p-12 lg:p-20 overflow-hidden shadow-xl">
-                    
-                    {/* Recorte/Mordisco Superior Izquierdo */}
                     <div className="absolute -top-4 -left-4 w-20 h-20 bg-[#F8FAFC] rounded-br-[2.5rem] shadow-[inset_-4px_-4px_10px_rgba(0,0,0,0.1)]"></div>
-                    
-                    {/* Recorte/Mordisco Inferior Derecho */}
                     <div className="absolute -bottom-4 -right-4 w-20 h-20 bg-[#F8FAFC] rounded-tl-[2.5rem] shadow-[inset_4px_4px_10px_rgba(0,0,0,0.1)]"></div>
-
                     <div className="z-10 relative">
-                        {/* Texto calcado de tu imagen 1 */}
                         <h1 className="text-4xl lg:text-5xl font-medium text-white leading-tight mb-6">
                             Gestionando el futuro<br />
                             de la <span className="text-[#7C3AED] font-bold">eficiencia<br />
@@ -75,19 +93,16 @@ export default function Login() {
                 </div>
             </div>
 
-            {/* --- COLUMNA DERECHA (Formulario) --- */}
+            {/* --- COLUMNA DERECHA --- */}
             <div className="w-full md:w-1/2 flex flex-col items-center justify-center p-4 sm:p-8">
-                
                 <div className="w-full max-w-[420px] flex flex-col items-center">
                     
-                    {/* Ícono 3D Flotante Arriba */}
                     <div className="mb-6 z-10">
                         <div className="bg-[#020817] rounded-full p-4 shadow-xl flex items-center justify-center w-20 h-20 border-[6px] border-[#F8FAFC]">
                             <Lock className="w-8 h-8 text-[#7C3AED]" />
                         </div>
                     </div>
 
-                    {/* Tarjeta Blanca del Formulario */}
                     <div className="w-full bg-white rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 p-8 sm:p-10 -mt-10 pt-16">
                         
                         <div className="text-center mb-8">
@@ -96,7 +111,6 @@ export default function Login() {
                         </div>
 
                         <form onSubmit={handleSubmit} className="space-y-5">
-                            {/* INPUT CORREO */}
                             <div>
                                 <label className="block text-[10px] font-bold text-[#64748B] uppercase tracking-widest mb-2">
                                     Correo Electrónico
@@ -114,7 +128,6 @@ export default function Login() {
                                 </div>
                             </div>
 
-                            {/* INPUT CONTRASEÑA */}
                             <div>
                                 <label className="block text-[10px] font-bold text-[#64748B] uppercase tracking-widest mb-2">
                                     Contraseña
@@ -138,21 +151,18 @@ export default function Login() {
                                 </div>
                             </div>
 
-                            {/* OLVIDASTE CONTRASEÑA */}
                             <div className="flex justify-end pt-1">
                                 <Link to="/recuperar-password" className="text-[11px] text-[#7C3AED] font-bold hover:underline">
                                     ¿Olvidaste tu contraseña?
                                 </Link>
                             </div>
 
-                            {/* MENSAJE DE ERROR (Movido abajo como en tu imagen 2) */}
                             {error && (
                                 <div className="bg-red-50 text-red-500 text-sm p-3 rounded-lg border border-red-100 text-center font-medium">
                                     {error}
                                 </div>
                             )}
 
-                            {/* BOTÓN DE LOGIN */}
                             <button
                                 type="submit"
                                 className="w-full bg-[#020817] text-white text-[13px] font-bold tracking-wide py-4 rounded-xl hover:bg-black transition-colors shadow-md mt-4"
