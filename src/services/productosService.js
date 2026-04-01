@@ -1,25 +1,21 @@
 // src/services/productosService.js
-import { collection, getDocs, doc, getDoc } from "firebase/firestore";
+import { collection, getDocs, doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 import { db } from "../firebase/firebase"; 
 
 const coleccion = "productos";
 
-// Obtener todos los productos para la tabla principal
+// Obtener todos los productos
 export const obtenerProductos = async () => {
     try {
         const querySnapshot = await getDocs(collection(db, coleccion));
-        const productos = querySnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data() 
-        }));
-        return productos;
+        return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     } catch (error) {
         console.error("Error al obtener los productos:", error);
         throw error;
     }
 };
 
-// Obtener un solo producto (te servirá más adelante para Editar o Ver Detalles)
+// Obtener un solo producto
 export const obtenerProductoPorId = async (idProducto) => {
     try {
         const docRef = doc(db, coleccion, idProducto);
@@ -32,6 +28,42 @@ export const obtenerProductoPorId = async (idProducto) => {
         }
     } catch (error) {
         console.error("Error al obtener el producto:", error);
+        throw error;
+    }
+};
+
+// Crear un NUEVO producto
+export const crearProducto = async (datosProducto) => {
+    try {
+        // Generamos un ID tipo "PROD-123456" usando los últimos dígitos del timestamp
+        const idGenerado = `PROD-${Date.now().toString().slice(-6)}`;
+        const docRef = doc(db, coleccion, idGenerado);
+        
+        await setDoc(docRef, {
+            productoId: idGenerado,
+            ...datosProducto,
+            fechaRegistro: new Date(),
+            fechaModificacion: new Date()
+        });
+        
+        return idGenerado;
+    } catch (error) {
+        console.error("Error al crear producto:", error);
+        throw error;
+    }
+};
+
+// (Opcional) Editar un producto existente
+export const actualizarProducto = async (idProducto, datosNuevos) => {
+    try {
+        const docRef = doc(db, coleccion, idProducto);
+        await updateDoc(docRef, {
+            ...datosNuevos,
+            fechaModificacion: new Date()
+        });
+        return true;
+    } catch (error) {
+        console.error("Error al actualizar producto:", error);
         throw error;
     }
 };

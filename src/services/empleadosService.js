@@ -1,5 +1,4 @@
-// src/services/empleadosService.js
-import { collection, getDocs, getDoc, doc, setDoc, updateDoc } from "firebase/firestore";
+import { collection, getDocs, getDoc, doc, query, where, setDoc, updateDoc } from "firebase/firestore";
 import { db } from "../firebase/firebase"; 
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { crearUsuarioBaseEmpleado } from "./usuariosService";
@@ -55,7 +54,6 @@ export const crearEmpleado = async (empleadoId, datosEmpleado) => {
     }
 };
 
-// AQUI ESTÁ EL CAMBIO CLAVE
 export const actualizarEmpleado = async (idEmpleado, datosNuevos) => {
     try {
         const docRef = doc(db, coleccion, idEmpleado);
@@ -65,9 +63,6 @@ export const actualizarEmpleado = async (idEmpleado, datosNuevos) => {
             fechaModificacion: new Date() 
         });
 
-        // ------------------------------------------------------------------
-        // MAGIA: Sincronizar la foto, nombre y estado con la colección de 'usuarios'
-        // ------------------------------------------------------------------
         const emailUsuario = datosNuevos.correo || datosNuevos.correoContacto;
         if (emailUsuario) {
             const usuarioRef = doc(db, "usuarios", emailUsuario.toLowerCase());
@@ -75,8 +70,8 @@ export const actualizarEmpleado = async (idEmpleado, datosNuevos) => {
             if (userSnap.exists()) {
                 await updateDoc(usuarioRef, {
                     nombre: `${datosNuevos.nombres} ${datosNuevos.apellidos}`.trim(),
-                    fotoUrl: datosNuevos.fotoUrl || "", // Pasamos la foto al usuario
-                    estado: datosNuevos.estado, // Sincronizamos si lo desactivan
+                    fotoUrl: datosNuevos.fotoUrl || "", 
+                    estado: datosNuevos.estado, 
                     fechaModificacion: new Date()
                 });
             }
@@ -91,18 +86,31 @@ export const actualizarEmpleado = async (idEmpleado, datosNuevos) => {
 
 export const desactivarEmpleado = async (idEmpleado) => {
     try {
-        const docRef = doc(db, coleccion, idEmpleado);
-        
-        await updateDoc(docRef, { 
+        const empleadoRef = doc(db, coleccion, idEmpleado);
+        await updateDoc(empleadoRef, { 
             estado: "INACTIVO",
             fechaModificacion: new Date() 
         });
 
-        // Opcional: Podrías buscar su correo y desactivar el usuario aquí también si quisieras
-        
+        const usuariosRef = collection(db, "usuarios");
+        const q = query(usuariosRef, where("idEmpleado", "==", idEmpleado)); 
+        const querySnapshot = await getDocs(q);
+
+        if (!querySnapshot.empty) {
+            const promesasUsuarios = querySnapshot.docs.map((usuarioDoc) => {
+                const usuarioRef = doc(db, "usuarios", usuarioDoc.id);
+                return updateDoc(usuarioRef, {
+                    estado: "INACTIVO",
+                    fechaModificacion: new Date()
+                });
+            });
+
+            await Promise.all(promesasUsuarios);
+        }
+
         return true;
     } catch (error) {
-        console.error("Error al desactivar empleado:", error);
+        console.error("Error al desactivar empleado y usuario:", error);
         throw error;
     }
 };

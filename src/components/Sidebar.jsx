@@ -17,6 +17,9 @@ import {
   PanelRightClose,
   X,
   Factory,
+  Building2, 
+  Briefcase, 
+  Shield,    
 } from "lucide-react";
 
 export default function Sidebar({
@@ -151,6 +154,19 @@ export default function Sidebar({
             {renderMenuItem(Users, "Usuarios", "/usuarios")}
             {renderMenuItem(UserSquare, "Empleados", "/empleados")}
             {renderMenuItem(Settings, "Configuraciones", "/configuraciones")}
+          </ul>
+        </div>
+
+        <div className="mb-6">
+          {!isCollapsed && (
+            <p className="text-[9px] font-bold text-gray-400 tracking-widest uppercase mb-3 px-6">
+              Organización
+            </p>
+          )}
+          <ul className="space-y-1 px-4">
+            {renderMenuItem(Building2, "Departamentos", "/departamentos")}
+            {renderMenuItem(Briefcase, "Cargos", "/cargos")}
+            {renderMenuItem(Shield, "Roles", "/roles")}
           </ul>
         </div>
 

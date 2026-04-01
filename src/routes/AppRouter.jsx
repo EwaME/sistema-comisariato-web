@@ -15,8 +15,18 @@ import Empleados from '../pages/Manage/Empleados/Gest_Empleados';
 import CrearEmpleado from '../pages/Manage/Empleados/CrearEmpleado';
 import DetalleEmpleado from '../pages/Manage/Empleados/DetalleEmpleado';
 
-import Inventario from '../pages/Manage/Productos/Gest_Inventario';
-import Categorias from '../pages/Manage/Productos/Gest_Categorias';
+import Gest_Roles from '../pages/Manage/Roles/Gest_Roles';
+import CrearRol from '../pages/Manage/Roles/CrearRol';
+
+import Gest_Cargos from '../pages/Manage/Cargos/Gest_Cargos';
+import CrearCargo from '../pages/Manage/Cargos/CrearCargo';
+
+import Gest_Departamentos from '../pages/Manage/Departamentos/Gest_Departamentos';
+import CrearDepartamento from '../pages/Manage/Departamentos/CrearDepartamento';
+
+import Inventario from '../pages/Manage/Inventario/Gest_Inventario';
+import CrearProducto from '../pages/Manage/Inventario/CrearProducto';
+import Categorias from '../pages/Manage/Inventario/Gest_Categorias';
 
 import Sugerencias from '../pages/Manage/Gest_Sugerencias';
 
@@ -56,25 +66,42 @@ export default function AppRouter() {
                 <Route path="usuarios" element={<Usuarios />} />
                 <Route path="usuarios/nuevo" element={<CrearUsuario />} />
 
+                {/* 3. Gestión de Empleados */}
                 <Route path="empleados" element={<Empleados />} />
                 <Route path="empleados/nuevo" element={<CrearEmpleado />} />
                 <Route path="empleados/editar/:id" element={<CrearEmpleado />} />
                 <Route path="empleados/detalle/:id" element={<DetalleEmpleado />} />
                 <Route path="configuraciones" element={<Configuraciones />} /> 
 
-                {/* 3. Gestión de Stock */}
-                <Route path="inventario" element={<Inventario />} /> 
-                <Route path="categorias" element={<Categorias />} /> 
-                
+                {/* 4. Gestión de Departamentos */}
+                <Route path="/departamentos" element={<Gest_Departamentos />} />
+                <Route path="/departamentos/nuevo" element={<CrearDepartamento />} />
+                <Route path="/departamentos/editar/:id" element={<CrearDepartamento />} />
 
-                {/* 4. Acreditaciones */}
+                {/* 5. Gestión de Cargos */}
+                <Route path="/cargos" element={<Gest_Cargos />} />
+                <Route path="/cargos/nuevo" element={<CrearCargo />} />
+                <Route path="/cargos/editar/:id" element={<CrearCargo />} />
+
+                {/* 5. Gestión de Roles */}
+                <Route path="/roles" element={<Gest_Roles />} />
+                <Route path="/roles/nuevo" element={<CrearRol />} />
+                <Route path="/roles/editar/:id" element={<CrearRol />} />
+
+                {/* 6. Gestión de Stock */}
+                <Route path="inventario" element={<Inventario />} /> 
+                <Route path="inventario/nuevo" element={<CrearProducto />} />
+                <Route path="inventario/editar/:id" element={<CrearProducto />} />
+                <Route path="categorias" element={<Categorias />} /> 
+
+                {/* 7. Acreditaciones */}
                 <Route path="creditos" element={<Creditos />} /> 
                 <Route path="reclamos" element={<Reclamos />} /> 
 
-                {/* 5. Análisis */}
+                {/* 8. Análisis */}
                 <Route path="reportes" element={<Reportes />} /> 
 
-                {/* 6. Comunidad */}
+                {/* 9. Comunidad */}
                 <Route path="sugerencias" element={<Sugerencias />} />
                 <Route path="comentarios" element={<Comentarios />} />
                 <Route path="guias" element={<GuiasyAyudas />} />

@@ -2,7 +2,11 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Mail } from 'lucide-react';
 import { sendPasswordResetEmail } from "firebase/auth";
-import { auth } from "../../firebase/firebase.js"; 
+import { doc, getDoc } from "firebase/firestore";
+import { auth, db } from "../../firebase/firebase.js";
+
+// ¡Importación de la imagen para que Vercel no llore! (Ajusta la ruta si es necesario)
+import shrekImg from '../../assets/img/shrekEnllavado.png'; 
 
 export default function RecuperarPassword() {
     const [email, setEmail] = useState('');
@@ -19,23 +23,37 @@ export default function RecuperarPassword() {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
             setError('Por favor, ingresa un formato de correo válido (ejemplo@empresa.com).');
-            return; // Detiene la función aquí y no consulta a Firebase
+            return; 
         }
 
         setLoading(true);
 
         try {
-            // 2. PETICIÓN A FIREBASE (Asegurate de apagar la protección en la consola)
-            await sendPasswordResetEmail(auth, email);
+            const emailMinuscula = email.toLowerCase().trim();
+
+            // 2. VALIDAR SI EL CORREO EXISTE EN LA COLECCIÓN "USUARIOS"
+            const usuarioRef = doc(db, "usuarios", emailMinuscula);
+            const usuarioSnap = await getDoc(usuarioRef);
+
+            // Si el documento NO existe, tiramos error y detenemos todo
+            if (!usuarioSnap.exists()) {
+                setError('No encontramos ningún usuario registrado con este correo en nuestro sistema.');
+                setLoading(false);
+                return;
+            }
+
+            // 3. SI EXISTE, MANDAMOS EL CORREO CON FIREBASE AUTH
+            await sendPasswordResetEmail(auth, emailMinuscula);
             setMensaje('¡Listo! Revisa tu bandeja de entrada o la carpeta de spam para restablecer tu contraseña.');
             setEmail('');
+
         } catch (err) {
-            console.error("Error de Firebase:", err.code); // Para que veas en consola qué error tira exactamente
+            console.error("Error al recuperar:", err); 
             
-            if (err.code === 'auth/user-not-found') {
-                setError('No encontramos ningún usuario registrado con este correo electrónico.');
-            } else if (err.code === 'auth/invalid-email') {
+            if (err.code === 'auth/invalid-email') {
                 setError('El formato del correo no es válido.');
+            } else if (err.code === 'auth/too-many-requests') {
+                setError('Has hecho demasiados intentos. Por favor, intenta más tarde.');
             } else {
                 setError('Ocurrió un error inesperado. Inténtalo de nuevo.');
             }
@@ -61,7 +79,7 @@ export default function RecuperarPassword() {
 
             {/* Shrek encerrado sin clave */}
             <div className="w-32 h-32 bg-purple-100 rounded-full flex items-center justify-center -mb-8 relative z-10 shadow-sm border-4 border-white">
-                <img src="src/assets/img/shrekEnllavado.png" alt="Recuperar" className="w-40 h-auto -mb-8 relative z-10" />
+                <img src={shrekImg} alt="Recuperar" className="w-40 h-auto -mb-8 relative z-10" />
             </div>
 
             {/* --- TARJETA BLANCA --- */}
