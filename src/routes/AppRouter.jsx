@@ -1,19 +1,19 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
-import AdminLayout from '../layouts/AdminLayout';
-import ProtectedRoute from '../auth/ProtectedRoute';
+import { Routes, Route, Navigate } from "react-router-dom";
+import AdminLayout from "../layouts/AdminLayout";
+import ProtectedRoute from "../auth/ProtectedRoute";
 
-import Login from '../pages/Authentication/Login';
-import RecuperarPassword from '../pages/Authentication/RecuperarPassword';
-import NuevaPassword from '../pages/Authentication/NuevaPassword';
+import Login from "../pages/Authentication/Login";
+import RecuperarPassword from "../pages/Authentication/RecuperarPassword";
+import NuevaPassword from "../pages/Authentication/NuevaPassword";
 
-import Dashboard from '../pages/Dashboards/Dashboard_Inicio';
+import Dashboard from "../pages/Dashboards/Dashboard_Inicio";
 
-import Usuarios from '../pages/Manage/Usuarios/Gest_Usuarios';
-import CrearUsuario from '../pages/Manage/Usuarios/CrearUsuario';
+import Usuarios from "../pages/Manage/Usuarios/Gest_Usuarios";
+import CrearUsuario from "../pages/Manage/Usuarios/CrearUsuario";
 
-import Empleados from '../pages/Manage/Empleados/Gest_Empleados';
-import CrearEmpleado from '../pages/Manage/Empleados/CrearEmpleado';
-import DetalleEmpleado from '../pages/Manage/Empleados/DetalleEmpleado';
+import Empleados from "../pages/Manage/Empleados/Gest_Empleados";
+import CrearEmpleado from "../pages/Manage/Empleados/CrearEmpleado";
+import DetalleEmpleado from "../pages/Manage/Empleados/DetalleEmpleado";
 
 import Gest_Roles from '../pages/Manage/Roles/Gest_Roles';
 import CrearRol from '../pages/Manage/Roles/CrearRol';
@@ -25,19 +25,21 @@ import Gest_Departamentos from '../pages/Manage/Departamentos/Gest_Departamentos
 import CrearDepartamento from '../pages/Manage/Departamentos/CrearDepartamento';
 
 import Inventario from '../pages/Manage/Inventario/Gest_Inventario';
-import CrearProducto from '../pages/Manage/Inventario/CrearProducto';
+import CrearProducto from '../pages/Manage/Inventario/CrearProducto.jsx';
 import Categorias from '../pages/Manage/Inventario/Gest_Categorias';
 
-import Sugerencias from '../pages/Manage/Gest_Sugerencias';
+import Sugerencias from "../pages/Manage/Gest_Sugerencias";
 
-import Configuraciones from '../pages/Manage/Gest_Configuraciones';
+import Configuraciones from "../pages/Manage/Gest_Configuraciones";
 
-import Creditos from '../pages/Manage/Gest_Creditos';
+import Creditos from "../pages/Manage/Creditos/Gest_Creditos";
+import RevisionCredito from "../pages/Manage/Creditos/Gest_Revision";
+import DetalleCredito from "../pages/Manage/Creditos/DetalleCredito";
 
-import Reclamos from '../pages/Manage/Gest_Reclamos'; 
-import Reportes from '../pages/Manage/Gest_Reportes';
-import Comentarios from '../pages/Manage/Gest_Comentarios';
-import GuiasyAyudas from '../pages/GuiasyAyudas';
+import Reclamos from "../pages/Manage/Gest_Reclamos";
+import Reportes from "../pages/Manage/Gest_Reportes";
+import Comentarios from "../pages/Manage/Gest_Comentarios";
+import GuiasyAyudas from "../pages/GuiasyAyudas";
 
 export default function AppRouter() {
     return (
@@ -95,8 +97,10 @@ export default function AppRouter() {
                 <Route path="categorias" element={<Categorias />} /> 
 
                 {/* 7. Acreditaciones */}
-                <Route path="creditos" element={<Creditos />} /> 
-                <Route path="reclamos" element={<Reclamos />} /> 
+                <Route path="creditos" element={<Creditos />} />
+                <Route path="creditos/revision/:id" element={<RevisionCredito />} />
+                <Route path="creditos/detalle/:id" element={<DetalleCredito />} />
+                <Route path="reclamos" element={<Reclamos />} />
 
                 {/* 8. Análisis */}
                 <Route path="reportes" element={<Reportes />} /> 
