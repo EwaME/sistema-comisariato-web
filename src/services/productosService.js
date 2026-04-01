@@ -1,10 +1,9 @@
-// src/services/productosService.js
 import { collection, getDocs, doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 import { db } from "../firebase/firebase"; 
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage"; // Importa Storage
 
 const coleccion = "productos";
 
-// Obtener todos los productos
 export const obtenerProductos = async () => {
     try {
         const querySnapshot = await getDocs(collection(db, coleccion));
@@ -15,7 +14,6 @@ export const obtenerProductos = async () => {
     }
 };
 
-// Obtener un solo producto
 export const obtenerProductoPorId = async (idProducto) => {
     try {
         const docRef = doc(db, coleccion, idProducto);
@@ -32,15 +30,12 @@ export const obtenerProductoPorId = async (idProducto) => {
     }
 };
 
-// Crear un NUEVO producto
 export const crearProducto = async (datosProducto) => {
     try {
-        // Generamos un ID tipo "PROD-123456" usando los últimos dígitos del timestamp
-        const idGenerado = `PROD-${Date.now().toString().slice(-6)}`;
+        const idGenerado = datosProducto.productoId; 
         const docRef = doc(db, coleccion, idGenerado);
         
         await setDoc(docRef, {
-            productoId: idGenerado,
             ...datosProducto,
             fechaRegistro: new Date(),
             fechaModificacion: new Date()
@@ -53,7 +48,6 @@ export const crearProducto = async (datosProducto) => {
     }
 };
 
-// (Opcional) Editar un producto existente
 export const actualizarProducto = async (idProducto, datosNuevos) => {
     try {
         const docRef = doc(db, coleccion, idProducto);
@@ -64,6 +58,49 @@ export const actualizarProducto = async (idProducto, datosNuevos) => {
         return true;
     } catch (error) {
         console.error("Error al actualizar producto:", error);
+        throw error;
+    }
+};
+
+// NUEVA FUNCIÓN PARA SUBIR IMÁGENES
+export const subirImagenProducto = async (archivo, idProducto, tipoVista) => {
+    try {
+        const storage = getStorage();
+        const extension = archivo.name.split('.').pop();
+        // Guardamos en: productos/PROD-001/frontal.jpg
+        const rutaImagen = `productos/${idProducto}/${tipoVista}.${extension}`;
+        const storageRef = ref(storage, rutaImagen);
+
+        await uploadBytes(storageRef, archivo);
+        const urlDescarga = await getDownloadURL(storageRef);
+        return urlDescarga;
+    } catch (error) {
+        console.error(`Error al subir la imagen ${tipoVista}:`, error);
+        throw error;
+    }
+};
+
+export const obtenerComentariosProducto = async (idProducto) => {
+    try {
+        const subcoleccion = collection(db, coleccion, idProducto, "comentarios");
+        const querySnapshot = await getDocs(subcoleccion);
+        return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+        console.error("Error al obtener comentarios:", error);
+        throw error;
+    }
+};
+
+export const actualizarVisibilidadComentario = async (idProducto, idComentario, visible) => {
+    try {
+        const docRef = doc(db, coleccion, idProducto, "comentarios", idComentario);
+        await updateDoc(docRef, {
+            visible,
+            fechaModificacion: new Date()
+        });
+        return true;
+    } catch (error) {
+        console.error("Error al actualizar comentario:", error);
         throw error;
     }
 };
