@@ -199,8 +199,8 @@ export default function Sidebar({
             </p>
           )}
           <ul className="space-y-1 px-4">
-            {renderMenuItem(Users, "Usuarios", "/usuarios")}
             {renderMenuItem(UserSquare, "Empleados", "/empleados")}
+            {renderMenuItem(Users, "Usuarios", "/usuarios")}
           </ul>
         </div>
 
