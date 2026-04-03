@@ -25,7 +25,6 @@ export const obtenerCreditosRealTime = (callback) => {
         id: doc.id,
         ...doc.data(),
       }));
-      // Ejecutamos el callback con los nuevos datos
       callback(creditos);
     },
     (error) => {

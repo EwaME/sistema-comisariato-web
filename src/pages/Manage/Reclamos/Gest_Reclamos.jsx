@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "../../../auth/AuthProvider";
+
 import {
-  obtenerCreditosRealTime,
+  obtenerReclamosRealTime,
   revisionState,
-} from "../../../services/creditosService";
+} from "../../../services/reclamosService";
+import { fromTimestamp } from "../../../helpers/timestampToDate";
 import {
   Plus,
   Search,
@@ -24,7 +26,7 @@ export default function Gest_Creditos() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const [creditos, setCreditos] = useState([]);
+  const [reclamos, setReclamos] = useState([]);
   const [cargando, setCargando] = useState(true);
 
   const [paginaActual, setPaginaActual] = useState(1);
@@ -34,7 +36,6 @@ export default function Gest_Creditos() {
   const filtroRef = useRef(null);
 
   const [filtrosTemp, setFiltrosTemp] = useState({ estado: "" });
-  // filtrosAplicados es lo que realmente filtra la tabla
   const [filtrosAplicados, setFiltrosAplicados] = useState({ estado: "" });
 
   const [menuActivo, setMenuActivo] = useState(null);
@@ -48,16 +49,9 @@ export default function Gest_Creditos() {
     </div>
   );
 
-  const formatearLempiras = (monto) => {
-    return new Intl.NumberFormat("es-HN", {
-      style: "currency",
-      currency: "HNL",
-    }).format(monto);
-  };
-
   useEffect(() => {
-    const desuscribirse = obtenerCreditosRealTime((nuevosCreditos) => {
-      setCreditos(nuevosCreditos);
+    const desuscribirse = obtenerReclamosRealTime((nuevosReclamos) => {
+      setReclamos(nuevosReclamos);
       setCargando(false);
     });
     return () => {
@@ -78,37 +72,37 @@ export default function Gest_Creditos() {
     return () => document.removeEventListener("mousedown", handleClickFuera);
   }, []);
 
-  const handleIniciarRevision = async (idCredito) => {
+  const handleIniciarRevision = async (idReclamo) => {
     if (!user || !user.email) {
       alert("No se detectó una sesión activa.");
       return;
     }
 
     try {
-      await revisionState(idCredito, user.email);
-      navigate(`revision/${idCredito}`);
+      await revisionState(idReclamo, user.email);
+      navigate(`revision/${idReclamo}`);
     } catch (error) {
       console.error("Error al iniciar revisión:", error);
       alert("Hubo un error al asignar el crédito.");
     }
   };
 
-  const toggleMenu = (idCredito) => {
-    if (menuActivo === idCredito) setMenuActivo(null);
-    else setMenuActivo(idCredito);
+  const toggleMenu = (idReclamo) => {
+    if (menuActivo === idReclamo) setMenuActivo(null);
+    else setMenuActivo(idReclamo);
   };
 
-  const creditosFiltrados = creditos.filter((credito) => {
+  const reclamosFiltrados = reclamos.filter((reclamo) => {
     const matchEstado =
       filtrosAplicados.estado === "" ||
-      credito.estado === filtrosAplicados.estado;
+      reclamo.estado === filtrosAplicados.estado;
 
     return matchEstado;
   });
 
-  const totalPaginas = Math.ceil(creditosFiltrados.length / itemsPorPagina);
+  const totalPaginas = Math.ceil(reclamosFiltrados.length / itemsPorPagina);
   const startIndex = (paginaActual - 1) * itemsPorPagina;
-  const creditosPaginados = creditosFiltrados.slice(
+  const reclamosPaginados = reclamosFiltrados.slice(
     startIndex,
     startIndex + itemsPorPagina,
   );
@@ -117,7 +111,7 @@ export default function Gest_Creditos() {
     if (paginaActual > totalPaginas && totalPaginas > 0) {
       setPaginaActual(1);
     }
-  }, [creditosFiltrados.length, paginaActual, totalPaginas]);
+  }, [reclamosFiltrados.length, paginaActual, totalPaginas]);
 
   const isFiltroActivo = filtrosAplicados.estado !== "";
 
@@ -143,7 +137,7 @@ export default function Gest_Creditos() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-4">
         <div>
           <h2 className="text-2xl font-extrabold text-[#020817]">
-            Gestión de Créditos
+            Gestión de Reclamos
           </h2>
           <p className="text-[13px] text-gray-500 mt-1 font-medium">
             Panel de control y respuesta para los clientes.
@@ -200,9 +194,8 @@ export default function Gest_Creditos() {
                   >
                     <option value="">Todos los estados</option>
                     <option value="Pendiente">Pendientes</option>
-                    <option value="Aprobado">Aprobados</option>
-                    <option value="Rechazado">Rechazados</option>
                     <option value="En revisión">En Revisión</option>
+                    <option value="Revisado">Revisado</option>
                   </select>
                 </div>
 
@@ -225,16 +218,16 @@ export default function Gest_Creditos() {
                 Cargando base de datos...
               </p>
             </div>
-          ) : creditosPaginados.length === 0 ? (
+          ) : reclamosPaginados.length === 0 ? (
             <div className="text-center py-20">
               <p className="text-gray-400 font-bold tracking-widest uppercase text-sm mb-2">
-                {creditos.length === 0
-                  ? "No hay créditos registrados"
+                {reclamos.length === 0
+                  ? "No hay reclamos registrados"
                   : "No se encontraron resultados"}
               </p>
               <p className="text-xs text-gray-400">
-                {creditos.length === 0
-                  ? "Haz clic en 'Nuevo Crédito' para comenzar."
+                {reclamos.length === 0
+                  ? "Haz clic en 'Nuevo Reclamo' para comenzar."
                   : "Intenta buscar con otros términos o cambia los filtros."}
               </p>
             </div>
@@ -243,16 +236,13 @@ export default function Gest_Creditos() {
               <thead>
                 <tr className="bg-[#F8F9FF] rounded-xl">
                   <th className="py-3 px-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest rounded-l-xl">
-                    Producto Solicitado
+                    Evidencia
                   </th>
                   <th className="py-3 px-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest">
-                    Credito Deducido
+                    Solicitante
                   </th>
                   <th className="py-3 px-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest">
-                    Plazos
-                  </th>
-                  <th className="py-3 px-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest">
-                    Estados
+                    Estado
                   </th>
                   <th className="py-3 px-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest text-center rounded-r-xl">
                     Acciones
@@ -260,10 +250,10 @@ export default function Gest_Creditos() {
                 </tr>
               </thead>
               <tbody className="text-sm font-medium text-[#020817]">
-                {/* Mapeamos creditosPaginados en lugar de creditos */}
-                {creditosPaginados.map((credito) => {
+                {/* Mapeamos reclamosPaginados en lugar de reclamos */}
+                {reclamosPaginados.map((reclamo) => {
                   const estadoNormalizado =
-                    credito.estado?.trim().toUpperCase() || "";
+                    reclamo.estado?.trim().toUpperCase() || "";
 
                   const esPendiente = estadoNormalizado === "PENDIENTE";
                   const esRevision =
@@ -274,11 +264,11 @@ export default function Gest_Creditos() {
                   const esRevisionStatus = [
                     "EN REVISION",
                     "EN REVISIÓN",
-                  ].includes(credito.estado?.trim().toUpperCase());
+                  ].includes(reclamo.estado?.trim().toUpperCase());
 
                   return (
                     <tr
-                      key={credito.id}
+                      key={reclamo.id}
                       className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors"
                     >
                       <td className="py-4 px-4">
@@ -287,10 +277,10 @@ export default function Gest_Creditos() {
                           <div className="w-10 h-10 rounded-xl overflow-hidden bg-gray-100 border border-gray-100 flex-shrink-0">
                             <img
                               src={
-                                credito.imagenProductoURL ||
+                                reclamo.evidenciaUrl ||
                                 "https://via.placeholder.com/150"
                               }
-                              alt={credito.nombreProducto}
+                              alt={reclamo.nombreProducto}
                               className="w-full h-full object-cover"
                               onError={(e) => {
                                 e.target.src =
@@ -301,10 +291,10 @@ export default function Gest_Creditos() {
 
                           <div>
                             <p className="font-bold text-[#020817]">
-                              {credito.nombreProducto}
+                              Asunto: {reclamo.asunto}
                             </p>
                             <p className="text-[11px] text-gray-400 font-medium">
-                              Solicitado por: {credito.usuario || "Sin correo"}
+                              Emitido: {fromTimestamp(reclamo.fechaEmision)}
                             </p>
                           </div>
                         </div>
@@ -312,11 +302,8 @@ export default function Gest_Creditos() {
 
                       <td className="py-4 px-4">
                         <p className="text-gray-600 font-medium text-xs">
-                          {formatearLempiras(credito.cuotaMensual)}
+                          {reclamo.solicitante}
                         </p>
-                      </td>
-                      <td className="py-4 px-4 text-gray-500 text-xs">
-                        {credito.plazoMeses + " Meses" || "No especificado"}
                       </td>
 
                       <td className="py-4 px-4">
@@ -342,16 +329,16 @@ export default function Gest_Creditos() {
                                 <AlertCircle className="w-3 h-3" />
                               )}
 
-                              {credito.estado || "PENDIENTE"}
+                              {reclamo.estado || "PENDIENTE"}
                             </span>
                           )}
 
                           {esRevision && (
                             <div className="flex items-center gap-2 bg-white border border-purple-100 shadow-sm rounded-full pr-3 pl-1 py-1 animate-in zoom-in-95 duration-300">
-                              {credito.revisorEmail === user?.email ? (
+                              {reclamo.revisorEmail === user?.email ? (
                                 <div className="flex items-center gap-1.5 pl-2">
                                   <span className="text-[10px] font-bold text-purple-700">
-                                    Estás revisando este crédito
+                                    Estás revisando este reclamo
                                   </span>
                                   <DotsPlaying />
                                 </div>
@@ -360,8 +347,8 @@ export default function Gest_Creditos() {
                                   <div className="w-6 h-6 rounded-full overflow-hidden border border-purple-100 flex-shrink-0 bg-purple-50 flex items-center justify-center">
                                     <img
                                       src={
-                                        credito.revisorFotoTemp ||
-                                        `https://ui-avatars.com/api/?name=${encodeURIComponent(credito.revisadoPor || "R")}&background=7C3AED&color=fff`
+                                        reclamo.revisorFotoTemp ||
+                                        `https://ui-avatars.com/api/?name=${encodeURIComponent(reclamo.revisadoPor || "R")}&background=7C3AED&color=fff`
                                       }
                                       alt="Revisor"
                                       className="w-full h-full object-cover"
@@ -372,8 +359,8 @@ export default function Gest_Creditos() {
                                   </div>
                                   <div className="flex items-center gap-1">
                                     <span className="text-[10px] font-bold text-gray-600">
-                                      {credito.revisadoPor
-                                        ? `${credito.revisadoPor.split(" ")[0]} ${credito.revisadoPor.split(" ")[2] || ""} está revisando`
+                                      {reclamo.revisadoPor
+                                        ? `${reclamo.revisadoPor.split(" ")[0]} ${reclamo.revisadoPor.split(" ")[2] || ""} está revisando`
                                         : "Asignando..."}
                                     </span>
                                     <DotsPlaying />
@@ -386,13 +373,13 @@ export default function Gest_Creditos() {
                       </td>
                       <td className="py-4 px-4 text-center relative">
                         <button
-                          onClick={() => toggleMenu(credito.id)}
+                          onClick={() => toggleMenu(reclamo.id)}
                           className="p-2 hover:bg-gray-100 rounded-lg text-gray-400 transition-colors focus:outline-none"
                         >
                           <MoreHorizontal className="w-5 h-5" />
                         </button>
 
-                        {menuActivo === credito.id && (
+                        {menuActivo === reclamo.id && (
                           <div
                             ref={menuRef}
                             className="absolute right-12 top-10 w-40 bg-white rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-gray-100 z-50 text-left overflow-hidden"
@@ -404,11 +391,11 @@ export default function Gest_Creditos() {
                             </div>
 
                             <div className="py-2 flex flex-col">
-                              {credito.estado?.toUpperCase() ===
+                              {reclamo.estado?.toUpperCase() ===
                                 "PENDIENTE" && (
                                 <button
                                   onClick={() =>
-                                    handleIniciarRevision(credito.id)
+                                    handleIniciarRevision(reclamo.id)
                                   }
                                   className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 text-left transition-colors block w-full"
                                 >
@@ -417,17 +404,17 @@ export default function Gest_Creditos() {
                               )}
 
                               {esRevisionStatus &&
-                                credito.revisorEmail?.trim().toLowerCase() ===
+                                reclamo.revisorEmail?.trim().toLowerCase() ===
                                   user?.email?.trim().toLowerCase() && (
                                   <Link
-                                    to={`/creditos/revision/${credito.id}`}
+                                    to={`/reclamos/revision/${reclamo.id}`}
                                     className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 text-left transition-colors block"
                                   >
                                     Continuar revision
                                   </Link>
                                 )}
                               <Link
-                                to={`/creditos/detalle/${credito.id}`}
+                                to={`/reclamos/detalle/${reclamo.id}`}
                                 className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 text-left transition-colors"
                               >
                                 Ver detalles
@@ -444,15 +431,15 @@ export default function Gest_Creditos() {
           )}
           <div className="-mx-6 border-t border-[#DADEE8]-100 my-2"></div>
 
-          {!cargando && creditosFiltrados.length > 0 && (
+          {!cargando && reclamosFiltrados.length > 0 && (
             <div className="flex flex-col sm:flex-row items-center justify-between mt-2 pt-4 border-t border-gray-50 gap-4">
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
                 Mostrando {startIndex + 1} a{" "}
                 {Math.min(
                   startIndex + itemsPorPagina,
-                  creditosFiltrados.length,
+                  reclamosFiltrados.length,
                 )}{" "}
-                de {creditosFiltrados.length} Resultados
+                de {reclamosFiltrados.length} Resultados
               </p>
 
               <div className="flex items-center gap-2">
