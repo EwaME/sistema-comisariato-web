@@ -8,7 +8,7 @@ import {
     obtenerConfiguracion, actualizarConfiguracion,
     obtenerPlazos, agregarPlazo, eliminarPlazo,
     obtenerGarantias, agregarGarantia, eliminarGarantia
-} from "../../services/configuracionesService";
+} from "../../../services/configuracionesService";
 
 const weekDays = ["L", "M", "X", "J", "V", "S", "D"];
 

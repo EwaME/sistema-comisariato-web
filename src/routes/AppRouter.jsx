@@ -5,6 +5,7 @@ import ProtectedRoute from "../auth/ProtectedRoute";
 import Login from "../pages/Authentication/Login";
 import RecuperarPassword from "../pages/Authentication/RecuperarPassword";
 import NuevaPassword from "../pages/Authentication/NuevaPassword";
+import MiPerfil from "../pages/Authentication/MiPerfil";
 
 import Dashboard from "../pages/Dashboards/Dashboard_Inicio";
 
@@ -34,7 +35,9 @@ import CrearCategoria from "../pages/Manage/Inventario/CrearCategoria";
 
 import Sugerencias from "../pages/Manage/Gest_Sugerencias";
 
-import Configuraciones from "../pages/Manage/Gest_Configuraciones";
+import Configuraciones from "../pages/Manage/GestionSistema/Gest_Configuraciones";
+import Auditorias from "../pages/Manage/GestionSistema/Auditorias";
+import Reportes from "../pages/Manage/GestionSistema/Gest_Reportes";
 
 import Creditos from "../pages/Manage/Creditos/Gest_Creditos";
 import RevisionCredito from "../pages/Manage/Creditos/Gest_Revision";
@@ -43,7 +46,6 @@ import DetalleCredito from "../pages/Manage/Creditos/DetalleCredito";
 import Reclamos from "../pages/Manage/Reclamos/Gest_Reclamos.jsx";
 import RevisionReclamo from "../pages/Manage/Reclamos/Gest_Revision.jsx";
 
-import Reportes from "../pages/Manage/Gest_Reportes";
 import GuiasyAyudas from "../pages/GuiasyAyudas";
 
 export default function AppRouter() {
@@ -68,6 +70,7 @@ export default function AppRouter() {
 
         {/* 1. General */}
         <Route path="dashboard" element={<Dashboard />} />
+        <Route path="perfil" element={<MiPerfil />} />
 
         {/* 2. Administración */}
         <Route path="usuarios" element={<Usuarios />} />
@@ -78,15 +81,11 @@ export default function AppRouter() {
         <Route path="empleados/nuevo" element={<CrearEmpleado />} />
         <Route path="empleados/editar/:id" element={<CrearEmpleado />} />
         <Route path="empleados/detalle/:id" element={<DetalleEmpleado />} />
-        <Route path="configuraciones" element={<Configuraciones />} />
 
         {/* 4. Gestión de Departamentos */}
         <Route path="/departamentos" element={<Gest_Departamentos />} />
         <Route path="/departamentos/nuevo" element={<CrearDepartamento />} />
-        <Route
-          path="/departamentos/editar/:id"
-          element={<CrearDepartamento />}
-        />
+        <Route path="/departamentos/editar/:id" element={<CrearDepartamento />} />
 
         {/* 5. Gestión de Cargos */}
         <Route path="/cargos" element={<Gest_Cargos />} />
@@ -103,10 +102,7 @@ export default function AppRouter() {
         <Route path="inventario/nuevo" element={<CrearProducto />} />
         <Route path="inventario/editar/:id" element={<CrearProducto />} />
         <Route path="inventario/detalle/:id" element={<DetalleProducto />} />
-        <Route
-          path="inventario/comentarios/:id"
-          element={<Gest_Comentarios_Producto />}
-        />
+        <Route path="inventario/comentarios/:id" element={<Gest_Comentarios_Producto />} />
 
         <Route path="categorias" element={<Categorias />} />
         <Route path="categorias/nuevo" element={<CrearCategoria />} />
@@ -120,7 +116,9 @@ export default function AppRouter() {
         <Route path="reclamos" element={<Reclamos />} />
         <Route path="reclamos/revision/:id" element={<RevisionReclamo />} />
 
-        {/* 8. Análisis */}
+        {/* 8. Gestión de Sistema */}
+        <Route path="configuraciones" element={<Configuraciones />} />
+        <Route path="auditorias" element={<Auditorias />} />
         <Route path="reportes" element={<Reportes />} />
 
         {/* 9. Comunidad */}
