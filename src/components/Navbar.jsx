@@ -1,30 +1,63 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
-  Search,
-  Bell,
   HelpCircle,
   LayoutDashboard,
   LogOut,
   Menu,
   ChevronRight,
+  User,
 } from "lucide-react";
 import { useAuth } from "../auth/AuthProvider";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import VideoPopover from "./VideoPopover";
+import { obtenerUsuarioPorId } from "../services/usuariosService";
 
 export default function Navbar({ setIsMobileOpen }) {
   const [showLogout, setShowLogout] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
-  const { logout } = useAuth();
+  const [dbUser, setDbUser] = useState(null);
+  
+  const { logout, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const navProfileMenuRef = useRef(null);
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (user?.email) {
+        try {
+          const userData = await obtenerUsuarioPorId(user.email);
+          if (userData) {
+            setDbUser(userData);
+          }
+        } catch (error) {
+          console.error(error);
+        }
+      }
+    };
+
+    fetchUserData();
+  }, [user]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (navProfileMenuRef.current && !navProfileMenuRef.current.contains(event.target)) {
+        setShowLogout(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const handleLogout = async () => {
     try {
       await logout();
       navigate("/login");
     } catch (error) {
-      console.error("Error al cerrar sesión:", error);
+      console.error(error);
     }
   };
 
@@ -40,7 +73,6 @@ export default function Navbar({ setIsMobileOpen }) {
   };
 
   return (
-    /* ESTILO APLICADO: Margen, Glassmorphism, Bordes definidos y redondeado suave */
     <div className="mx-3 mt-3 bg-white/10 backdrop-blur-xl border border-gray-200 rounded-xl h-16 px-4 md:px-6 flex items-center justify-between sticky top-3 z-30">
       <div className="flex items-center gap-4 text-sm font-medium">
         <button
@@ -50,7 +82,6 @@ export default function Navbar({ setIsMobileOpen }) {
           <Menu className="w-6 h-6" />
         </button>
 
-        {/* BREADCRUMBS DINÁMICOS */}
         <div className="hidden sm:flex items-center gap-2">
           <Link
             to="/"
@@ -102,13 +133,6 @@ export default function Navbar({ setIsMobileOpen }) {
 
       <div className="flex items-center gap-4 md:gap-6">
         <div className="hidden sm:flex items-center gap-4 text-gray-400">
-          <Search className="w-5 h-5 hover:text-gray-600 cursor-pointer transition-colors" />
-          <div className="relative">
-            <Bell className="w-5 h-5 hover:text-gray-600 cursor-pointer transition-colors" />
-            <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-          </div>
-
-          {/* Integración del VideoPopover manteniendo el estilo */}
           <VideoPopover
             open={showHelp}
             onOpenChange={setShowHelp}
@@ -125,29 +149,45 @@ export default function Navbar({ setIsMobileOpen }) {
 
         <div className="hidden sm:block h-6 w-px bg-gray-200"></div>
 
-        <div className="relative">
+        <div className="relative" ref={navProfileMenuRef}>
           <div
             className="flex items-center gap-3 cursor-pointer hover:bg-white/20 p-2 rounded-lg transition-colors"
             onClick={() => setShowLogout(!showLogout)}
           >
             <div className="text-right hidden sm:block">
               <p className="text-sm font-bold text-[#020817]">
-                Edward Maradiaga
+                {dbUser?.nombre ? `${dbUser.nombre.split(" ")[0]} ${dbUser.nombre.split(" ")[1] || ""}` : "Cargando..."}
               </p>
-              <p className="text-[11px] text-[#7C3AED] font-medium">
-                Administrador
+              <p className="text-[11px] text-[#7C3AED] font-medium capitalize">
+                {dbUser?.rol ? (dbUser.rol[1]?.toLowerCase() || dbUser.rol[0]?.toLowerCase()) : "..."}
               </p>
             </div>
-            <div className="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center text-lg border border-white/50">
-              🦖
+            
+            <div className="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center text-lg border border-white/50 overflow-hidden">
+                {dbUser?.fotoUrl ? (
+                    <img src={dbUser.fotoUrl} alt="Perfil" className="w-full h-full object-cover" />
+                ) : (
+                    "🦖"
+                )}
             </div>
           </div>
 
           {showLogout && (
             <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-100 rounded-xl shadow-xl py-2 z-50">
               <button
+                onClick={() => {
+                    navigate("/perfil");
+                    setShowLogout(false);
+                }}
+                className="w-full text-left px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-3 border-b border-gray-50"
+              >
+                <User className="w-4 h-4 text-gray-500" />
+                Mi Perfil
+              </button>
+              
+              <button
                 onClick={handleLogout}
-                className="w-full text-left px-4 py-2 text-sm font-bold text-red-500 hover:bg-red-50 transition-colors flex items-center gap-3"
+                className="w-full text-left px-4 py-2 text-sm font-bold text-red-500 hover:bg-red-50 transition-colors flex items-center gap-3 mt-1"
               >
                 <LogOut className="w-4 h-4" />
                 Cerrar Sesión

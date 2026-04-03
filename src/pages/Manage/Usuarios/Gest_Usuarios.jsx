@@ -306,7 +306,7 @@ export default function Gest_Usuarios() {
                         )}
 
                         <Link to="/usuarios/nuevo" className="bg-[#020817] text-white text-[11px] font-bold px-5 py-2.5 rounded-xl flex items-center justify-center gap-2 hover:bg-black transition-colors shadow-md w-full md:w-auto uppercase tracking-widest">
-                            Nuevo Usuario
+                            Asignar Usuario
                         </Link>
                     </div>
                 </div>

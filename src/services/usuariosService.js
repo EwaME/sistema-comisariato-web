@@ -106,3 +106,19 @@ export const actualizarUsuario = async (idUsuario, datosActualizados) => {
         throw error;
     }
 };
+
+export const obtenerUsuarioPorId = async (idDocumento) => {
+    try {
+        const docRef = doc(db, coleccion, idDocumento);
+        const docSnap = await getDoc(docRef);
+        
+        if (docSnap.exists()) {
+            return docSnap.data();
+        } else {
+            return null;
+        }
+    } catch (error) {
+        console.error("Error al obtener usuario:", error);
+        throw error;
+    }
+};

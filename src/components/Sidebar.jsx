@@ -1,5 +1,5 @@
-import React, { useRef, useState } from "react";
-import { NavLink } from "react-router-dom";
+import React, { useRef, useState, useEffect } from "react";
+import { NavLink, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   Users,
@@ -19,8 +19,13 @@ import {
   Factory,
   Building2, 
   Briefcase, 
-  Shield,    
+  Shield,
+  ShieldCheck,
+  LogOut,
+  User
 } from "lucide-react";
+import { useAuth } from "../auth/AuthProvider";
+import { obtenerUsuarioPorId } from "../services/usuariosService";
 
 export default function Sidebar({
   isCollapsed,
@@ -29,7 +34,52 @@ export default function Sidebar({
   setIsMobileOpen,
 }) {
   const scrollTimeout = useRef(null);
+  const profileMenuRef = useRef(null);
   const [isScrolling, setIsScrolling] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [dbUser, setDbUser] = useState(null);
+  
+  const { logout, user } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (user?.email) {
+        try {
+          const userData = await obtenerUsuarioPorId(user.email);
+          if (userData) {
+            setDbUser(userData);
+          }
+        } catch (error) {
+          console.error(error);
+        }
+      }
+    };
+
+    fetchUserData();
+  }, [user]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
+        setShowProfileMenu(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate("/login");
+    } catch (error) {
+      console.error("Error al cerrar sesión:", error);
+    }
+  };
 
   const handleScroll = () => {
     setIsScrolling(true);
@@ -71,7 +121,6 @@ export default function Sidebar({
       ${isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
     `}
     >
-      {/* LOGO Y TÍTULO + BOTÓN COLAPSAR */}
       <div
         className={`p-6 flex items-center h-20 shrink-0 ${isCollapsed ? "justify-center flex-col gap-2" : "justify-between"}`}
       >
@@ -117,7 +166,6 @@ export default function Sidebar({
         </button>
       </div>
 
-      {/* MENÚ CON SCROLL QUE APARECE SOLO AL SCROLLEAR */}
       <div
         onScroll={handleScroll}
         className={`flex-1 overflow-y-auto py-2 overflow-x-hidden
@@ -151,9 +199,8 @@ export default function Sidebar({
             </p>
           )}
           <ul className="space-y-1 px-4">
-            {renderMenuItem(Users, "Usuarios", "/usuarios")}
             {renderMenuItem(UserSquare, "Empleados", "/empleados")}
-            {renderMenuItem(Settings, "Configuraciones", "/configuraciones")}
+            {renderMenuItem(Users, "Usuarios", "/usuarios")}
           </ul>
         </div>
 
@@ -197,54 +244,83 @@ export default function Sidebar({
         <div className="mb-6">
           {!isCollapsed && (
             <p className="text-[9px] font-bold text-gray-400 tracking-widest uppercase mb-3 px-6">
-              Análisis
+              Comunidad
             </p>
           )}
           <ul className="space-y-1 px-4">
-            {renderMenuItem(BarChart3, "Reportes", "/reportes")}
+            {renderMenuItem(Edit3, "Sugerencias", "/sugerencias")}
+            {renderMenuItem(BookOpen, "Guías", "/guias")}
           </ul>
         </div>
 
         <div className="mb-6">
           {!isCollapsed && (
             <p className="text-[9px] font-bold text-gray-400 tracking-widest uppercase mb-3 px-6">
-              Comunidad
+              Análisis y Gestión
             </p>
           )}
           <ul className="space-y-1 px-4">
-            {renderMenuItem(Edit3, "Sugerencias", "/sugerencias")}
-            {renderMenuItem(MessageSquare, "Comentarios", "/comentarios")}
-            {renderMenuItem(BookOpen, "Guías", "/guias")}
+            {renderMenuItem(BarChart3, "Reportes", "/reportes")}
+            {renderMenuItem(Settings, "Configuraciones", "/configuraciones")}
+            {renderMenuItem(ShieldCheck, "Auditorías", "/auditorias")}
           </ul>
         </div>
       </div>
 
-      {/* PERFIL INFERIOR */}
-      <div
-        className={`p-4 shrink-0 mb-2 mt-2 ${isCollapsed ? "flex justify-center" : ""}`}
-      >
+      <div className="relative p-4 shrink-0 mb-2 mt-2" ref={profileMenuRef}>
         {!isCollapsed && (
           <p className="text-[9px] font-bold text-gray-400 tracking-widest uppercase mb-3 px-2">
             Cuenta
           </p>
         )}
         <div
-          className={`flex items-center gap-3 overflow-hidden ${isCollapsed ? "justify-center w-full" : "px-2"}`}
+          className={`flex items-center gap-3 cursor-pointer hover:bg-gray-200/50 p-2 rounded-xl transition-colors
+            ${isCollapsed ? "justify-center w-full p-0" : "px-2"}`}
+          onClick={() => setShowProfileMenu(!showProfileMenu)}
         >
-          <div className="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center overflow-hidden shrink-0 shadow-sm">
-            <span className="text-lg">🦖</span>
+          <div className="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center overflow-hidden shrink-0 shadow-sm border border-white">
+            {dbUser?.fotoUrl ? (
+                <img src={dbUser.fotoUrl} alt="Perfil" className="w-full h-full object-cover" />
+            ) : (
+                <span className="text-lg">🦖</span>
+            )}
           </div>
           {!isCollapsed && (
             <div className="whitespace-nowrap transition-opacity duration-300">
               <p className="text-[13px] font-bold text-[#020817]">
-                Edward Maradiaga
+                {dbUser?.nombre ? `${dbUser.nombre.split(" ")[0]} ${dbUser.nombre.split(" ")[1] || ""}` : "Cargando..."}
               </p>
-              <p className="text-[10px] text-[#7C3AED] font-bold">
-                Administrador
+              <p className="text-[10px] text-[#7C3AED] font-bold capitalize">
+                {dbUser?.rol ? dbUser.rol[1]?.toLowerCase() || dbUser.rol[0]?.toLowerCase() : "..."}
               </p>
             </div>
           )}
         </div>
+
+        {showProfileMenu && (
+          <div className={`absolute bottom-full mb-2 bg-white border border-gray-100 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] py-2 z-50
+            ${isCollapsed ? "left-4 w-48" : "left-4 right-4 w-auto"}`}
+          >
+            <button
+              onClick={() => {
+                  navigate("/perfil");
+                  setShowProfileMenu(false);
+              }}
+              className="w-full text-left px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-3 border-b border-gray-50"
+            >
+              <User className="w-4 h-4 text-gray-500" />
+              Mi Perfil
+            </button>
+            
+            <button
+              onClick={handleLogout}
+              className="w-full text-left px-4 py-2 text-sm font-bold text-red-500 hover:bg-red-50 transition-colors flex items-center gap-3 mt-1"
+            >
+              <LogOut className="w-4 h-4" />
+              Cerrar Sesión
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
