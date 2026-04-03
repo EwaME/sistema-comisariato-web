@@ -4,7 +4,6 @@ import { Search, Download, Calendar, ChevronDown, ChevronLeft, ChevronRight } fr
 export default function Auditorias() {
     const [busqueda, setBusqueda] = useState('');
 
-    // Datos simulados (Mock data) basados en tu imagen
     const logsData = [
         { id: 1, fecha: "24 Oct 2023", hora: "14:22:15", usuario: "Carlos Mendoza", avatar: "https://ui-avatars.com/api/?name=Carlos+Mendoza&background=0D8ABC&color=fff", accion: "EDICIÓN", modulo: "Inventario", descripcion: "Cambio de precio unitario en producto..." },
         { id: 2, fecha: "24 Oct 2023", hora: "11:05:40", usuario: "Elena Rivas", avatar: "https://ui-avatars.com/api/?name=Elena+Rivas&background=10B981&color=fff", accion: "CREACIÓN", modulo: "Pedidos", descripcion: "Nuevo pedido generado para 'Ingenio..." },
@@ -12,7 +11,6 @@ export default function Auditorias() {
         { id: 4, fecha: "23 Oct 2023", hora: "08:30:00", usuario: "Admin System", avatar: "https://ui-avatars.com/api/?name=Admin+System&background=111827&color=fff", accion: "ELIMINACIÓN", modulo: "Proveedores", descripcion: "Eliminado registro inactivo: 'Textiles de..." },
     ];
 
-    // Helper para los colores de las etiquetas de acción
     const getBadgeStyle = (accion) => {
         switch (accion) {
             case 'EDICIÓN': return 'bg-blue-50 text-blue-500 border-blue-100';

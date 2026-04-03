@@ -20,7 +20,7 @@ import {
   Building2, 
   Briefcase, 
   Shield,
-  ShieldCheck, // Icono para Auditorías
+  ShieldCheck,
   LogOut,
   User
 } from "lucide-react";
@@ -34,7 +34,7 @@ export default function Sidebar({
   setIsMobileOpen,
 }) {
   const scrollTimeout = useRef(null);
-  const profileMenuRef = useRef(null); // Ref para el menú de perfil
+  const profileMenuRef = useRef(null);
   const [isScrolling, setIsScrolling] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [dbUser, setDbUser] = useState(null);
@@ -42,7 +42,6 @@ export default function Sidebar({
   const { logout, user } = useAuth();
   const navigate = useNavigate();
 
-  // Obtener datos del usuario
   useEffect(() => {
     const fetchUserData = async () => {
       if (user?.email) {
@@ -60,7 +59,6 @@ export default function Sidebar({
     fetchUserData();
   }, [user]);
 
-  // Manejar click fuera del menú de perfil
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
@@ -123,7 +121,6 @@ export default function Sidebar({
       ${isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
     `}
     >
-      {/* LOGO Y TÍTULO + BOTÓN COLAPSAR */}
       <div
         className={`p-6 flex items-center h-20 shrink-0 ${isCollapsed ? "justify-center flex-col gap-2" : "justify-between"}`}
       >
@@ -169,7 +166,6 @@ export default function Sidebar({
         </button>
       </div>
 
-      {/* MENÚ CON SCROLL */}
       <div
         onScroll={handleScroll}
         className={`flex-1 overflow-y-auto py-2 overflow-x-hidden
@@ -272,7 +268,6 @@ export default function Sidebar({
         </div>
       </div>
 
-      {/* PERFIL INFERIOR DINÁMICO */}
       <div className="relative p-4 shrink-0 mb-2 mt-2" ref={profileMenuRef}>
         {!isCollapsed && (
           <p className="text-[9px] font-bold text-gray-400 tracking-widest uppercase mb-3 px-2">
@@ -303,7 +298,6 @@ export default function Sidebar({
           )}
         </div>
 
-        {/* Menú Flotante del Perfil (hacia arriba) */}
         {showProfileMenu && (
           <div className={`absolute bottom-full mb-2 bg-white border border-gray-100 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] py-2 z-50
             ${isCollapsed ? "left-4 w-48" : "left-4 right-4 w-auto"}`}

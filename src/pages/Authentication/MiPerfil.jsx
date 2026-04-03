@@ -5,7 +5,6 @@ export default function MiPerfil() {
     const [mostrarActual, setMostrarActual] = useState(false);
     const [mostrarNueva, setMostrarNueva] = useState(false);
     
-    // Simulación de datos del usuario autenticado
     const usuario = {
         nombre: "Edward Maradiaga",
         rol: "Administrador Principal",
@@ -24,7 +23,6 @@ export default function MiPerfil() {
                     <div className="relative mb-4">
                         <div className="w-24 h-24 rounded-2xl bg-gradient-to-tr from-[#7C3AED] to-[#3b82f6] p-1">
                             <div className="w-full h-full bg-white rounded-xl overflow-hidden border-2 border-white">
-                                {/* Usa una imagen real aquí, por ahora un placeholder */}
                                 <img src="https://ui-avatars.com/api/?name=Edward+Maradiaga&background=f3f4f6&color=7C3AED&size=150" alt="Perfil" className="w-full h-full object-cover" />
                             </div>
                         </div>

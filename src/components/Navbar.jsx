@@ -20,7 +20,7 @@ export default function Navbar({ setIsMobileOpen }) {
   const { logout, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const navProfileMenuRef = useRef(null); // Ref para el menú del navbar
+  const navProfileMenuRef = useRef(null);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -39,7 +39,6 @@ export default function Navbar({ setIsMobileOpen }) {
     fetchUserData();
   }, [user]);
 
-  // Manejar click fuera del menú del Navbar
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (navProfileMenuRef.current && !navProfileMenuRef.current.contains(event.target)) {
