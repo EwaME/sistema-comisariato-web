@@ -244,6 +244,18 @@ export default function Sidebar({
         <div className="mb-6">
           {!isCollapsed && (
             <p className="text-[9px] font-bold text-gray-400 tracking-widest uppercase mb-3 px-6">
+              Comunidad
+            </p>
+          )}
+          <ul className="space-y-1 px-4">
+            {renderMenuItem(Edit3, "Sugerencias", "/sugerencias")}
+            {renderMenuItem(BookOpen, "Guías", "/guias")}
+          </ul>
+        </div>
+
+        <div className="mb-6">
+          {!isCollapsed && (
+            <p className="text-[9px] font-bold text-gray-400 tracking-widest uppercase mb-3 px-6">
               Análisis y Gestión
             </p>
           )}
@@ -251,19 +263,6 @@ export default function Sidebar({
             {renderMenuItem(BarChart3, "Reportes", "/reportes")}
             {renderMenuItem(Settings, "Configuraciones", "/configuraciones")}
             {renderMenuItem(ShieldCheck, "Auditorías", "/auditorias")}
-          </ul>
-        </div>
-
-        <div className="mb-6">
-          {!isCollapsed && (
-            <p className="text-[9px] font-bold text-gray-400 tracking-widest uppercase mb-3 px-6">
-              Comunidad
-            </p>
-          )}
-          <ul className="space-y-1 px-4">
-            {renderMenuItem(Edit3, "Sugerencias", "/sugerencias")}
-            {renderMenuItem(MessageSquare, "Comentarios", "/comentarios")}
-            {renderMenuItem(BookOpen, "Guías", "/guias")}
           </ul>
         </div>
       </div>
