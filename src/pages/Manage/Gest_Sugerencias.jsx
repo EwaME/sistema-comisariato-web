@@ -1,135 +1,150 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
-    CalendarDays,
-    ChevronLeft,
-    ChevronRight,
-    MessageSquare,
-    Search,
-    SlidersHorizontal,
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  MessageSquare,
+  Loader2,
 } from "lucide-react";
 
-const sugerenciasMock = [
-    {
-        id: 1,
-        autor: "Alonzo Figueroa",
-        avatar: "AF",
-        titulo: "Optimización de empaque biodegradable",
-        descripcion:
-            "Deberíamos considerar la transición a materiales de empaque basados en hongos o algas. No solo reduce nuestro impacto ambiental, sino que a largo plazo los costos de importación de plástico virgen están subiendo.",
-        fecha: "12 Oct 2023",
-        comentarios: null,
-    },
-    {
-        id: 2,
-        autor: "Lucía Ferreyra",
-        avatar: "LF",
-        titulo: "Viernes de 'Deep Work' sin reuniones",
-        descripcion:
-            "Implementar una política donde los viernes después del mediodía no se permitan reuniones internas. Esto permitiría a los equipos cerrar sus tareas semanales sin interrupciones, mejorando la salud mental y la productividad antes del fin de semana.",
-        fecha: "14 Oct 2023",
-        comentarios: 12,
-    },
-];
+import { obtenerSugerencias } from "../../services/sugerenciasService";
+
+import { fromTimestamp } from "../../helpers/timestampToDate";
 
 export default function Sugerencias() {
+  const [sugerencias, setSugerencias] = useState([]);
+  const [cargando, setCargando] = useState(true);
+
+  // --- LÓGICA DE PAGINACIÓN (Basada en Gest_Creditos) ---
+  const [paginaActual, setPaginaActual] = useState(1);
+  const itemsPorPagina = 4;
+
+  useEffect(() => {
+    const desuscribirse = obtenerSugerencias((nuevasSugerencias) => {
+      setSugerencias(nuevasSugerencias);
+      setCargando(false);
+    });
+    return () => desuscribirse();
+  }, []);
+
+  // Cálculos de índices
+  const totalPaginas = Math.ceil(sugerencias.length / itemsPorPagina);
+  const startIndex = (paginaActual - 1) * itemsPorPagina;
+  const sugerenciasPaginadas = sugerencias.slice(
+    startIndex,
+    startIndex + itemsPorPagina,
+  );
+
+  // Reset de página si los datos cambian drásticamente
+  useEffect(() => {
+    if (paginaActual > totalPaginas && totalPaginas > 0) {
+      setPaginaActual(1);
+    }
+  }, [sugerencias.length, paginaActual, totalPaginas]);
+
+  if (cargando) {
     return (
-        <div className="p-4 md:p-8 max-w-[1600px] mx-auto">
-            <div className="mb-8">
-                <h2 className="text-4xl md:text-5xl font-black text-[#020817] tracking-tight">
-                    Sugerencias
-                </h2>
-                <p className="text-[13px] text-gray-500 mt-2 font-medium">
-                    Sección de visualización y feedback
-                </p>
-            </div>
+      <div className="min-h-screen bg-[#F8F9FF] flex flex-col items-center justify-center">
+        <Loader2 className="w-10 h-10 animate-spin text-[#7C3AED] mb-4" />
+        <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">
+          Cargando sugerencias...
+        </p>
+      </div>
+    );
+  }
 
-            <section className="bg-white rounded-[1.25rem] border border-gray-100 shadow-[0_2px_18px_rgb(0,0,0,0.03)] overflow-hidden">
-                <div className="p-4 md:p-5 flex flex-col lg:flex-row gap-4 lg:items-center lg:justify-between border-b border-gray-100">
-                    <div className="w-full lg:max-w-xl relative">
-                        <Search className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
-                        <input
-                            type="text"
-                            placeholder="Buscar por empleado..."
-                            className="w-full h-12 bg-[#F8F9FF] border border-gray-100 rounded-xl pl-11 pr-4 text-sm text-gray-500 placeholder:text-gray-400 outline-none"
-                            readOnly
-                        />
+  return (
+    <div className="p-4 md:p-8 max-w-[1600px] mx-auto">
+      <div className="mb-8">
+        <h2 className="text-4xl md:text-5xl font-black text-[#020817] tracking-tight">
+          Sugerencias
+        </h2>
+        <p className="text-[13px] text-gray-500 mt-2 font-medium">
+          Sección de visualización y feedback
+        </p>
+      </div>
+
+      <section className="bg-white rounded-[1.25rem] border border-gray-100 shadow-[0_2px_18px_rgb(0,0,0,0.03)] overflow-hidden">
+        {/* Lista de Sugerencias */}
+        <div className="p-4 md:p-5 space-y-4 md:space-y-5">
+          {sugerenciasPaginadas.length > 0 ? (
+            sugerenciasPaginadas.map((sugerencia) => (
+              <article
+                key={sugerencia.id}
+                className="border border-gray-100 rounded-2xl p-4 md:p-5 hover:bg-gray-50/50 transition-colors"
+              >
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <div className="sm:w-20 shrink-0 flex sm:flex-col items-center sm:items-start gap-3 sm:gap-2">
+                    <div className="w-11 h-11 rounded-full bg-[#E2E8F0] text-[#334155] font-black text-[11px] flex items-center justify-center shadow-sm overflow-hidden">
+                      <img
+                        src={sugerencia.fotoUsuario}
+                        alt="Foto del usuario"
+                      />
                     </div>
+                    <p className="text-[11px] leading-4 font-extrabold text-[#020817] sm:max-w-[72px]">
+                      {sugerencia.nombreUsuario.split(" ")[0]}{" "}
+                      {sugerencia.nombreUsuario.split(" ")[2]}
+                    </p>
+                  </div>
 
-                    <button className="shrink-0 h-11 px-4 rounded-xl border border-gray-100 text-[12px] font-semibold text-gray-600 bg-white flex items-center gap-2">
-                        <SlidersHorizontal className="w-3.5 h-3.5" />
-                        Ordenar por: Recientes
-                    </button>
-                </div>
-
-                <div className="p-4 md:p-5 space-y-4 md:space-y-5">
-                    {sugerenciasMock.map((sugerencia) => (
-                        <article
-                            key={sugerencia.id}
-                            className="border border-gray-100 rounded-2xl p-4 md:p-5 hover:bg-gray-50/50 transition-colors"
-                        >
-                            <div className="flex flex-col sm:flex-row gap-4">
-                                <div className="sm:w-20 shrink-0 flex sm:flex-col items-center sm:items-start gap-3 sm:gap-2">
-                                    <div className="w-11 h-11 rounded-full bg-[#E2E8F0] text-[#334155] font-black text-[11px] flex items-center justify-center shadow-sm">
-                                        {sugerencia.avatar}
-                                    </div>
-                                    <p className="text-[11px] leading-4 font-extrabold text-[#020817] sm:max-w-[72px]">
-                                        {sugerencia.autor}
-                                    </p>
-                                </div>
-
-                                <div className="flex-1">
-                                    <h3 className="text-[20px] leading-6 font-extrabold text-[#020817] mb-2">
-                                        {sugerencia.titulo}
-                                    </h3>
-                                    <p className="text-[14px] leading-7 text-gray-500 mb-4">
-                                        {sugerencia.descripcion}
-                                    </p>
-
-                                    <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[12px] text-gray-500 font-medium">
-                                        <span className="inline-flex items-center gap-2">
-                                            <CalendarDays className="w-3.5 h-3.5" />
-                                            {sugerencia.fecha}
-                                        </span>
-
-                                        {sugerencia.comentarios !== null && (
-                                            <span className="inline-flex items-center gap-2">
-                                                <MessageSquare className="w-3.5 h-3.5" />
-                                                {sugerencia.comentarios} comentarios
-                                            </span>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        </article>
-                    ))}
-                </div>
-
-                <div className="px-4 md:px-5 py-4 border-t border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                    <p className="text-[10px] font-bold text-[#64748B] tracking-[0.22em] uppercase">
-                        Mostrando 4 de 25 sugerencias
+                  <div className="flex-1">
+                    <h3 className="text-[20px] leading-6 font-extrabold text-[#020817] mb-2">
+                      {sugerencia.asunto}
+                    </h3>
+                    <p className="text-[14px] leading-7 text-gray-500 mb-4">
+                      {sugerencia.descripcion}
                     </p>
 
-                    <div className="flex items-center gap-2 text-[12px] font-semibold text-gray-500">
-                        <button className="w-8 h-8 rounded-lg border border-gray-100 grid place-items-center hover:bg-gray-50 transition-colors">
-                            <ChevronLeft className="w-4 h-4" />
-                        </button>
-                        <button className="w-8 h-8 rounded-lg bg-[#020817] text-white">1</button>
-                        <button className="w-8 h-8 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors">
-                            2
-                        </button>
-                        <button className="w-8 h-8 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors">
-                            3
-                        </button>
-                        <span className="px-1">...</span>
-                        <button className="w-8 h-8 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors">
-                            15
-                        </button>
-                        <button className="w-8 h-8 rounded-lg border border-gray-100 grid place-items-center hover:bg-gray-50 transition-colors">
-                            <ChevronRight className="w-4 h-4" />
-                        </button>
+                    <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[12px] text-gray-500 font-medium">
+                      <span className="inline-flex items-center gap-2">
+                        <CalendarDays className="w-3.5 h-3.5" />
+                        {fromTimestamp(sugerencia.fechaRegistro)}
+                      </span>
                     </div>
+                  </div>
                 </div>
-            </section>
+              </article>
+            ))
+          ) : (
+            <div className="py-20 text-center text-gray-400 font-medium">
+              No hay sugerencias disponibles.
+            </div>
+          )}
         </div>
-    );
+
+        {/* Footer / Paginado (Misma lógica que Gest_Creditos) */}
+        <div className="px-4 md:px-5 py-4 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+            Mostrando {startIndex + 1} a{" "}
+            {Math.min(startIndex + itemsPorPagina, sugerencias.length)} de{" "}
+            {sugerencias.length} sugerencias
+          </p>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPaginaActual((p) => Math.max(1, p - 1))}
+              disabled={paginaActual === 1}
+              className="p-2 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+
+            <span className="text-xs font-bold text-[#020817] px-3">
+              Página {paginaActual} de {totalPaginas || 1}
+            </span>
+
+            <button
+              onClick={() =>
+                setPaginaActual((p) => Math.min(totalPaginas, p + 1))
+              }
+              disabled={paginaActual === totalPaginas || totalPaginas === 0}
+              className="p-2 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
 }

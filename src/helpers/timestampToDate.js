@@ -1,5 +1,11 @@
 export const fromTimestamp = (timestamp) => {
-  const date = new Date(timestamp.seconds * 1000);
+  // Validación de seguridad: si no hay timestamp, retorna un string vacío o "Cargando..."
+  if (!timestamp || (!timestamp.seconds && !timestamp.toDate)) return "---";
+
+  const date = timestamp.toDate
+    ? timestamp.toDate()
+    : new Date(timestamp.seconds * 1000);
+
   return date.toLocaleString("es-HN", {
     day: "2-digit",
     month: "2-digit",
@@ -10,20 +16,31 @@ export const fromTimestamp = (timestamp) => {
 };
 
 export const calcularVencimiento = (fechaEmisionTimestamp, mesesGarantia) => {
-  if (!fechaEmisionTimestamp) return "N/A";
+  if (!fechaEmisionTimestamp) return null;
 
+  // Intentar convertir a Date de JS de forma segura
   const fecha = fechaEmisionTimestamp.toDate
     ? fechaEmisionTimestamp.toDate()
-    : new Date(fechaEmisionTimestamp.seconds * 1000);
+    : fechaEmisionTimestamp.seconds
+      ? new Date(fechaEmisionTimestamp.seconds * 1000)
+      : new Date(fechaEmisionTimestamp);
 
-  fecha.setMonth(fecha.getMonth() + mesesGarantia);
+  if (isNaN(fecha.getTime())) return null;
 
-  return fecha;
+  const nuevaFecha = new Date(fecha);
+  nuevaFecha.setMonth(nuevaFecha.getMonth() + (mesesGarantia || 0));
+
+  return nuevaFecha;
 };
 
 export const fromTimestampToSimpleDate = (timestamp) => {
-  const date = new Date(timestamp.seconds * 1000);
-  return date.toLocaleString("es-HN", {
+  if (!timestamp || (!timestamp.seconds && !timestamp.toDate)) return "---";
+
+  const date = timestamp.toDate
+    ? timestamp.toDate()
+    : new Date(timestamp.seconds * 1000);
+
+  return date.toLocaleDateString("es-HN", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
