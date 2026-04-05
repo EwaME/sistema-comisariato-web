@@ -1,10 +1,9 @@
-// src/services/cargosService.js
 import { collection, getDocs, getDoc, doc, setDoc, updateDoc } from "firebase/firestore";
 import { db } from "../firebase/firebase"; 
+import { registrarAuditoria } from "./auditoriasService";
 
 const coleccion = "cargos";
 
-// Recuperar TODOS los cargos
 export const obtenerCargos = async () => {
     try {
         const querySnapshot = await getDocs(collection(db, coleccion));
@@ -15,7 +14,6 @@ export const obtenerCargos = async () => {
     }
 };
 
-// Recuperar UN cargo por ID
 export const obtenerCargoPorId = async (idCargo) => {
     try {
         const docRef = doc(db, coleccion, idCargo);
@@ -28,10 +26,8 @@ export const obtenerCargoPorId = async (idCargo) => {
     }
 };
 
-// Crear un NUEVO cargo
 export const crearCargo = async (idCargo, datosCargo) => {
     try {
-        // Ejemplo de idCargo: "CAR-001"
         const docRef = doc(db, coleccion, idCargo.toUpperCase());
         await setDoc(docRef, {
             codigo: idCargo.toUpperCase(),
@@ -40,6 +36,14 @@ export const crearCargo = async (idCargo, datosCargo) => {
             fechaRegistro: new Date(),
             fechaModificacion: new Date()
         });
+
+        await registrarAuditoria(
+            "CREACIÓN", 
+            "Gestión de Cargos", 
+            `Se registró un nuevo cargo: ${datosCargo.nombre || idCargo.toUpperCase()}`, 
+            idCargo.toUpperCase()
+        );
+
         return true;
     } catch (error) {
         console.error("Error al crear cargo:", error);
@@ -47,7 +51,6 @@ export const crearCargo = async (idCargo, datosCargo) => {
     }
 };
 
-// Editar un cargo existente
 export const actualizarCargo = async (idCargo, datosNuevos) => {
     try {
         const docRef = doc(db, coleccion, idCargo);
@@ -55,6 +58,14 @@ export const actualizarCargo = async (idCargo, datosNuevos) => {
             ...datosNuevos,
             fechaModificacion: new Date()
         });
+
+        await registrarAuditoria(
+            "EDICIÓN", 
+            "Gestión de Cargos", 
+            `Se actualizaron los datos del cargo`, 
+            idCargo
+        );
+
         return true;
     } catch (error) {
         console.error("Error al actualizar cargo:", error);
@@ -62,7 +73,6 @@ export const actualizarCargo = async (idCargo, datosNuevos) => {
     }
 };
 
-// Desactivar (Inhabilitar) un cargo
 export const desactivarCargo = async (idCargo) => {
     try {
         const docRef = doc(db, coleccion, idCargo);
@@ -70,6 +80,14 @@ export const desactivarCargo = async (idCargo) => {
             estado: "INACTIVO",
             fechaModificacion: new Date()
         });
+
+        await registrarAuditoria(
+            "ELIMINACIÓN", 
+            "Gestión de Cargos", 
+            `Se inhabilitó el cargo y se cambió su estado a INACTIVO`, 
+            idCargo
+        );
+
         return true;
     } catch (error) {
         console.error("Error al inhabilitar cargo:", error);

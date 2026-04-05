@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
-import { crearRol, obtenerRolPorId, actualizarRol } from '../../../services/rolesService'; // Ajusta tu ruta
+import { crearRol, obtenerRolPorId, actualizarRol } from '../../../../services/rolesService';
 
 export default function CrearRol() {
     const navigate = useNavigate();
@@ -110,10 +110,8 @@ export default function CrearRol() {
 
             <form onSubmit={handleSubmit} className="bg-white p-6 md:p-10 rounded-[1.5rem] shadow-[0_2px_20px_rgb(0,0,0,0.02)] border border-gray-50">
                 
-                {/* AQUI CAMBIAMOS A md:grid-cols-3 */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    
-                    {/* NOMBRE DEL ROL (Columna 1) */}
+
                     <div>
                         <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Nombre del Rol (ID)</label>
                         <input 
@@ -132,7 +130,6 @@ export default function CrearRol() {
                         {isEdit && <p className="text-[10px] text-gray-400 mt-1 font-medium leading-tight">No modificable tras creación.</p>}
                     </div>
 
-                    {/* ENTORNO (Columna 2) */}
                     <div>
                         <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Entorno de Acceso</label>
                         <select 
@@ -148,7 +145,6 @@ export default function CrearRol() {
                         </select>
                     </div>
 
-                    {/* ESTADO (Columna 3) */}
                     <div>
                         <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Estado</label>
                         <select 
@@ -166,7 +162,6 @@ export default function CrearRol() {
                         </select>
                     </div>
 
-                    {/* DESCRIPCIÓN (Ocupa las 3 columnas abajo) */}
                     <div className="md:col-span-3">
                         <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Descripción de Responsabilidades</label>
                         <textarea 

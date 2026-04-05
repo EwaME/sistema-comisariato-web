@@ -1,9 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ChevronLeft, Camera, Upload } from 'lucide-react';
-import { crearEmpleado, obtenerEmpleados, obtenerEmpleadoPorId, actualizarEmpleado, subirImagenEmpleado } from '../../../services/empleadosService';
+import { ChevronLeft, Camera, Upload, Mail } from 'lucide-react';
+import { 
+    crearEmpleado, 
+    obtenerEmpleados, 
+    obtenerEmpleadoPorId, 
+    actualizarEmpleado, 
+    subirImagenEmpleado,
+    enviarCorreoBienvenida 
+} from '../../../services/empleadosService';
 
-// 1. IMPORTAMOS LO NECESARIO PARA LAS CONSULTAS
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from '../../../firebase/firebase'; 
 
@@ -15,9 +21,10 @@ export default function CrearEmpleado() {
     const [cargando, setCargando] = useState(false);
     const [cargandoDatos, setCargandoDatos] = useState(isEdit); 
 
-    // Estados para las listas dinámicas
     const [departamentos, setDepartamentos] = useState([]);
     const [cargos, setCargos] = useState([]);
+    
+    const [enviarNotificacion, setEnviarNotificacion] = useState(false);
 
     const hoy = new Date().toISOString().split('T')[0];
 
@@ -56,7 +63,7 @@ export default function CrearEmpleado() {
         };
 
         const inicializarFormulario = async () => {
-            await cargarListasDinamicas(); // Cargamos listas antes de los datos del usuario
+            await cargarListasDinamicas(); 
 
             if (isEdit) {
                 try {
@@ -175,6 +182,10 @@ export default function CrearEmpleado() {
                 await actualizarEmpleado(id, empleadoGuardar);
             } else {
                 await crearEmpleado(elId, empleadoGuardar);
+                
+                if (enviarNotificacion && formData.correo) {
+                    await enviarCorreoBienvenida(formData.correo, `${formData.nombres} ${formData.apellidos}`);
+                }
             }
             
             navigate('/empleados');
@@ -292,7 +303,6 @@ export default function CrearEmpleado() {
                         <input required name="telefono" value={formData.telefono} onChange={handleChange} placeholder="+504 0000-0000" maxLength="14" className="w-full bg-[#F8F9FF] border border-gray-100 text-sm font-medium px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/20 focus:border-[#7C3AED]" />
                     </div>
 
-                    {/* NUEVO: Departamento Dinámico */}
                     <div>
                         <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Departamento</label>
                         <select required name="departamento" value={formData.departamento} onChange={handleChange} className="w-full bg-[#F8F9FF] border border-gray-100 text-sm font-medium px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/20 focus:border-[#7C3AED] appearance-none">
@@ -303,7 +313,6 @@ export default function CrearEmpleado() {
                         </select>
                     </div>
 
-                    {/* NUEVO: Cargo Dinámico */}
                     <div>
                         <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Cargo / Posición</label>
                         <select required name="cargo" value={formData.cargo} onChange={handleChange} className="w-full bg-[#F8F9FF] border border-gray-100 text-sm font-medium px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/20 focus:border-[#7C3AED] appearance-none">
@@ -328,6 +337,31 @@ export default function CrearEmpleado() {
                         <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Salario Base Mensual (L)</label>
                         <input type="number" required name="salario" value={formData.salario} onChange={handleChange} placeholder="Ej. 15000" min="0" step="0.01" className="w-full bg-[#F8F9FF] border border-gray-100 text-sm font-medium px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/20 focus:border-[#7C3AED]" />
                     </div>
+
+                    {!isEdit && (
+                        <div className="col-span-1 md:col-span-2 mt-2 bg-[#F8F9FF] border border-purple-100 p-4 rounded-xl flex items-start gap-4 transition-all hover:border-purple-200">
+                            <div className="mt-0.5">
+                                <input 
+                                    id="checkCorreo"
+                                    type="checkbox" 
+                                    checked={enviarNotificacion}
+                                    onChange={(e) => setEnviarNotificacion(e.target.checked)}
+                                    className="w-5 h-5 text-[#7C3AED] border-gray-300 rounded focus:ring-[#7C3AED] cursor-pointer"
+                                />
+                            </div>
+                            <label htmlFor="checkCorreo" className="flex-1 cursor-pointer"> 
+                                <div className="flex items-center gap-2 mb-1">
+                                    <Mail className="w-4 h-4 text-[#7C3AED]" />
+                                    <span className="text-sm font-black text-[#020817]">
+                                        Enviar invitación a la App Móvil
+                                    </span>
+                                </div>
+                                <p className="text-xs text-gray-500 font-medium leading-relaxed">
+                                    Si habilitas esta opción, el sistema enviará un correo automático...
+                                </p>
+                            </label>
+                        </div>
+                    )}
                 </div>
 
                 <div className="flex items-center justify-end gap-3 pt-6 border-t border-gray-50">

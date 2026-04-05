@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import {
     CalendarDays, Check, ChevronDown, ChevronLeft, ChevronRight,
     Plus, Shield, Timer, Wallet, Warehouse, X, Loader2,
-    MessageSquare, Bell, Save, Zap
+    MessageSquare, Bell, Save, Zap, KeyRound
 } from "lucide-react";
 import {
     obtenerConfiguracion, actualizarConfiguracion,
@@ -55,6 +55,11 @@ export default function Gest_Configuraciones() {
     const [garantias, setGarantias] = useState([]);
     const [nuevaGarantia, setNuevaGarantia] = useState({ tipo: "meses", valor: "", requiereRevision: false });
     const [agregandoGarantia, setAgregandoGarantia] = useState(false);
+
+    // Modal Deducciones
+    const [modalDeducciones, setModalDeducciones] = useState(false);
+    const [inputPassword, setInputPassword] = useState("");
+    const [ejecutandoManual, setEjecutandoManual] = useState(false);
 
     // Calendario
     const hoy = new Date();
@@ -177,12 +182,21 @@ export default function Gest_Configuraciones() {
         }
     };
 
-    const handleEjecutarManual = () => {
-        const now = new Date();
-        setUltimaEjecucion(now.toLocaleString("es-HN", {
-            day: "2-digit", month: "2-digit", year: "numeric",
-            hour: "2-digit", minute: "2-digit"
-        }));
+    // Confirmación del Modal de Deducciones
+    const confirmarEjecucionManual = () => {
+        setEjecutandoManual(true);
+        // Simulando la verificación y ejecución... 
+        // Aquí iría tu lógica real o Firebase Function
+        setTimeout(() => {
+            const now = new Date();
+            setUltimaEjecucion(now.toLocaleString("es-HN", {
+                day: "2-digit", month: "2-digit", year: "numeric",
+                hour: "2-digit", minute: "2-digit"
+            }));
+            setEjecutandoManual(false);
+            setModalDeducciones(false);
+            setInputPassword("");
+        }, 1500);
     };
 
     if (cargando) {
@@ -195,39 +209,8 @@ export default function Gest_Configuraciones() {
     }
 
     return (
-        <div className="p-4 md:p-8 max-w-[1600px] mx-auto">
+        <div className="p-4 md:p-8 max-w-[1600px] mx-auto relative">
             <section className="rounded-[1.6rem] border border-[#E6E8F2] bg-[#F8F9FF] overflow-hidden">
-
-                {/* Breadcrumb */}
-                <div className="px-6 md:px-8 py-5 border-b border-[#E6E8F2] flex items-center justify-between gap-2 text-[14px] font-semibold">
-                    <div className="flex items-center gap-2">
-                        <span className="text-[#9AA1B5]">Administración</span>
-                        <ChevronRight size={15} className="text-[#C1C7D7]" />
-                        <span className="text-[#7C3AED]">Configuraciones</span>
-                    </div>
-
-                    {/* Botón guardar flotante en el header */}
-                    <button
-                        onClick={handleGuardar}
-                        disabled={guardando}
-                        className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-widest transition-all shadow-sm
-                            ${guardado
-                                ? 'bg-green-500 text-white'
-                                : guardando
-                                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                    : 'bg-[#020817] text-white hover:bg-black'
-                            }`}
-                    >
-                        {guardando ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : guardado ? (
-                            <Check size={14} />
-                        ) : (
-                            <Save size={14} />
-                        )}
-                        {guardando ? "Guardando..." : guardado ? "¡Guardado!" : "Guardar Cambios"}
-                    </button>
-                </div>
 
                 <div className="px-6 md:px-8 py-7">
                     <header className="mb-6">
@@ -248,7 +231,6 @@ export default function Gest_Configuraciones() {
                             </div>
 
                             <div className="px-4 md:px-6 py-5 space-y-5">
-
                                 {/* Mensaje de espera */}
                                 <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-4 items-start">
                                     <div>
@@ -412,7 +394,7 @@ export default function Gest_Configuraciones() {
                                                 placeholder="Ej: 12"
                                                 className="w-24 h-9 rounded-[10px] border border-[#E5E8F1] bg-[#F6F7FB] px-3 text-[13px] text-[#495063] outline-none focus:ring-2 focus:ring-[#7C3AED]/20"
                                             />
-                                            <label className="inline-flex items-center gap-1.5 text-[12px] text-[#7A8197] cursor-pointer">
+                                            <label className="inline-flex items-center gap-1.5 text-[12px] text-[#7A8197] cursor-pointer ml-2">
                                                 <input
                                                     type="checkbox"
                                                     checked={nuevaGarantia.requiereRevision}
@@ -425,7 +407,7 @@ export default function Gest_Configuraciones() {
                                                 type="button"
                                                 onClick={handleAgregarGarantia}
                                                 disabled={!nuevaGarantia.valor || agregandoGarantia}
-                                                className="h-9 px-4 rounded-full bg-[#020817] text-white text-[11px] font-bold inline-flex items-center gap-1.5 disabled:opacity-40 hover:bg-black transition-colors"
+                                                className="ml-2 h-9 px-4 rounded-full bg-[#020817] text-white text-[11px] font-bold inline-flex items-center gap-1.5 disabled:opacity-40 hover:bg-black transition-colors"
                                             >
                                                 {agregandoGarantia ? <Loader2 size={11} className="animate-spin" /> : <Plus size={11} />}
                                                 AGREGAR
@@ -502,7 +484,7 @@ export default function Gest_Configuraciones() {
                                     <select
                                         value={tiempoInactividad}
                                         onChange={(e) => setTiempoInactividad(e.target.value)}
-                                        className="w-full h-11 appearance-none rounded-[10px] border border-[#E5E8F1] bg-[#F6F7FB] px-4 pr-9 text-[14px] text-[#495063] outline-none"
+                                        className="w-full h-11 appearance-none rounded-[10px] border border-[#E5E8F1] bg-[#F6F7FB] px-4 pr-9 text-[14px] text-[#495063] outline-none focus:ring-2 focus:ring-[#7C3AED]/20"
                                     >
                                         <option value="15">15 Minutos</option>
                                         <option value="30">30 Minutos</option>
@@ -520,18 +502,20 @@ export default function Gest_Configuraciones() {
                                 <Timer size={20} className="text-[#7C3AED]" /> HORARIO Y AUTOMATIZACIÓN
                             </h2>
 
-                            <div className="grid grid-cols-1 xl:grid-cols-[1fr_280px] gap-5">
-                                <div>
-                                    <div className="grid grid-cols-1 lg:grid-cols-[1fr_240px] gap-4">
+                            <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-8 items-start">
+                                
+                                {/* Columna Izquierda: Controles y Ejecución Manual */}
+                                <div className="flex flex-col gap-6">
+                                    <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-4">
                                         <div>
                                             <p className="text-[14px] font-bold text-[#2D3648]">Próxima Fecha de Deducción</p>
-                                            <p className="text-[12px] text-[#8A91A6] leading-4 mt-1">Configure el ciclo de deducciones automáticas del sistema.</p>
+                                            <p className="text-[12px] text-[#8A91A6] leading-4 mt-1">Configure el día del mes para el cobro automático.</p>
                                         </div>
-                                        <div className="relative">
+                                        <div className="relative max-w-[200px]">
                                             <select
                                                 value={diaFechaCobro}
                                                 onChange={(e) => setDiaFechaCobro(e.target.value)}
-                                                className="w-full h-11 appearance-none rounded-[10px] border border-[#E5E8F1] bg-[#F6F7FB] px-4 pr-9 text-[14px] text-[#495063] outline-none"
+                                                className="w-full h-11 appearance-none rounded-[10px] border border-[#E5E8F1] bg-[#F6F7FB] px-4 pr-9 text-[14px] text-[#495063] outline-none focus:ring-2 focus:ring-[#7C3AED]/20"
                                             >
                                                 {[1, 5, 10, 15, 20, 25].map(d => (
                                                     <option key={d} value={String(d)}>Día {d}</option>
@@ -541,44 +525,49 @@ export default function Gest_Configuraciones() {
                                         </div>
                                     </div>
 
-                                    <button
-                                        type="button"
-                                        onClick={() => setDeduccionesAutomaticas(prev => !prev)}
-                                        className="mt-4 inline-flex items-center gap-3"
-                                    >
-                                        <span className={`h-5 w-9 rounded-full p-[2px] transition ${deduccionesAutomaticas ? "bg-[#2563EB]" : "bg-[#D5DBEB]"}`}>
-                                            <span className={`block h-4 w-4 rounded-full bg-white transition ${deduccionesAutomaticas ? "translate-x-4" : "translate-x-0"}`} />
-                                        </span>
-                                        <span className="text-left">
-                                            <strong className="block text-[12px] font-bold text-[#2D3648]">Deducciones Automáticas (Recomendado)</strong>
-                                            <small className="text-[11px] text-[#8A91A6]">Ejecuta tareas cada día seleccionado.</small>
-                                        </span>
-                                    </button>
-
-                                    <button
-                                        type="button"
-                                        onClick={handleEjecutarManual}
-                                        className="mt-5 h-11 px-3 ml-40 rounded-[10px] bg-black text-white text-[12px] font-bold inline-flex items-center gap-2 hover:bg-gray-900 transition-colors"
-                                    >
-                                        <Zap size={14} /> Ejecutar Deducciones Manuales
-                                    </button>
-
-                                    <div className="mt-3 flex items-start gap-2 text-[11px] text-[#A3A9BA]">
-                                        <input type="radio" readOnly checked className="mt-[2px] h-3 w-3 accent-[#7C3AED]" />
-                                        <span>Revisar esta acción únicamente si tiene autorizaciones administrativas.</span>
-                                    </div>
-
-                                    {ultimaEjecucion && (
-                                        <div className="mt-3 inline-flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[12px] font-semibold text-emerald-700">
-                                            <Check size={14} /> Última ejecución manual: {ultimaEjecucion}
+                                    <div className="bg-[#F8F9FF] p-5 rounded-2xl border border-[#EEF0F6]">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <div>
+                                                <strong className="block text-[14px] font-extrabold text-[#2D3648]">Deducciones Automáticas</strong>
+                                                <small className="text-[12px] text-[#8A91A6]">Ejecuta tareas cada día seleccionado (Recomendado).</small>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => setDeduccionesAutomaticas(prev => !prev)}
+                                                className={`relative h-6 w-11 rounded-full transition-colors ${deduccionesAutomaticas ? "bg-[#7C3AED]" : "bg-[#D5DBEB]"}`}
+                                            >
+                                                <span className={`absolute left-1 top-1 block h-4 w-4 rounded-full bg-white transition-transform ${deduccionesAutomaticas ? "translate-x-5" : "translate-x-0"}`} />
+                                            </button>
                                         </div>
-                                    )}
+                                        
+                                        <hr className="my-4 border-[#E6E8F2]"/>
+                                        
+                                        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                                            <div className="flex items-start gap-2 text-[11px] text-[#585a5f] max-w-[240px]">
+                                                <Zap size={14} className="text-orange-500 shrink-0 mt-0.5" />
+                                                <span>Si deshabilitas la automatización u ocurre un error, deberás forzar los cobros manualmente.</span>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => setModalDeducciones(true)}
+                                                className="h-10 px-4 rounded-xl bg-black border text-white text-[12px] font-bold inline-flex items-center gap-2 hover:bg-gray-500 transition-colors whitespace-nowrap"
+                                            >
+                                                <Timer size={14} /> Ejecutar Deducción Manual
+                                            </button>
+                                        </div>
+                                        
+                                        {ultimaEjecucion && (
+                                            <div className="mt-4 w-full flex items-center justify-center gap-2 rounded-lg bg-white border border-gray-100 px-3 py-2 text-[11px] font-semibold text-gray-500 shadow-sm">
+                                                <Check size={12} className="text-emerald-500" /> Última ejecución manual: {ultimaEjecucion}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
 
-                                {/* Calendario */}
-                                <aside className="rounded-xl border border-[#E8EBF3] bg-[#FAFBFF] p-4 h-fit">
-                                    <div className="flex items-center justify-between mb-3">
-                                        <strong className="text-[14px] font-extrabold text-[#3A4256]">
+                                {/* Columna Derecha: Calendario (Widget Style) */}
+                                <aside className="rounded-[1.25rem] border border-[#E8EBF3] bg-white p-5 shadow-[0_4px_20px_rgb(0,0,0,0.03)] h-fit mx-auto lg:mx-0 w-full max-w-[320px]">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <strong className="text-[15px] font-extrabold text-[#020817] uppercase tracking-wide">
                                             {NOMBRES_MESES[mesCalendario]} {añoCalendario}
                                         </strong>
                                         <div className="inline-flex items-center gap-1">
@@ -588,9 +577,9 @@ export default function Gest_Configuraciones() {
                                                     if (mesCalendario === 0) { setMesCalendario(11); setAñoCalendario(a => a - 1); }
                                                     else setMesCalendario(m => m - 1);
                                                 }}
-                                                className="h-6 w-6 rounded-md border border-[#E5E8F1] text-[#9AA1B5] grid place-items-center hover:bg-gray-50"
+                                                className="h-7 w-7 rounded-lg border border-[#E5E8F1] text-[#9AA1B5] flex items-center justify-center hover:bg-gray-50 transition-colors"
                                             >
-                                                <ChevronLeft size={12} />
+                                                <ChevronLeft size={14} />
                                             </button>
                                             <button
                                                 type="button"
@@ -598,28 +587,28 @@ export default function Gest_Configuraciones() {
                                                     if (mesCalendario === 11) { setMesCalendario(0); setAñoCalendario(a => a + 1); }
                                                     else setMesCalendario(m => m + 1);
                                                 }}
-                                                className="h-6 w-6 rounded-md border border-[#E5E8F1] text-[#9AA1B5] grid place-items-center hover:bg-gray-50"
+                                                className="h-7 w-7 rounded-lg border border-[#E5E8F1] text-[#9AA1B5] flex items-center justify-center hover:bg-gray-50 transition-colors"
                                             >
-                                                <ChevronRight size={12} />
+                                                <ChevronRight size={14} />
                                             </button>
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-7 text-center text-[10px] font-semibold text-[#A0A7BA] mb-1">
-                                        {weekDays.map(d => <span key={d}>{d}</span>)}
+                                    <div className="grid grid-cols-7 text-center text-[10px] font-black text-[#A0A7BA] mb-2">
+                                        {weekDays.map(d => <span key={d} className="py-1">{d}</span>)}
                                     </div>
 
-                                    <div className="grid grid-cols-7 gap-y-1 text-center">
+                                    <div className="grid grid-cols-7 gap-y-1 gap-x-1 text-center">
                                         {diasGrid.map((day, index) => (
                                             <button
                                                 type="button"
                                                 key={`${day || "e"}-${index}`}
                                                 disabled={day === null}
                                                 onClick={() => { if (day !== null) setDiaFechaCobro(String(day)); }}
-                                                className={`h-7 w-7 mx-auto rounded-full text-[11px] font-semibold transition-colors ${
+                                                className={`h-8 w-full rounded-lg text-[12px] font-bold transition-all ${
                                                     day === null ? "opacity-0 cursor-default"
-                                                    : String(day) === String(diaFechaCobro) ? "bg-[#7C3AED] text-white"
-                                                    : "text-[#525A70] hover:bg-[#EEF1FA]"
+                                                    : String(day) === String(diaFechaCobro) ? "bg-[#7C3AED] text-white shadow-md shadow-[#7C3AED]/30 scale-105"
+                                                    : "text-[#525A70] hover:bg-[#F3F4F6]"
                                                 }`}
                                             >
                                                 {day || ""}
@@ -627,16 +616,95 @@ export default function Gest_Configuraciones() {
                                         ))}
                                     </div>
 
-                                    <p className="text-[10px] text-[#9EA5B8] mt-4">
-                                        Próxima deducción: <strong className="text-[#495063]">Día {diaFechaCobro} de {NOMBRES_MESES[mesCalendario]}</strong>
-                                    </p>
+                                    <div className="mt-5 pt-4 border-t border-[#F0F2F8] text-center">
+                                        <p className="text-[11px] text-[#9EA5B8]">
+                                            Día de cobro: <strong className="text-[#020817] bg-gray-100 px-2 py-0.5 rounded">Día {diaFechaCobro}</strong>
+                                        </p>
+                                    </div>
                                 </aside>
+
                             </div>
                         </div>
 
                     </div>
+                    <div className="px-6 md:px-8 py-5 border-t border-[#E6E8F2] flex justify-end">
+                    <button
+                        onClick={handleGuardar}
+                        disabled={guardando}
+                        className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-[15px] font-bold uppercase tracking-widest transition-all shadow-sm
+                            ${guardado
+                                ? 'bg-green-500 text-white'
+                                : guardando
+                                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                    : 'bg-[#020817] text-white hover:bg-black'
+                            }`}
+                    >
+                        {guardando ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : guardado ? (
+                            <Check size={14} />
+                        ) : (
+                            <Save size={14} />
+                        )}
+                        {guardando ? "Guardando..." : guardado ? "¡Guardado!" : "Guardar Cambios"}
+                    </button>
+                </div>
                 </div>
             </section>
+
+            {/* MODAL EJECUTAR DEDUCCIONES MANUALES */}
+            {modalDeducciones && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#020817]/60 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-[1.5rem] shadow-2xl w-full max-w-md overflow-hidden transform transition-all border border-gray-100">
+                        <div className="bg-orange-50/80 p-6 flex flex-col items-center border-b border-orange-100 relative">
+                            <button onClick={() => {setModalDeducciones(false); setInputPassword("");}} className="absolute top-4 right-4 text-orange-400 hover:text-orange-600 transition-colors">
+                                <X className="w-5 h-5" />
+                            </button>
+                            <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-md mb-4 border border-orange-100">
+                                <Zap className="w-8 h-8 text-orange-500 fill-orange-100" />
+                            </div>
+                            <h3 className="text-lg font-extrabold text-[#020817] text-center">¿Ejecutar Deducciones?</h3>
+                            <p className="text-[12px] font-medium text-orange-600 mt-2 text-center px-4 leading-relaxed">
+                                Esta acción procesará todos los cobros programados de forma inmediata. Solo usa esto si el proceso automático falló.
+                            </p>
+                        </div>
+                        <div className="p-6">
+                            <div className="mb-5">
+                                <label className="block text-[11px] font-extrabold text-gray-500 uppercase tracking-widest mb-2 text-center">
+                                    Autenticación Requerida
+                                </label>
+                                <div className="relative">
+                                    <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                    <input 
+                                        type="password"
+                                        value={inputPassword}
+                                        onChange={(e) => setInputPassword(e.target.value)}
+                                        placeholder="Contraseña de administrador..."
+                                        className="w-full text-center bg-[#F8F9FF] border border-gray-200 text-sm font-bold pl-10 pr-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
+                                    />
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <button onClick={() => {setModalDeducciones(false); setInputPassword("");}} className="flex-1 bg-white border border-gray-200 text-gray-600 text-[11px] font-bold py-3 rounded-xl hover:bg-gray-50 transition-colors tracking-widest uppercase">
+                                    Cancelar
+                                </button>
+                                <button 
+                                    onClick={confirmarEjecucionManual}
+                                    disabled={!inputPassword || ejecutandoManual}
+                                    className={`flex-1 text-white text-[11px] font-bold py-3 rounded-xl shadow-md transition-all tracking-widest uppercase flex items-center justify-center gap-2
+                                        ${(!inputPassword || ejecutandoManual) 
+                                            ? 'bg-orange-300 cursor-not-allowed opacity-70 shadow-none' 
+                                            : 'bg-orange-500 hover:bg-orange-600 shadow-orange-500/20'
+                                        }`}
+                                >
+                                    {ejecutandoManual ? <Loader2 className="w-4 h-4 animate-spin" /> : <Timer className="w-4 h-4" />}
+                                    {ejecutandoManual ? 'Procesando...' : 'Sí, Ejecutar'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ChevronLeft, Camera, Loader2 } from 'lucide-react';
-import { crearCategoria, obtenerCategoriaPorId, actualizarCategoria, subirImagenCategoria, obtenerCategorias } from "../../../services/categoriasService";import { db } from '../../../firebase/firebase';
+import { crearCategoria, obtenerCategoriaPorId, actualizarCategoria, subirImagenCategoria, obtenerCategorias } from "../../../services/categoriasService";
+import { db } from '../../../firebase/firebase';
 
 export default function CrearCategoria() {
     const navigate = useNavigate();
     const { id } = useParams();
-    const isEdit = Boolean(id);
+    
+    const isEdit = Boolean(id) && id !== 'nuevo'; 
     const fileInputRef = useRef(null);
 
     const [cargando, setCargando] = useState(false);
@@ -16,7 +18,7 @@ export default function CrearCategoria() {
         categoriaId: 'Calculando...',
         nombre: '',
         descripcion: '',
-        estado: 'Activo',
+        estado: 'ACTIVO', 
         imagenUrl: ''
     });
 
@@ -28,17 +30,21 @@ export default function CrearCategoria() {
             if (isEdit) {
                 try {
                     const cat = await obtenerCategoriaPorId(id);
-                    setFormData(cat);
+                    setFormData({...cat, estado: cat.estado?.toUpperCase() || 'ACTIVO'});
                     setPreviewImagen(cat.imagenUrl);
                 } catch (error) {
                     navigate('/categorias');
                 } finally { setCargandoDatos(false); }
             } else {
-                // Generar ID correlativo CAT-01, CAT-02...
-                const todas = await obtenerCategorias();
-                const proxId = `CAT-${String(todas.length + 1).padStart(2, '0')}`;
-                setFormData(prev => ({ ...prev, categoriaId: proxId }));
-                setCargandoDatos(false);
+                try {
+                    const todas = await obtenerCategorias();
+                    const proxId = `CAT-${String(todas.length + 1).padStart(2, '0')}`;
+                    setFormData(prev => ({ ...prev, categoriaId: proxId }));
+                } catch (error) {
+                    console.error("Error al obtener ID:", error);
+                } finally {
+                    setCargandoDatos(false);
+                }
             }
         };
         inicializar();
@@ -69,7 +75,7 @@ export default function CrearCategoria() {
         } finally { setCargando(false); }
     };
 
-    if (cargandoDatos) return <div className="flex justify-center items-center min-h-screen"><Loader2 className="animate-spin" /></div>;
+    if (cargandoDatos) return <div className="flex justify-center items-center min-h-screen"><Loader2 className="animate-spin text-[#7C3AED]" /></div>;
 
     return (
         <div className="p-4 md:p-8 max-w-[1600px] mx-auto bg-[#F8F9FF] min-h-screen">
@@ -78,7 +84,6 @@ export default function CrearCategoria() {
             </button>
 
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-12">
-                {/* FORMULARIO */}
                 <div className="bg-white p-10 rounded-[2.5rem] shadow-sm border border-gray-50">
                     <h2 className="text-2xl font-black text-[#020817] mb-2">{isEdit ? 'Editar Categoría' : 'Registrar Nueva Categoría'}</h2>
                     <p className="text-gray-400 text-sm mb-10">Administra las categorías disponibles en tu comisariato</p>
@@ -137,10 +142,10 @@ export default function CrearCategoria() {
                                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Estado</label>
                                 <button 
                                     type="button"
-                                    onClick={() => setFormData({...formData, estado: formData.estado === 'Activo' ? 'Inactivo' : 'Activo'})}
-                                    className={`w-12 h-6 rounded-full transition-colors relative ${formData.estado === 'Activo' ? 'bg-[#7C3AED]' : 'bg-gray-300'}`}
+                                    onClick={() => setFormData({...formData, estado: formData.estado === 'ACTIVO' ? 'INACTIVO' : 'ACTIVO'})}
+                                    className={`w-12 h-6 rounded-full transition-colors relative ${formData.estado === 'ACTIVO' ? 'bg-[#7C3AED]' : 'bg-gray-300'}`}
                                 >
-                                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${formData.estado === 'Activo' ? 'left-7' : 'left-1'}`} />
+                                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${formData.estado === 'ACTIVO' ? 'left-7' : 'left-1'}`} />
                                 </button>
                                 <span className="text-xs font-bold text-[#020817]">{formData.estado}</span>
                             </div>
@@ -155,7 +160,6 @@ export default function CrearCategoria() {
                     </form>
                 </div>
 
-                {/* MOCKUP VISTA PREVIA MÓVIL */}
                 <div className="hidden lg:flex flex-col items-center">
                     <div className="w-[300px] h-[600px] border-[12px] border-[#020817] rounded-[3rem] bg-white relative shadow-2xl overflow-hidden flex flex-col">
                         <div className="h-6 w-32 bg-[#020817] mx-auto rounded-b-2xl mb-6" />

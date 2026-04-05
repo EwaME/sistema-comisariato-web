@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, MoreHorizontal, ChevronRight, Loader2, ChevronLeft, Filter, AlertCircle, TrendingUp, TrendingDown, XCircle, X, Settings, Trophy } from 'lucide-react'; 
 import { Link } from 'react-router-dom';
-import { obtenerProductos, actualizarProducto } from '../../../services/productosService'; 
+import { obtenerProductos, actualizarProducto, cambiarEstadoProducto } from '../../../services/productosService'; 
 import { doc, getDoc, collection, getDocs } from 'firebase/firestore';
 import { db } from '../../../firebase/firebase';
 
@@ -62,7 +62,6 @@ export default function Inventario() {
     const cargarCategorias = async () => {
         try {
             const querySnapshot = await getDocs(collection(db, 'categorias'));
-            // Filtramos solo las categorías activas y extraemos su nombre
             const categoriasData = querySnapshot.docs
                 .map(doc => doc.data())
                 .filter(cat => cat.estado === "Activo")
@@ -148,7 +147,8 @@ export default function Inventario() {
         const nuevoEstado = !productoSeleccionado.activo;
         
         try {
-            await actualizarProducto(productoSeleccionado.id, { activo: nuevoEstado });
+            await cambiarEstadoProducto(productoSeleccionado.id, nuevoEstado);
+            
             setProductos(productos.map(p => p.id === productoSeleccionado.id ? { ...p, activo: nuevoEstado } : p));
             cerrarModalEstado();
         } catch (error) {

@@ -7,25 +7,16 @@ export default function Empleados() {
     const [empleados, setEmpleados] = useState([]);
     const [cargando, setCargando] = useState(true);
     
-    // ==========================================
-    // ESTADOS DE BÚSQUEDA, FILTROS Y PAGINACIÓN
-    // ==========================================
     const [busqueda, setBusqueda] = useState('');
     const [paginaActual, setPaginaActual] = useState(1);
     const itemsPorPagina = 10;
 
-    // Filtros
     const [mostrarFiltros, setMostrarFiltros] = useState(false);
     const filtroRef = useRef(null);
     
-    // filtrosTemp es lo que el usuario selecciona en el modal antes de darle "Aplicar"
     const [filtrosTemp, setFiltrosTemp] = useState({ departamento: '', estado: '' });
-    // filtrosAplicados es lo que realmente filtra la tabla
     const [filtrosAplicados, setFiltrosAplicados] = useState({ departamento: '', estado: '' });
 
-    // ==========================================
-    // ESTADOS ORIGINALES (Dropdowns y Modal)
-    // ==========================================
     const [menuActivo, setMenuActivo] = useState(null);
     const menuRef = useRef(null);
     const [modalInhabilitar, setModalInhabilitar] = useState(false);
@@ -47,7 +38,6 @@ export default function Empleados() {
         cargarDatos();
     }, []);
 
-    // Cerrar dropdowns o filtros al hacer clic fuera
     useEffect(() => {
         const handleClickFuera = (event) => {
             if (menuRef.current && !menuRef.current.contains(event.target)) {
@@ -70,51 +60,36 @@ export default function Empleados() {
         else setMenuActivo(idEmpleado);
     };
 
-    // ==========================================
-    // LÓGICA DE PROCESAMIENTO (FILTRAR Y BUSCAR)
-    // ==========================================
     const empleadosFiltrados = empleados.filter(emp => {
-        // 1. Filtrar por Búsqueda (Nombre o ID)
         const termino = busqueda.toLowerCase();
         const nombreCompleto = `${emp.nombres} ${emp.apellidos}`.toLowerCase();
         const matchBusqueda = emp.id?.toLowerCase().includes(termino) || nombreCompleto.includes(termino);
 
-        // 2. Filtrar por Departamento (Si hay uno aplicado)
         const matchDepto = filtrosAplicados.departamento === '' || emp.departamento === filtrosAplicados.departamento;
 
-        // 3. Filtrar por Estado (Si hay uno aplicado)
         const matchEstado = filtrosAplicados.estado === '' || emp.estado === filtrosAplicados.estado;
 
         return matchBusqueda && matchDepto && matchEstado;
     });
 
-    // ==========================================
-    // LÓGICA DE PAGINACIÓN
-    // ==========================================
     const totalPaginas = Math.ceil(empleadosFiltrados.length / itemsPorPagina);
     const startIndex = (paginaActual - 1) * itemsPorPagina;
     const empleadosPaginados = empleadosFiltrados.slice(startIndex, startIndex + itemsPorPagina);
 
-    // Si la búsqueda reduce los resultados y la página actual queda vacía, regresamos a la pag 1
     useEffect(() => {
         if (paginaActual > totalPaginas && totalPaginas > 0) {
             setPaginaActual(1);
         }
     }, [empleadosFiltrados.length, paginaActual, totalPaginas]);
 
-    // ==========================================
-    // LÓGICA DE BOTONES DE FILTRO
-    // ==========================================
     const isFiltroActivo = filtrosAplicados.departamento !== '' || filtrosAplicados.estado !== '';
 
     const handleBotonFiltroClick = () => {
         if (isFiltroActivo) {
-            // Si ya hay filtros, el botón sirve para quitarlos todos
             setFiltrosAplicados({ departamento: '', estado: '' });
             setFiltrosTemp({ departamento: '', estado: '' });
             setPaginaActual(1);
         } else {
-            // Si no hay filtros, abre el modal
             setMostrarFiltros(!mostrarFiltros);
         }
     };
@@ -122,12 +97,9 @@ export default function Empleados() {
     const aplicarFiltros = () => {
         setFiltrosAplicados(filtrosTemp);
         setMostrarFiltros(false);
-        setPaginaActual(1); // Reiniciar a la página 1 al filtrar
+        setPaginaActual(1); 
     };
 
-    // ==========================================
-    // LÓGICA DEL MODAL DE INHABILITAR
-    // ==========================================
     const abrirModal = (empleado) => {
         setEmpleadoSeleccionado(empleado);
         setModalInhabilitar(true);
@@ -162,7 +134,6 @@ export default function Empleados() {
     return (
         <div className="p-4 max-w-[1600px] mx-auto bg-[#F8F9FF] min-h-screen relative">
             
-            {/* --- CABECERA --- */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                 <div>
                     <h2 className="text-2xl font-extrabold text-[#020817]">Gestión de Empleados</h2>
@@ -184,10 +155,8 @@ export default function Empleados() {
                 </div>
             </div>
 
-            {/* --- ÁREA DE TRABAJO --- */}
             <div className="bg-white p-6 rounded-[1.5rem] shadow-[0_2px_20px_rgb(0,0,0,0.02)] border border-gray-50 relative z-10">
                 
-                {/* BARRA DE HERRAMIENTAS */}
                 <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
                     <div className="relative w-full md:w-96">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -199,7 +168,6 @@ export default function Empleados() {
                                 setPaginaActual(1);
                             }}
                             placeholder="Buscar por nombre o ID..." 
-                            // OJO: Cambié 'pr-4' por 'pr-10' para que el texto no choque con la X
                             className="w-full bg-white border border-gray-200 text-sm font-medium pl-10 pr-10 py-2.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/20 focus:border-[#7C3AED] transition-all"
                         />
                         
@@ -217,7 +185,6 @@ export default function Empleados() {
                     </div>
 
                     <div className="flex gap-3 w-full md:w-auto relative">
-                        {/* Botón de Filtros Dinámico */}
                         <button 
                             onClick={handleBotonFiltroClick}
                             className={`border text-[11px] font-bold px-4 py-2.5 rounded-xl flex items-center gap-2 transition-colors
@@ -231,7 +198,6 @@ export default function Empleados() {
                             {isFiltroActivo ? 'QUITAR FILTROS' : 'FILTRAR'}
                         </button>
 
-                        {/* MENÚ DROPDOWN DE FILTROS */}
                         {mostrarFiltros && (
                             <div ref={filtroRef} className="absolute top-12 right-0 md:right-32 w-64 bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-gray-100 z-50 p-4">
                                 <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 border-b border-gray-50 pb-2">Opciones de Filtro</h4>
@@ -279,7 +245,6 @@ export default function Empleados() {
                     </div>
                 </div>
 
-                {/* TABLA DE EMPLEADOS */}
                 <div className="w-full overflow-visible min-h-[400px]"> 
                     {cargando ? (
                         <div className="flex flex-col items-center justify-center py-20 text-gray-400">
@@ -308,7 +273,6 @@ export default function Empleados() {
                                 </tr>
                             </thead>
                             <tbody className="text-sm font-medium text-[#020817]">
-                                {/* Mapeamos empleadosPaginados en lugar de empleados */}
                                 {empleadosPaginados.map((emp) => {
                                     const activo = emp.estado?.toUpperCase() === 'ACTIVO';
                                     
@@ -384,7 +348,6 @@ export default function Empleados() {
                     )}
                 </div>
 
-                {/* PAGINACIÓN FOOTER */}
                 {!cargando && empleadosFiltrados.length > 0 && (
                     <div className="flex flex-col sm:flex-row items-center justify-between mt-6 pt-4 border-t border-gray-50 gap-4">
                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
@@ -416,9 +379,6 @@ export default function Empleados() {
                 )}
             </div>
 
-            {/* ======================================================== */}
-            {/* MODAL DE CONFIRMACIÓN PARA INHABILITAR                 */}
-            {/* ======================================================== */}
             {modalInhabilitar && empleadoSeleccionado && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#020817]/40 backdrop-blur-sm p-4">
                     <div className="bg-white rounded-[1.5rem] shadow-2xl w-full max-w-md overflow-hidden transform transition-all">

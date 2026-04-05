@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Search, User, X } from 'lucide-react';
 import { obtenerUsuarios, asignarRolWebYAuth } from '../../../services/usuariosService';
+import { collection, query, where, getDocs } from "firebase/firestore";
+import { db } from '../../../firebase/firebase';
 
 export default function CrearUsuario() {
     const navigate = useNavigate();
@@ -15,19 +17,30 @@ export default function CrearUsuario() {
     const [usuarioData, setUsuarioData] = useState(null); 
     const [rolAdicional, setRolAdicional] = useState(''); 
     
-    const rolesDisponibles = ['ADMINISTRADOR', 'ACREDITADOR', 'GESTOR DE INVENTARIO', 'MODERADOR'];
+    const [rolesDisponibles, setRolesDisponibles] = useState([]);
 
     useEffect(() => {
-        const cargarUsuarios = async () => {
+        const cargarDatosIniciales = async () => {
             try {
                 const data = await obtenerUsuarios();
                 const activos = data.filter(u => u.estado === 'ACTIVO');
                 setUsuariosBase(activos);
+
+                const qRoles = query(collection(db, 'roles'), where('estado', '==', 'ACTIVO'));
+                const rolesSnap = await getDocs(qRoles);
+                
+                const rolesFiltrados = rolesSnap.docs
+                    .map(doc => doc.id.toUpperCase())
+                    .filter(rolId => rolId !== 'USUARIO/EMPLEADO' && rolId !== 'EMPLEADO');
+                
+                setRolesDisponibles(rolesFiltrados);
+
             } catch (error) {
-                alert("No se pudieron cargar los datos.");
+                console.error("Error al cargar datos:", error);
+                alert("No se pudieron cargar los datos iniciales.");
             }
         };
-        cargarUsuarios();
+        cargarDatosIniciales();
     }, []);
 
     useEffect(() => {
@@ -49,7 +62,11 @@ export default function CrearUsuario() {
         setUsuarioData(user);
         setBusquedaEmp(`${user.nombre} (${user.correo})`);
         setMostrarDropdown(false);
-        setRolAdicional(''); 
+        
+        const rolesArray = Array.isArray(user.rol) ? user.rol : (user.rol ? String(user.rol).split(', ') : []);
+        const rolExtraExistente = rolesArray.find(r => r.toUpperCase() !== 'EMPLEADO');
+        
+        setRolAdicional(rolExtraExistente || ''); 
     };
 
     const handleSubmit = async (e) => {
@@ -59,7 +76,6 @@ export default function CrearUsuario() {
         setGuardando(true);
         try {
             await asignarRolWebYAuth(usuarioData, rolAdicional);
-            alert(`Credenciales web creadas.\nUsuario Temp: ${usuarioData.usuario}\nContraseña Temp: ${usuarioData.usuario}`);
             navigate('/usuarios');
         } catch (error) {
             alert("Error: " + error.message);
@@ -92,13 +108,16 @@ export default function CrearUsuario() {
                                 onChange={(e) => {
                                     setBusquedaEmp(e.target.value);
                                     setMostrarDropdown(true);
-                                    if(usuarioData) setUsuarioData(null);
+                                    if(usuarioData) {
+                                        setUsuarioData(null);
+                                        setRolAdicional(''); 
+                                    }
                                 }}
                                 onFocus={() => setMostrarDropdown(true)}
                                 className="w-full bg-[#F8F9FF] border border-gray-100 text-sm font-bold pl-10 pr-10 py-3.5 rounded-xl focus:ring-2 focus:ring-[#7C3AED]/20"
                             />
                             {busquedaEmp && (
-                                <button type="button" onClick={() => {setBusquedaEmp(''); setUsuarioData(null);}} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">
+                                <button type="button" onClick={() => {setBusquedaEmp(''); setUsuarioData(null); setRolAdicional('');}} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">
                                     <X className="w-4 h-4" />
                                 </button>
                             )}
@@ -142,7 +161,6 @@ export default function CrearUsuario() {
 
                             <div>
                                 <div className="flex items-center gap-2 mb-1.5">
-                                    {/* LA PELOTITA EN ESTADO ACTIVO */}
                                     <span className="relative flex h-2 w-2">
                                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
                                         <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
@@ -160,7 +178,6 @@ export default function CrearUsuario() {
                     {!usuarioData && (
                         <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-10 flex items-center justify-center rounded-[1.5rem]">
                             <div className="bg-white px-6 py-3 rounded-full shadow-lg border border-gray-100 flex items-center gap-3">
-                                {/* LA PELOTITA EN ESPERA */}
                                 <span className="relative flex h-3 w-3">
                                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#7C3AED] opacity-75"></span>
                                     <span className="relative inline-flex rounded-full h-3 w-3 bg-[#7C3AED]"></span>
@@ -182,19 +199,23 @@ export default function CrearUsuario() {
                     <div className="mb-8">
                         <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Elige 1 Rol Administrativo Adicional</label>
                         <div className="grid grid-cols-2 gap-3">
-                            {rolesDisponibles.map(r => (
-                                <button
-                                    key={r} type="button" onClick={() => setRolAdicional(r)}
-                                    className={`px-4 py-3 text-xs font-bold rounded-xl transition-all border text-left flex items-center justify-between ${
-                                        rolAdicional === r 
-                                            ? 'bg-purple-50 text-purple-700 border-purple-300 shadow-sm' 
-                                            : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
-                                    }`}
-                                >
-                                    {r}
-                                    {rolAdicional === r && <span className="w-2 h-2 rounded-full bg-purple-600"></span>}
-                                </button>
-                            ))}
+                            {rolesDisponibles.length === 0 ? (
+                                <p className="text-xs text-gray-400 italic col-span-2">Cargando roles o no hay roles activos...</p>
+                            ) : (
+                                rolesDisponibles.map(r => (
+                                    <button
+                                        key={r} type="button" onClick={() => setRolAdicional(r)}
+                                        className={`px-4 py-3 text-xs font-bold rounded-xl transition-all border text-left flex items-center justify-between ${
+                                            rolAdicional === r 
+                                                ? 'bg-purple-50 text-purple-700 border-purple-300 shadow-sm' 
+                                                : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
+                                        }`}
+                                    >
+                                        {r}
+                                        {rolAdicional === r && <span className="w-2 h-2 rounded-full bg-purple-600"></span>}
+                                    </button>
+                                ))
+                            )}
                         </div>
                     </div>
 
@@ -204,7 +225,7 @@ export default function CrearUsuario() {
                                 ? 'bg-gray-300 cursor-not-allowed' 
                                 : 'bg-[#020817] hover:bg-black shadow-md'
                         }`}>
-                            {guardando ? 'Generando Credenciales...' : 'Confirmar y Crear Auth'}
+                            {guardando ? 'Generando Credenciales...' : 'Confirmar Rol'}
                         </button>
                     </div>
                 </div>
