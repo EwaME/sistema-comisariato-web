@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 
 import {
@@ -19,7 +19,8 @@ import {
 import {
   obtenerReclamoPorId,
   verificarVigencia,
-  actualizarRevisionCredito,
+  actualizarRevisionReclamo,
+  cancelarRevision,
 } from "../../../services/reclamosService";
 import { obtenerCreditosPorId } from "../../../services/creditosService";
 import {
@@ -30,7 +31,7 @@ import {
 
 const RevisionReclamo = () => {
   const { id } = useParams();
-  const { navigate } = useNavigate();
+  const navigate = useNavigate();
   const [reclamo, setReclamo] = useState(null);
   const [credito, setCredito] = useState(null);
   const [cargando, setCargando] = useState(true);
@@ -44,6 +45,36 @@ const RevisionReclamo = () => {
 
   const [mostrarModal, setMostrarModal] = useState(false);
   const [procesando, setProcesando] = useState(false);
+
+  const ejecutarAccion = async () => {
+    setProcesando(true);
+    try {
+      await actualizarRevisionReclamo(id, respuesta);
+
+      navigate("/reclamos");
+    } catch (error) {
+      console.error("Error al actualizar:", error);
+      alert("Ocurrió un error al procesar la solicitud en el servidor.");
+    } finally {
+      setProcesando(false);
+      setMostrarModal(false);
+    }
+  };
+
+  const cancelarAccion = async () => {
+    setProcesando(true);
+    try {
+      await cancelarRevision(id);
+
+      navigate("/reclamos");
+    } catch (error) {
+      console.error("Error al cancelar:", error);
+      alert("Ocurrió un error al procesar la solicitud en el servidor.");
+    } finally {
+      setProcesando(false);
+      setMostrarModal(false);
+    }
+  };
 
   const abrirConfirmacion = () => {
     setMostrarModal(true);
@@ -74,15 +105,6 @@ const RevisionReclamo = () => {
     if (id) cargarReclamo();
   }, [id]);
 
-  //   const reclamo = {
-  //     titulo: "Producto Dañado",
-  //     fecha: "14 de octubre, 2023",
-  //     descripcion:
-  //       "La cartera presenta algunas descosturas y podría romperse fácilmente.",
-  //     evidenciaUrl:
-  //       "https://via.placeholder.com/600x400/1a1a1a/ffffff?text=EVIDENCIA+DANIO+1",
-  //   };
-
   const insertarSugerencia = (texto) => setRespuesta(texto);
 
   const handleZoomIn = () => setZoom((prev) => Math.min(prev + 0.5, 3));
@@ -103,7 +125,6 @@ const RevisionReclamo = () => {
   return (
     <div className="min-h-screen bg-[#F8F9FF] font-sans text-[#020817] antialiased">
       <main className="p-4 md:p-8 max-w-[1400px] mx-auto">
-        {/* BOTÓN REGRESAR */}
         <button
           onClick={() => navigate(-1)}
           className="flex items-center gap-2 text-gray-400 text-sm font-bold mb-6 hover:text-black transition-colors"
@@ -116,9 +137,7 @@ const RevisionReclamo = () => {
         </h1>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* COLUMNA IZQUIERDA */}
           <div className="lg:col-span-8 space-y-6">
-            {/* CARD: DETALLES DEL RECLAMO */}
             <div className="bg-white p-6 md:p-8 rounded-2xl border border-gray-200">
               <h2 className="text-xl font-bold mb-4">
                 {reclamo?.asunto || "Sin Asunto"}
@@ -208,13 +227,16 @@ const RevisionReclamo = () => {
               ></textarea>
 
               <div className="flex flex-col sm:flex-row justify-end gap-3 mt-6">
-                <button className="px-8 py-3 rounded-xl font-bold text-sm text-gray-500 border border-gray-200 hover:bg-gray-50">
+                <button
+                  className="px-8 py-3 rounded-xl font-bold text-sm text-gray-500 border border-gray-200 hover:bg-gray-50"
+                  onClick={cancelarAccion}
+                >
                   Cancelar
                 </button>
                 <button
                   className={`px-8 py-3 rounded-xl font-bold text-sm text-white transition-all flex items-center justify-center gap-2 ${
                     !respuesta.trim()
-                      ? "bg-gray-300 cursor-not-allowed opacity-50" // Estado Inactivo
+                      ? "bg-gray-300 cursor-not-allowed opacity-50" //
                       : "bg-black hover:bg-zinc-800" // Estado Activo
                   }`}
                   onClick={abrirConfirmacion}
@@ -380,9 +402,7 @@ const RevisionReclamo = () => {
             <div className="flex flex-col gap-3">
               <button
                 disabled={procesando}
-                // onClick={
-                //     // ejecutarAccion
-                // }
+                onClick={ejecutarAccion}
                 className={`w-full py-4 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all bg-gray-900 text-white hover:bg-black flex items-center justify-center gap-2`}
               >
                 {procesando && <Loader2 className="w-4 h-4 animate-spin" />}

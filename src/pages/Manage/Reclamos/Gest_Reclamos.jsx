@@ -4,6 +4,7 @@ import { useAuth } from "../../../auth/AuthProvider";
 import {
   obtenerReclamosRealTime,
   revisionState,
+  cancelarRevision,
 } from "../../../services/reclamosService";
 import { fromTimestamp } from "../../../helpers/timestampToDate";
 import {
@@ -19,6 +20,7 @@ import {
   XCircle,
   CheckCircle2,
   Clock,
+  PlayCircle,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 
@@ -28,6 +30,7 @@ export default function Gest_Creditos() {
 
   const [reclamos, setReclamos] = useState([]);
   const [cargando, setCargando] = useState(true);
+  const [procesando, setProcesando] = useState(false);
 
   const [paginaActual, setPaginaActual] = useState(1);
   const itemsPorPagina = 10;
@@ -40,6 +43,15 @@ export default function Gest_Creditos() {
 
   const [menuActivo, setMenuActivo] = useState(null);
   const menuRef = useRef(null);
+
+  const [modalDetalleAbierto, setModalDetalleAbierto] = useState(false);
+  const [reclamoSeleccionado, setReclamoSeleccionado] = useState(null);
+
+  const abrirDetalle = (reclamo) => {
+    setReclamoSeleccionado(reclamo);
+    setModalDetalleAbierto(true);
+    setMenuActivo(null);
+  };
 
   const DotsPlaying = () => (
     <div className="flex gap-1 items-center ml-1">
@@ -129,6 +141,20 @@ export default function Gest_Creditos() {
     setFiltrosAplicados(filtrosTemp);
     setMostrarFiltros(false);
     setPaginaActual(1);
+  };
+
+  const cancelarAccion = async (id) => {
+    setProcesando(true);
+    try {
+      await cancelarRevision(id);
+
+      navigate("/reclamos");
+    } catch (error) {
+      console.error("Error al cancelar:", error);
+      alert("Ocurrió un error al procesar la solicitud en el servidor.");
+    } finally {
+      setProcesando(false);
+    }
   };
 
   return (
@@ -259,8 +285,7 @@ export default function Gest_Creditos() {
                   const esRevision =
                     estadoNormalizado === "EN REVISION" ||
                     estadoNormalizado === "EN REVISIÓN";
-                  const esAprobado = estadoNormalizado === "APROBADO";
-                  const esRechazado = estadoNormalizado === "RECHAZADO";
+                  const esRevisado = estadoNormalizado === "REVISADO";
                   const esRevisionStatus = [
                     "EN REVISION",
                     "EN REVISIÓN",
@@ -311,21 +336,16 @@ export default function Gest_Creditos() {
                           {!esRevision && (
                             <span
                               className={`inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider border ${
-                                esAprobado
+                                esRevisado
                                   ? "bg-emerald-50 text-emerald-600 border-emerald-100"
-                                  : esPendiente
-                                    ? "bg-amber-50 text-amber-600 border-amber-100"
-                                    : esRechazado
-                                      ? "bg-red-50 text-red-600 border-red-100"
-                                      : "bg-gray-50 text-gray-500 border-gray-200"
+                                  : "bg-amber-50 text-amber-600 border-amber-100"
                               }`}
                             >
-                              {esAprobado && (
+                              {esRevisado && (
                                 <CheckCircle2 className="w-3 h-3" />
                               )}
                               {esPendiente && <Clock className="w-3 h-3" />}
-                              {esRechazado && <XCircle className="w-3 h-3" />}
-                              {!esAprobado && !esPendiente && !esRechazado && (
+                              {!esRevisado && !esPendiente && (
                                 <AlertCircle className="w-3 h-3" />
                               )}
 
@@ -406,19 +426,32 @@ export default function Gest_Creditos() {
                               {esRevisionStatus &&
                                 reclamo.revisorEmail?.trim().toLowerCase() ===
                                   user?.email?.trim().toLowerCase() && (
-                                  <Link
-                                    to={`/reclamos/revision/${reclamo.id}`}
-                                    className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 text-left transition-colors block"
-                                  >
-                                    Continuar revision
-                                  </Link>
+                                  <>
+                                    <Link
+                                      to={`/reclamos/revision/${reclamo.id}`}
+                                      className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 text-left transition-colors block"
+                                    >
+                                      Continuar revision
+                                    </Link>
+
+                                    <button
+                                      onClick={() => cancelarAccion(reclamo.id)}
+                                      disabled={procesando}
+                                      className="px-4 py-2 text-sm font-medium text-red-700 hover:bg-gray-100 text-left transition-colors w-full flex items-center justify-between disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                      <span>Cancelar revision</span>
+                                      {procesando && (
+                                        <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                                      )}
+                                    </button>
+                                  </>
                                 )}
-                              <Link
-                                to={`/reclamos/detalle/${reclamo.id}`}
-                                className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 text-left transition-colors"
+                              <button
+                                onClick={() => abrirDetalle(reclamo)}
+                                className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 text-left transition-colors w-full"
                               >
                                 Ver detalles
-                              </Link>
+                              </button>
                             </div>
                           </div>
                         )}
@@ -469,6 +502,132 @@ export default function Gest_Creditos() {
           )}
         </div>
       </div>
+
+      {modalDetalleAbierto && (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white w-full max-w-2xl rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] overflow-hidden animate-in zoom-in-95 duration-300">
+            {/* Header del Modal */}
+            <div className="p-8 pb-4 relative">
+              <button
+                onClick={() => setModalDetalleAbierto(false)}
+                className="absolute right-8 top-8 p-2 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-400" />
+              </button>
+
+              <span
+                className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border mb-3 
+                ${reclamoSeleccionado.estado?.toUpperCase() === "PENDIENTE" ? "bg-amber-50 text-amber-600 border-amber-100" : "bg-emerald-50 text-emerald-600 border-emerald-100"}`}
+              >
+                {reclamoSeleccionado.estado}
+              </span>
+              <h3 className="text-2xl font-extrabold text-[#020817]">
+                {reclamoSeleccionado.asunto || "Sin Asunto"}
+              </h3>
+            </div>
+
+            {/* Contenido */}
+            <div className="p-8 pt-0 space-y-8">
+              <div>
+                <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">
+                  Descripción del caso
+                </h4>
+                <div className="bg-[#F8F9FF] p-5 rounded-xl border border-gray-100">
+                  <p className="text-sm text-gray-600 leading-relaxed font-medium">
+                    {reclamoSeleccionado.descripcion ||
+                      "No se proporcionó una descripción detallada por parte del cliente."}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">
+                    Evidencia Fotográfica
+                  </h4>
+                  <div className="aspect-video rounded-xl overflow-hidden border border-gray-100 bg-gray-50">
+                    <img
+                      src={
+                        reclamoSeleccionado.evidenciaUrl ||
+                        "https://via.placeholder.com/600x400"
+                      }
+                      alt="Evidencia"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                </div>
+
+                {/* --- Lógica de Respuesta vs Botón de Revisión --- */}
+                {reclamoSeleccionado.estado?.toUpperCase() === "PENDIENTE" ? (
+                  <div className="bg-[#FCFAFF] rounded-xl p-6 border border-dashed border-[]-200 flex flex-col justify-center items-center text-center">
+                    <Clock className="w-8 h-8 text-[#7C3AED] mb-3" />
+                    <p className="text-xs font-bold text-[#3A1280]  tracking-tight mb-1">
+                      Aún no se ha revisado este caso
+                    </p>
+                    <p className="text-[11px] text-[#7C3AED] mb-4 font-medium">
+                      Debes iniciar el proceso para dar una respuesta.
+                    </p>
+                    <button
+                      onClick={() =>
+                        handleIniciarRevision(reclamoSeleccionado.id)
+                      }
+                      className="flex items-center gap-2 bg-[#7C3AED] hover:bg-[#5B21B6] text-white px-4 py-2 rounded-lg text-[11px] font-bold transition-all active:scale-95 shadow-sm"
+                    >
+                      <PlayCircle className="w-4 h-4" />
+                      Iniciar Revisión
+                    </button>
+                  </div>
+                ) : reclamoSeleccionado.respuesta ? (
+                  <div className="bg-blue-50/50 rounded-xl p-6 border border-blue-100 relative">
+                    <div className="flex items-center gap-2 mb-4 text-blue-600">
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span className="text-[10px] font-bold uppercase tracking-widest">
+                        Respuesta del Acreditador
+                      </span>
+                    </div>
+                    <p className="text-[13px] text-gray-600 leading-relaxed mb-6 font-medium">
+                      {reclamoSeleccionado.respuesta}
+                    </p>
+
+                    <div className="flex items-center gap-3 mt-auto pt-4 border-t border-blue-100/50">
+                      <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-[10px] font-bold overflow-hidden border border-blue-200">
+                        <img
+                          src={
+                            reclamoSeleccionado.revisorFotoTemp ||
+                            `https://ui-avatars.com/api/?name=${encodeURIComponent(reclamoSeleccionado.revisadoPor || "A")}&background=2563eb&color=fff`
+                          }
+                          alt="Revisor"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <span className="text-xs font-bold text-gray-700">
+                        {reclamoSeleccionado.revisadoPor ||
+                          "Acreditador Desconocido"}
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-purple-50/50 rounded-xl p-6 border border-purple-100 flex flex-col justify-center items-center text-center">
+                    <Loader2 className="w-6 h-6 text-purple-400 animate-spin mb-2" />
+                    <p className="text-[11px] font-bold text-purple-700 uppercase">
+                      En proceso de revisión...
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end pt-4">
+                <button
+                  onClick={() => setModalDetalleAbierto(false)}
+                  className="bg-[#020817] text-white px-8 py-3 rounded-xl text-xs font-bold hover:bg-black transition-all shadow-lg shadow-black/10 active:scale-95"
+                >
+                  Cerrar Detalle
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

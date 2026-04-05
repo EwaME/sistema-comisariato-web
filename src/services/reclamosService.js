@@ -81,7 +81,7 @@ export const revisionState = async (idReclamo, emailRevisor) => {
   }
 };
 
-export const actualizarRevisionCredito = async (
+export const actualizarRevisionReclamo = async (
   idDocumento,
   respuestaRevisor,
 ) => {
@@ -91,8 +91,26 @@ export const actualizarRevisionCredito = async (
     await updateDoc(docRef, {
       estado: "Revisado",
       respuesta: respuestaRevisor,
-      fechaRespuesta: serverTimestamp(),
+      fechaInicioRevision: serverTimestamp(),
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error al actualizar el crédito:", error);
+    throw error;
+  }
+};
+
+export const cancelarRevision = async (idDocumento) => {
+  try {
+    const docRef = doc(db, coleccion, idDocumento);
+
+    await updateDoc(docRef, {
+      estado: "Pendiente",
       revisorFotoTemp: deleteField(),
+      revisadoPor: deleteField(),
+      revisorEmail: deleteField(),
+      fechaInicioRevision: deleteField(),
     });
 
     return { success: true };
