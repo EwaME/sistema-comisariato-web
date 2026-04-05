@@ -208,7 +208,9 @@ export default function GestionarProducto() {
                 activo: formData.activo,
                 imagenFrontalUrl: urlFrontal,
                 imagenLateralUrl: urlLateral,
-                imagenTraseraUrl: urlTrasera
+                imagenTraseraUrl: urlTrasera,
+                nombreNormalizado: formData.nombre.trim().toLowerCase(),
+                rate: 0
             };
 
             if (tipoGarantia === 'dias') {

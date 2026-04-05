@@ -68,7 +68,13 @@ export default function CrearEmpleado() {
             if (isEdit) {
                 try {
                     const empleadoAEditar = await obtenerEmpleadoPorId(id);
+
+                    if (empleadoAEditar.salario !== undefined && empleadoAEditar.salario !== null) {
+                        empleadoAEditar.salario = parseFloat(empleadoAEditar.salario).toFixed(2);
+                    }
+
                     setFormData(empleadoAEditar);
+
                     if (empleadoAEditar.fotoUrl) {
                         setImagenPreview(empleadoAEditar.fotoUrl);
                     }
@@ -163,6 +169,17 @@ export default function CrearEmpleado() {
                 urlFotoFinal = await subirImagenEmpleado(imagenArchivo, elId);
             }
 
+            const salarioBase = parseFloat(formData.salario || 0);
+            const limiteBase = salarioBase * 0.30;
+
+            const salarioDouble = salarioBase % 1 === 0 
+                ? salarioBase + 0.0000001 
+                : parseFloat(salarioBase.toFixed(2));
+                
+            const limiteDouble = limiteBase % 1 === 0 
+                ? limiteBase + 0.0000001 
+                : parseFloat(limiteBase.toFixed(2));
+
             const empleadoGuardar = {
                 nombres: formData.nombres,
                 apellidos: formData.apellidos,
@@ -173,9 +190,9 @@ export default function CrearEmpleado() {
                 telefono: formData.telefono,
                 fechaIngreso: formData.fechaIngreso,
                 estado: formData.estado,
-                salario: Number(formData.salario) || 0,
-                limiteCredito: (Number(formData.salario) || 0) * 0.30,
-                fotoUrl: urlFotoFinal 
+                salario: salarioDouble,
+                limiteCredito: limiteDouble,
+                fotoUrl: urlFotoFinal
             };
 
             if (isEdit) {
