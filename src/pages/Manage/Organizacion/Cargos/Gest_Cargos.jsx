@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, MoreHorizontal, ChevronRight, Loader2, ChevronLeft, Briefcase, XCircle, AlertCircle, X } from 'lucide-react'; 
 import { Link } from 'react-router-dom';
-import { obtenerCargos, desactivarCargo } from '../../../services/cargosService'; 
+import { obtenerCargos, desactivarCargo } from '../../../../services/cargosService'; 
 
 export default function Gest_Cargos() {
     const [cargos, setCargos] = useState([]);
@@ -14,7 +14,6 @@ export default function Gest_Cargos() {
     const [menuActivo, setMenuActivo] = useState(null);
     const menuRef = useRef(null);
 
-    // Estados para el Modal de Inhabilitar
     const [modalInhabilitar, setModalInhabilitar] = useState(false);
     const [cargoSeleccionado, setCargoSeleccionado] = useState(null);
     const [inputConfirmacion, setInputConfirmacion] = useState("");
@@ -36,7 +35,6 @@ export default function Gest_Cargos() {
         }
     };
 
-    // Cerrar menú al hacer clic fuera
     useEffect(() => {
         const handleClickFuera = (event) => {
             if (menuRef.current && !menuRef.current.contains(event.target)) {
@@ -51,20 +49,17 @@ export default function Gest_Cargos() {
         setMenuActivo(menuActivo === idCargo ? null : idCargo);
     };
 
-    // Filtro de búsqueda
     const cargosFiltrados = cargos.filter(car => {
         const termino = busqueda.toLowerCase();
         return car.id?.toLowerCase().includes(termino) || 
-               car.nombre?.toLowerCase().includes(termino) ||
-               car.descripcion?.toLowerCase().includes(termino);
+                car.nombre?.toLowerCase().includes(termino) ||
+                car.descripcion?.toLowerCase().includes(termino);
     });
 
-    // Paginación
     const totalPaginas = Math.ceil(cargosFiltrados.length / itemsPorPagina) || 1;
     const startIndex = (paginaActual - 1) * itemsPorPagina;
     const cargosPaginados = cargosFiltrados.slice(startIndex, startIndex + itemsPorPagina);
 
-    // Funciones del Modal
     const abrirModal = (car) => {
         setCargoSeleccionado(car);
         setModalInhabilitar(true);
@@ -99,16 +94,13 @@ export default function Gest_Cargos() {
     return (
         <div className="p-4 max-w-[1600px] mx-auto bg-[#F8F9FF] min-h-screen relative">
             
-            {/* --- CABECERA --- */}
             <div className="mb-6">
                 <h2 className="text-2xl font-extrabold text-[#020817]">Gestión de Cargos</h2>
                 <p className="text-[13px] text-gray-500 mt-1 font-medium">Administra los puestos de trabajo disponibles en la empresa.</p>
             </div>
 
-            {/* --- ÁREA PRINCIPAL --- */}
             <div className="bg-white p-6 rounded-[1.5rem] shadow-[0_2px_20px_rgb(0,0,0,0.02)] border border-gray-50 relative z-10 w-full overflow-hidden">
                 
-                {/* BARRA DE BÚSQUEDA Y BOTÓN NUEVO */}
                 <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
                     <div className="relative w-full md:max-w-md">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -131,7 +123,6 @@ export default function Gest_Cargos() {
                     </Link>
                 </div>
 
-                {/* TABLA */}
                 <div className="w-full overflow-x-auto min-h-[400px]"> 
                     {cargando ? (
                         <div className="flex flex-col items-center justify-center py-20 text-gray-400">
@@ -174,7 +165,7 @@ export default function Gest_Cargos() {
                                             </td>
 
                                             <td className="py-5 px-4 text-gray-500">
-                                                <p className="max-w-xs truncate" title={car.descripcion}>
+                                                <p className="whitespace-normal min-w-[250px] leading-relaxed text-[13px]">
                                                     {car.descripcion || "Sin descripción asignada."}
                                                 </p>
                                             </td>
@@ -223,7 +214,6 @@ export default function Gest_Cargos() {
                     )}
                 </div>
 
-                {/* PAGINACIÓN */}
                 {!cargando && cargosFiltrados.length > 0 && (
                     <div className="flex flex-col sm:flex-row items-center justify-between mt-6 pt-4 border-t border-gray-50 gap-4">
                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
@@ -238,7 +228,6 @@ export default function Gest_Cargos() {
                 )}
             </div>
 
-            {/* MODAL DE INHABILITAR CARGO */}
             {modalInhabilitar && cargoSeleccionado && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#020817]/40 backdrop-blur-sm p-4">
                     <div className="bg-white rounded-[1.5rem] shadow-2xl w-full max-w-md overflow-hidden transform transition-all">

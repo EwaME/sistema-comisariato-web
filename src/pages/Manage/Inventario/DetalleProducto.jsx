@@ -65,7 +65,6 @@ export default function DetalleProducto() {
 
     if (!producto) return null;
 
-    // Lógica para mostrar la garantía correcta
     const textoGarantia = producto.garantiaDias 
         ? `${producto.garantiaDias} ${producto.garantiaDias === 1 ? 'Día' : 'Días'} de cobertura`
         : producto.garantiaMeses 
@@ -75,7 +74,6 @@ export default function DetalleProducto() {
     return (
         <div className="p-4 md:p-8 max-w-[1600px] mx-auto bg-[#F8F9FF] min-h-screen">
             
-            {/* Header / Botones de Acción */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
                 <button onClick={() => navigate('/inventario')} className="flex items-center gap-2 text-sm font-bold text-gray-500 hover:text-[#020817] transition-colors">
                     <ChevronLeft className="w-4 h-4" /> Regresar
@@ -100,10 +98,8 @@ export default function DetalleProducto() {
 
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_450px] xl:grid-cols-[1fr_550px] gap-8 items-start">
                 
-                {/* COLUMNA IZQUIERDA: INFORMACIÓN */}
                 <div className="flex flex-col gap-6">
                     
-                    {/* Tarjeta 1: Info Principal y Precios */}
                     <div className="bg-white p-8 rounded-[1.5rem] shadow-[0_2px_20px_rgb(0,0,0,0.02)] border border-gray-50 relative overflow-hidden">
                         <div className="flex justify-between items-start mb-6">
                             <div>
@@ -134,7 +130,6 @@ export default function DetalleProducto() {
                         </div>
                     </div>
 
-                    {/* Tarjeta 2: Stock */}
                     <div className="bg-white p-8 rounded-[1.5rem] shadow-[0_2px_20px_rgb(0,0,0,0.02)] border border-gray-50">
                         <div className="flex items-center gap-3 mb-6">
                             <Package className="w-5 h-5 text-[#020817]" />
@@ -150,19 +145,9 @@ export default function DetalleProducto() {
                                 <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Cant. Vendida</span>
                                 <span className="text-3xl font-extrabold text-[#7C3AED]">{producto.cantidadVendida || 0}</span>
                             </div>
-                            
-                            <div className="flex flex-col border-gray-100 pl-4">
-                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Stock de Aviso</span>
-                                <span className="text-lg font-extrabold text-amber-500">{configGlobal.StockMinimoAviso} unids.</span>
-                            </div>
-                            <div className="flex flex-col border-gray-100 pl-4">
-                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Stock Mínimo</span>
-                                <span className="text-lg font-extrabold text-red-500">{configGlobal.StockMinimoCierre} unids.</span>
-                            </div>
                         </div>
                     </div>
 
-                    {/* Tarjeta 3: Pestañas Descripción / Garantía */}
                     <div className="bg-white p-8 rounded-[1.5rem] shadow-[0_2px_20px_rgb(0,0,0,0.02)] border border-gray-50 flex flex-col h-full min-h-[300px]">
                         <div className="flex items-center gap-8 border-b border-gray-100 mb-6">
                             <button 
@@ -195,7 +180,6 @@ export default function DetalleProducto() {
                             )}
                         </div>
 
-                        {/* Footer de Fechas */}
                         <div className="grid grid-cols-2 gap-4 mt-8 pt-6 border-t border-gray-50">
                             <div className="flex gap-3 items-start">
                                 <Calendar className="w-4 h-4 text-gray-300 shrink-0" />
@@ -215,9 +199,7 @@ export default function DetalleProducto() {
                     </div>
                 </div>
 
-                {/* COLUMNA DERECHA: IMÁGENES */}
                 <div className="flex flex-col gap-4">
-                    {/* Imagen Principal */}
                     <div className="w-full aspect-square bg-white rounded-[2rem] border border-gray-100 shadow-[0_2px_20px_rgb(0,0,0,0.02)] flex items-center justify-center overflow-hidden relative">
                         {imagenPrincipal ? (
                             <img src={imagenPrincipal} alt={producto.nombre} className="w-full h-full object-contain p-8" />
@@ -233,7 +215,7 @@ export default function DetalleProducto() {
                         {[
                             { url: producto.imagenFrontalUrl, label: 'Frontal' },
                             { url: producto.imagenLateralUrl, label: 'Lateral' },
-                            { url: producto.imagenPosteriorUrl, label: 'Posterior' }
+                            { url: producto.imagenTraseraUrl, label: 'Trasera' }
                         ].map((foto, index) => (
                             <div 
                                 key={index} 

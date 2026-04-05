@@ -1,10 +1,9 @@
-// src/services/departamentosService.js
 import { collection, getDocs, getDoc, doc, setDoc, updateDoc } from "firebase/firestore";
 import { db } from "../firebase/firebase"; 
+import { registrarAuditoria } from "./auditoriasService";
 
 const coleccion = "departamentos";
 
-// Recuperar TODOS los departamentos
 export const obtenerDepartamentos = async () => {
     try {
         const querySnapshot = await getDocs(collection(db, coleccion));
@@ -15,7 +14,6 @@ export const obtenerDepartamentos = async () => {
     }
 };
 
-// Recuperar UN departamento por ID
 export const obtenerDepartamentoPorId = async (idDep) => {
     try {
         const docRef = doc(db, coleccion, idDep);
@@ -28,10 +26,8 @@ export const obtenerDepartamentoPorId = async (idDep) => {
     }
 };
 
-// Crear un NUEVO departamento
 export const crearDepartamento = async (idDep, datosDep) => {
     try {
-        // Ejemplo de idDep: "DEP-001"
         const docRef = doc(db, coleccion, idDep);
         await setDoc(docRef, {
             codigo: idDep,
@@ -40,6 +36,14 @@ export const crearDepartamento = async (idDep, datosDep) => {
             fechaRegistro: new Date(),
             fechaModificacion: new Date()
         });
+
+        await registrarAuditoria(
+            "CREACIÓN", 
+            "Gestión de Departamentos", 
+            `Se registró un nuevo departamento: ${datosDep.nombre || idDep}`, 
+            idDep
+        );
+
         return true;
     } catch (error) {
         console.error("Error al crear departamento:", error);
@@ -47,7 +51,6 @@ export const crearDepartamento = async (idDep, datosDep) => {
     }
 };
 
-// Editar un departamento existente
 export const actualizarDepartamento = async (idDep, datosNuevos) => {
     try {
         const docRef = doc(db, coleccion, idDep);
@@ -55,6 +58,14 @@ export const actualizarDepartamento = async (idDep, datosNuevos) => {
             ...datosNuevos,
             fechaModificacion: new Date()
         });
+
+        await registrarAuditoria(
+            "EDICIÓN", 
+            "Gestión de Departamentos", 
+            `Se actualizaron los datos del departamento`, 
+            idDep
+        );
+
         return true;
     } catch (error) {
         console.error("Error al actualizar departamento:", error);
@@ -62,7 +73,6 @@ export const actualizarDepartamento = async (idDep, datosNuevos) => {
     }
 };
 
-// Desactivar (Inhabilitar) un departamento
 export const desactivarDepartamento = async (idDep) => {
     try {
         const docRef = doc(db, coleccion, idDep);
@@ -70,6 +80,14 @@ export const desactivarDepartamento = async (idDep) => {
             estado: "INACTIVO",
             fechaModificacion: new Date()
         });
+
+        await registrarAuditoria(
+            "ELIMINACIÓN", 
+            "Gestión de Departamentos", 
+            `Se inhabilitó el departamento y se cambió su estado a inactivo`, 
+            idDep
+        );
+
         return true;
     } catch (error) {
         console.error("Error al inhabilitar departamento:", error);

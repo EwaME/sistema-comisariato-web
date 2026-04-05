@@ -2,6 +2,7 @@ import { collection, getDocs, doc, setDoc, updateDoc, getDoc } from "firebase/fi
 import { getAuth, createUserWithEmailAndPassword, signOut } from "firebase/auth";
 import { initializeApp } from "firebase/app";
 import { db, app } from "../firebase/firebase"; 
+import { registrarAuditoria } from "./auditoriasService";
 
 const coleccion = "usuarios";
 
@@ -51,6 +52,14 @@ export const crearUsuarioBaseEmpleado = async (empleadoData) => {
     };
 
     await setDoc(usuarioRef, nuevoUsuario);
+
+    await registrarAuditoria(
+        "CREACIÓN", 
+        "Gestión de Usuarios", 
+        `Se generó usuario base para: ${nuevoUsuario.nombre}`, 
+        emailUsuario.toLowerCase()
+    );
+
     return nuevoUsuario;
 };
 
@@ -94,6 +103,13 @@ export const asignarRolWebYAuth = async (empleadoData, nuevoRolAdicional) => {
         }
     }
     
+    await registrarAuditoria(
+        "EDICIÓN", 
+        "Gestión de Usuarios", 
+        `Se habilitó acceso Web y se asignó rol ${nuevoRolAdicional} al correo: ${emailUsuario}`, 
+        emailUsuario
+    );
+
     return true;
 };
 
@@ -101,8 +117,45 @@ export const actualizarUsuario = async (idUsuario, datosActualizados) => {
     try {
         const docRef = doc(db, coleccion, idUsuario);
         await updateDoc(docRef, { ...datosActualizados, fechaModificacion: new Date() });
+        
+        await registrarAuditoria(
+            "EDICIÓN", 
+            "Gestión de Usuarios", 
+            `Se actualizaron los datos básicos del usuario`, 
+            idUsuario
+        );
+
         return true;
     } catch (error) {
+        throw error;
+    }
+};
+
+export const cambiarEstadoUsuario = async (idUsuario, nuevoEstado) => {
+    try {
+        const docRef = doc(db, coleccion, idUsuario);
+        await updateDoc(docRef, { 
+            estado: nuevoEstado, 
+            fechaModificacion: new Date() 
+        });
+
+        const esInactivo = nuevoEstado.toUpperCase() === 'INACTIVO';
+        
+        const tipoAccion = esInactivo ? 'ELIMINACIÓN' : 'ACTIVACIÓN';
+        const mensaje = esInactivo 
+            ? 'Se suspendió el acceso al sistema y App móvil' 
+            : 'Se reactivó el acceso al sistema y App móvil';
+
+        await registrarAuditoria(
+            tipoAccion, 
+            "Gestión de Usuarios", 
+            mensaje, 
+            idUsuario
+        );
+
+        return true;
+    } catch (error) {
+        console.error("Error al cambiar estado de usuario:", error);
         throw error;
     }
 };

@@ -16,14 +16,12 @@ import Empleados from "../pages/Manage/Empleados/Gest_Empleados";
 import CrearEmpleado from "../pages/Manage/Empleados/CrearEmpleado";
 import DetalleEmpleado from "../pages/Manage/Empleados/DetalleEmpleado";
 
-import Gest_Roles from "../pages/Manage/Roles/Gest_Roles";
-import CrearRol from "../pages/Manage/Roles/CrearRol";
-
-import Gest_Cargos from "../pages/Manage/Cargos/Gest_Cargos";
-import CrearCargo from "../pages/Manage/Cargos/CrearCargo";
-
-import Gest_Departamentos from "../pages/Manage/Departamentos/Gest_Departamentos";
-import CrearDepartamento from "../pages/Manage/Departamentos/CrearDepartamento";
+import Gest_Roles from "../pages/Manage/Organizacion/Roles/Gest_Roles";
+import CrearRol from "../pages/Manage/Organizacion/Roles/CrearRol";
+import Gest_Cargos from "../pages/Manage/Organizacion/Cargos/Gest_Cargos";
+import CrearCargo from "../pages/Manage/Organizacion/Cargos/CrearCargo";
+import Gest_Departamentos from "../pages/Manage/Organizacion/Departamentos/Gest_Departamentos";
+import CrearDepartamento from "../pages/Manage/Organizacion/Departamentos/CrearDepartamento";
 
 import Inventario from "../pages/Manage/Inventario/Gest_Inventario.jsx";
 import CrearProducto from "../pages/Manage/Inventario/CrearProducto.jsx";

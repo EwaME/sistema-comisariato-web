@@ -1,6 +1,7 @@
 import {
   collection,
   getDoc,
+  getDocs,
   query,
   orderBy,
   where,
@@ -10,6 +11,7 @@ import {
   serverTimestamp,
   getAggregateFromServer,
   sum,
+  limit
 } from "firebase/firestore";
 import { db } from "../firebase/firebase";
 
@@ -136,5 +138,48 @@ export const obtenerTotalCuotasAprobadas = async (usuarioId) => {
   } catch (error) {
     console.error("Error al sumar cuotas:", error);
     throw error;
+  }
+};
+
+export const obtenerCreditosRecientesPorEmpleado = async (empleadoId) => {
+  try {
+    const creditosRef = collection(db, coleccion);
+    
+    const q = query(
+      creditosRef,
+      where("empleadoId", "==", empleadoId), 
+      orderBy("fechaRegistro", "desc"),
+      limit(3)
+    );
+    
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (error) {
+    console.error("Error al obtener historial de créditos:", error);
+    throw error;
+  }
+};
+
+export const obtenerTotalCuotasPorEmpleadoId = async (empleadoId) => {
+  try {
+    const creditosRef = collection(db, "creditos");
+    
+    const q = query(
+      creditosRef,
+      where("empleadoId", "==", empleadoId),
+      where("estado", "==", "Aprobado")
+    );
+
+    const querySnapshot = await getDocs(q);
+    let total = 0;
+    
+    querySnapshot.forEach((doc) => {
+      total += doc.data().cuotaMensual || 0;
+    });
+
+    return total;
+  } catch (error) {
+    console.error("Error al sumar cuotas:", error);
+    throw error; 
   }
 };

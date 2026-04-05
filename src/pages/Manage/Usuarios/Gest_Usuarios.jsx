@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, MoreHorizontal, ChevronRight, Loader2, ChevronLeft, XCircle, AlertCircle, X, ShieldAlert, Filter } from 'lucide-react'; 
 import { Link } from 'react-router-dom';
-import { obtenerUsuarios, actualizarUsuario, asignarRolWebYAuth } from '../../../services/usuariosService';
+import { obtenerUsuarios, cambiarEstadoUsuario, asignarRolWebYAuth } from '../../../services/usuariosService';
 
-// IMPORTAMOS PARA CARGAR LOS ROLES DESDE FIRESTORE
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from '../../../firebase/firebase'; 
 
@@ -11,17 +10,12 @@ export default function Gest_Usuarios() {
     const [usuarios, setUsuarios] = useState([]);
     const [cargando, setCargando] = useState(true);
     
-    // --- ESTADO PARA ROLES DE LA DB ---
     const [rolesDb, setRolesDb] = useState([]);
     
-    // ==========================================
-    // ESTADOS DE BÚSQUEDA, FILTROS Y PAGINACIÓN
-    // ==========================================
     const [busqueda, setBusqueda] = useState('');
     const [paginaActual, setPaginaActual] = useState(1);
     const itemsPorPagina = 10;
 
-    // Filtros
     const [mostrarFiltros, setMostrarFiltros] = useState(false);
     const filtroRef = useRef(null);
     const [filtrosTemp, setFiltrosTemp] = useState({ rol: '', estado: '' });
@@ -30,20 +24,18 @@ export default function Gest_Usuarios() {
     const [menuActivo, setMenuActivo] = useState(null);
     const menuRef = useRef(null);
 
-    // --- ESTADOS PARA EL MODAL DE ESTADO (ACTIVAR/DESACTIVAR) ---
     const [modalConfirmacion, setModalConfirmacion] = useState(false);
     const [usuarioSeleccionado, setUsuarioSeleccionado] = useState(null);
     const [inputConfirmacion, setInputConfirmacion] = useState("");
     const [procesandoEstado, setProcesandoEstado] = useState(false);
 
-    // --- ESTADOS PARA EL MODAL DE CAMBIO DE ROL ---
     const [modalRol, setModalRol] = useState(false);
     const [rolDestino, setRolDestino] = useState("");
     const [procesandoRol, setProcesandoRol] = useState(false);
 
     useEffect(() => {
         cargarDatos();
-        cargarRoles(); // Llamamos a la DB para traer los roles
+        cargarRoles(); 
     }, []);
 
     const cargarDatos = async () => {
@@ -58,13 +50,11 @@ export default function Gest_Usuarios() {
         }
     };
 
-    // FUNCIÓN PARA TRAER ROLES ACTIVOS 
     const cargarRoles = async () => {
         try {
             const q = query(collection(db, 'roles'), where('estado', '==', 'ACTIVO'));
             const querySnapshot = await getDocs(q);
             
-            // Filtramos los roles base
             const rolesFiltrados = querySnapshot.docs
                 .map(doc => doc.id.toUpperCase())
                 .filter(rolId => rolId !== 'USUARIO/EMPLEADO' && rolId !== 'EMPLEADO');
@@ -75,7 +65,6 @@ export default function Gest_Usuarios() {
         }
     };
 
-    // Cerrar menú o filtros al hacer clic fuera
     useEffect(() => {
         const handleClickFuera = (event) => {
             if (menuRef.current && !menuRef.current.contains(event.target)) {
@@ -93,9 +82,6 @@ export default function Gest_Usuarios() {
         setMenuActivo(menuActivo === idUsuario ? null : idUsuario);
     };
 
-    // ==========================================
-    // LÓGICA DE BOTONES DE FILTRO
-    // ==========================================
     const isFiltroActivo = filtrosAplicados.rol !== '' || filtrosAplicados.estado !== '';
 
     const handleBotonFiltroClick = () => {
@@ -114,9 +100,6 @@ export default function Gest_Usuarios() {
         setPaginaActual(1);
     };
 
-    // ==========================================
-    // LÓGICA DEL MODAL DE ESTADO (ACTIVAR/DESACTIVAR)
-    // ==========================================
     const abrirModalEstado = (user) => {
         setUsuarioSeleccionado(user);
         setModalConfirmacion(true);
@@ -137,7 +120,8 @@ export default function Gest_Usuarios() {
         const nuevoEstado = usuarioSeleccionado.estado === 'ACTIVO' ? 'INACTIVO' : 'ACTIVO';
         
         try {
-            await actualizarUsuario(usuarioSeleccionado.id, { estado: nuevoEstado });
+            await cambiarEstadoUsuario(usuarioSeleccionado.id, nuevoEstado);
+            
             setUsuarios(usuarios.map(u => u.id === usuarioSeleccionado.id ? { ...u, estado: nuevoEstado } : u));
             cerrarModalEstado();
         } catch (error) {
@@ -147,9 +131,6 @@ export default function Gest_Usuarios() {
         }
     };
 
-    // ==========================================
-    // LÓGICA DEL MODAL DE CAMBIO DE ROL
-    // ==========================================
     const abrirModalSelectorRol = (user) => {
         setUsuarioSeleccionado(user);
         
@@ -186,25 +167,18 @@ export default function Gest_Usuarios() {
         }
     };
 
-    // ==========================================
-    // LÓGICA DE FILTRADO DE LA TABLA
-    // ==========================================
     const usuariosFiltrados = usuarios.filter(user => {
-        // 1. Filtro de Búsqueda
         const termino = busqueda.toLowerCase();
         const matchBusqueda = user.nombre?.toLowerCase().includes(termino) || 
                               user.correo?.toLowerCase().includes(termino) ||
                               user.empleadoId?.toLowerCase().includes(termino);
 
-        // 2. Filtro por Rol
         let matchRol = true;
         if (filtrosAplicados.rol !== '') {
             const rolesArray = Array.isArray(user.rol) ? user.rol : (user.rol ? String(user.rol).split(', ') : []);
-            // Filtramos si el arreglo de roles del usuario incluye el rol seleccionado
             matchRol = rolesArray.includes(filtrosAplicados.rol);
         }
 
-        // 3. Filtro por Estado
         const matchEstado = filtrosAplicados.estado === '' || user.estado?.toUpperCase() === filtrosAplicados.estado;
 
         return matchBusqueda && matchRol && matchEstado;
@@ -214,7 +188,6 @@ export default function Gest_Usuarios() {
     const startIndex = (paginaActual - 1) * itemsPorPagina;
     const usuariosPaginados = usuariosFiltrados.slice(startIndex, startIndex + itemsPorPagina);
 
-    // Si la búsqueda reduce los resultados y la página actual queda vacía, regresamos a la pag 1
     useEffect(() => {
         if (paginaActual > totalPaginas && totalPaginas > 0) {
             setPaginaActual(1);
@@ -230,7 +203,6 @@ export default function Gest_Usuarios() {
 
             <div className="bg-white p-6 rounded-[1.5rem] shadow-[0_2px_20px_rgb(0,0,0,0.02)] border border-gray-50 relative z-10">
                 
-                {/* BARRA DE HERRAMIENTAS */}
                 <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
                     <div className="relative w-full md:w-96">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -249,7 +221,6 @@ export default function Gest_Usuarios() {
                     </div>
 
                     <div className="flex gap-3 w-full md:w-auto relative">
-                        {/* BOTÓN DE FILTROS DINÁMICO */}
                         <button 
                             onClick={handleBotonFiltroClick}
                             className={`border text-[11px] font-bold px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 transition-colors w-full md:w-auto
@@ -263,7 +234,6 @@ export default function Gest_Usuarios() {
                             {isFiltroActivo ? 'QUITAR FILTROS' : 'FILTRAR'}
                         </button>
 
-                        {/* MENÚ DROPDOWN DE FILTROS */}
                         {mostrarFiltros && (
                             <div ref={filtroRef} className="absolute top-12 right-0 md:right-36 w-64 bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-gray-100 z-50 p-4">
                                 <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 border-b border-gray-50 pb-2">Opciones de Filtro</h4>
@@ -408,7 +378,6 @@ export default function Gest_Usuarios() {
                     )}
                 </div>
 
-                {/* PAGINACIÓN */}
                 {!cargando && usuariosFiltrados.length > 0 && (
                     <div className="flex flex-col sm:flex-row items-center justify-between mt-6 pt-4 border-t border-gray-50 gap-4">
                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
@@ -423,9 +392,6 @@ export default function Gest_Usuarios() {
                 )}
             </div>
 
-            {/* ======================================================== */}
-            {/* MODAL DE CONFIRMACIÓN PARA ACTIVAR/INHABILITAR           */}
-            {/* ======================================================== */}
             {modalConfirmacion && usuarioSeleccionado && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#020817]/40 backdrop-blur-sm p-4">
                     <div className="bg-white rounded-[1.5rem] shadow-2xl w-full max-w-md overflow-hidden transform transition-all">
@@ -492,9 +458,6 @@ export default function Gest_Usuarios() {
                 </div>
             )}
 
-            {/* ======================================================== */}
-            {/* MODAL REDISEÑADO PARA CAMBIO DE ROL (SELECCIÓN INTERACTIVA) */}
-            {/* ======================================================== */}
             {modalRol && usuarioSeleccionado && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#020817]/40 backdrop-blur-sm p-4">
                     <div className="bg-white rounded-[1.5rem] shadow-2xl w-full max-w-md overflow-hidden transform transition-all">
@@ -515,7 +478,6 @@ export default function Gest_Usuarios() {
                         </div>
 
                         <div className="p-6">
-                            {/* Selector de Rol interactivo dinámico */}
                             <div className="mb-6">
                                 <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">
                                     Selecciona el nuevo rol:

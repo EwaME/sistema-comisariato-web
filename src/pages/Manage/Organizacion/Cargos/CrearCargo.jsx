@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
-import { crearDepartamento, obtenerDepartamentoPorId, actualizarDepartamento } from '../../../services/departamentosService'; // Ajusta la ruta
+import { crearCargo, obtenerCargoPorId, actualizarCargo } from '../../../../services/cargosService'; 
 
-export default function CrearDepartamento() {
+export default function CrearCargo() {
     const navigate = useNavigate();
     const { id } = useParams(); 
     const isEdit = Boolean(id); 
@@ -19,32 +19,31 @@ export default function CrearDepartamento() {
     });
 
     useEffect(() => {
-        const cargarDepAEditar = async () => {
+        const cargarAEditar = async () => {
             if (isEdit) {
                 try {
-                    const depAEditar = await obtenerDepartamentoPorId(id);
+                    const docAEditar = await obtenerCargoPorId(id);
                     setFormData({
-                        codigo: depAEditar.id, 
-                        nombre: depAEditar.nombre || '',
-                        descripcion: depAEditar.descripcion || '',
-                        estado: depAEditar.estado || 'ACTIVO'
+                        codigo: docAEditar.id, 
+                        nombre: docAEditar.nombre || '',
+                        descripcion: docAEditar.descripcion || '',
+                        estado: docAEditar.estado || 'ACTIVO'
                     });
                 } catch (error) {
-                    console.error("Error al cargar departamento:", error);
-                    alert("No se pudo cargar la información del departamento.");
-                    navigate('/departamentos');
+                    console.error("Error al cargar cargo:", error);
+                    alert("No se pudo cargar la información del cargo.");
+                    navigate('/cargos');
                 } finally {
                     setCargandoDatos(false);
                 }
             }
         };
 
-        cargarDepAEditar();
+        cargarAEditar();
     }, [id, isEdit, navigate]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        // Forzamos mayúsculas para el código (Ej: DEP-MOLIENDA)
         const valorFinal = name === 'codigo' ? value.toUpperCase() : value;
         setFormData({ ...formData, [name]: valorFinal });
     };
@@ -53,7 +52,7 @@ export default function CrearDepartamento() {
         e.preventDefault();
         
         if (!formData.codigo.trim() || !formData.nombre.trim()) {
-            alert("El código y el nombre del departamento son obligatorios.");
+            alert("El código y el nombre del cargo son obligatorios.");
             return;
         }
 
@@ -68,17 +67,15 @@ export default function CrearDepartamento() {
             };
 
             if (isEdit) {
-                // Actualiza con el id original de la URL
-                await actualizarDepartamento(id, datosGuardar);
+                await actualizarCargo(id, datosGuardar);
             } else {
-                // Crea usando el código ingresado como el ID de Firebase
-                await crearDepartamento(formData.codigo, datosGuardar);
+                await crearCargo(formData.codigo, datosGuardar);
             }
             
-            navigate('/departamentos');
+            navigate('/cargos');
             
         } catch (error) {
-            console.error("Error al guardar el departamento:", error);
+            console.error("Error al guardar el cargo:", error);
             alert("Hubo un error al procesar la solicitud.");
         } finally {
             setCargando(false);
@@ -97,26 +94,24 @@ export default function CrearDepartamento() {
         <div className="p-4 max-w-[1200px] mx-auto bg-[#F8F9FF] min-h-screen">
             
             <div className="mb-6">
-                <button onClick={() => navigate('/departamentos')} className="flex items-center gap-2 text-sm font-bold text-gray-500 hover:text-[#020817] transition-colors">
+                <button onClick={() => navigate('/cargos')} className="flex items-center gap-2 text-sm font-bold text-gray-500 hover:text-[#020817] transition-colors">
                     <ChevronLeft className="w-4 h-4" /> Regresar
                 </button>
             </div>
 
             <div className="mb-8">
                 <h2 className="text-2xl font-extrabold text-[#020817]">
-                    {isEdit ? 'Editar Departamento' : 'Registrar Departamento'}
+                    {isEdit ? 'Editar Cargo' : 'Registrar Cargo'}
                 </h2>
                 <p className="text-[13px] text-gray-500 mt-1 font-medium">
-                    {isEdit ? 'Modifica los detalles de esta área operativa.' : 'Crea una nueva división o área para agrupar a los empleados.'}
+                    {isEdit ? 'Modifica los detalles de este puesto de trabajo.' : 'Crea un nuevo puesto para asignar a los empleados.'}
                 </p>
             </div>
 
             <form onSubmit={handleSubmit} className="bg-white p-6 md:p-10 rounded-[1.5rem] shadow-[0_2px_20px_rgb(0,0,0,0.02)] border border-gray-50">
                 
-                {/* LA FAMOSA CUADRÍCULA DE 3 COLUMNAS */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                     
-                    {/* CÓDIGO (Columna 1) */}
                     <div>
                         <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Código (ID Único)</label>
                         <input 
@@ -125,7 +120,7 @@ export default function CrearDepartamento() {
                             value={formData.codigo} 
                             onChange={handleChange} 
                             readOnly={isEdit}
-                            placeholder="Ej. DEP-LOG" 
+                            placeholder="Ej. CAR-001" 
                             className={`w-full text-sm font-bold px-4 py-3 rounded-xl focus:outline-none transition-all ${
                                 isEdit 
                                 ? 'bg-gray-100 border border-gray-200 text-gray-500 cursor-not-allowed' 
@@ -135,20 +130,18 @@ export default function CrearDepartamento() {
                         {isEdit && <p className="text-[10px] text-gray-400 mt-1 font-medium leading-tight">El código no es modificable.</p>}
                     </div>
 
-                    {/* NOMBRE (Columna 2) */}
                     <div>
-                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Nombre del Departamento</label>
+                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Nombre del Cargo</label>
                         <input 
                             required 
                             name="nombre" 
                             value={formData.nombre} 
                             onChange={handleChange} 
-                            placeholder="Ej. Logística y Transporte" 
+                            placeholder="Ej. Gerente de Logística" 
                             className="w-full bg-[#F8F9FF] border border-gray-100 text-sm font-medium px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/20 focus:border-[#7C3AED]"
                         />
                     </div>
 
-                    {/* ESTADO (Columna 3) */}
                     <div>
                         <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Estado Operativo</label>
                         <select 
@@ -166,16 +159,15 @@ export default function CrearDepartamento() {
                         </select>
                     </div>
 
-                    {/* DESCRIPCIÓN (Ocupa las 3 columnas abajo) */}
                     <div className="md:col-span-3">
-                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Descripción / Funciones Principales</label>
+                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Descripción / Responsabilidades</label>
                         <textarea 
                             required 
                             name="descripcion" 
                             value={formData.descripcion} 
                             onChange={handleChange} 
                             rows="3"
-                            placeholder="Ej. Área encargada de coordinar el transporte de caña..." 
+                            placeholder="Ej. Encargado de supervisar toda la flota de transporte..." 
                             className="w-full bg-[#F8F9FF] border border-gray-100 text-sm font-medium px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/20 focus:border-[#7C3AED] resize-none" 
                         />
                     </div>
@@ -183,11 +175,11 @@ export default function CrearDepartamento() {
                 </div>
 
                 <div className="flex items-center justify-end gap-3 pt-6 border-t border-gray-50">
-                    <button type="button" onClick={() => navigate('/departamentos')} className="bg-white border border-gray-200 text-gray-600 text-[11px] font-bold px-6 py-3 rounded-xl hover:bg-gray-50 transition-colors tracking-widest uppercase">
+                    <button type="button" onClick={() => navigate('/cargos')} className="bg-white border border-gray-200 text-gray-600 text-[11px] font-bold px-6 py-3 rounded-xl hover:bg-gray-50 transition-colors tracking-widest uppercase">
                         Cancelar
                     </button>
                     <button type="submit" disabled={cargando} className={`text-white text-[11px] font-bold px-8 py-3 rounded-xl shadow-md transition-colors tracking-widest uppercase ${cargando ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#020817] hover:bg-black'}`}>
-                        {cargando ? 'Guardando...' : (isEdit ? 'Actualizar Cambios' : 'Guardar Departamento')}
+                        {cargando ? 'Guardando...' : (isEdit ? 'Actualizar Cambios' : 'Guardar Cargo')}
                     </button>
                 </div>
 

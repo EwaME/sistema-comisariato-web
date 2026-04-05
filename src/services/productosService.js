@@ -1,6 +1,7 @@
 import { collection, getDocs, doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 import { db } from "../firebase/firebase"; 
-import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage"; // Importa Storage
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { registrarAuditoria } from "./auditoriasService";
 
 const coleccion = "productos";
 
@@ -41,6 +42,13 @@ export const crearProducto = async (datosProducto) => {
             fechaModificacion: new Date()
         });
         
+        await registrarAuditoria(
+            "CREACIÓN", 
+            "Gestión de Productos", 
+            `Se registró un nuevo producto: ${datosProducto.nombre || idGenerado}`, 
+            idGenerado
+        );
+
         return idGenerado;
     } catch (error) {
         console.error("Error al crear producto:", error);
@@ -55,6 +63,15 @@ export const actualizarProducto = async (idProducto, datosNuevos) => {
             ...datosNuevos,
             fechaModificacion: new Date()
         });
+
+        // Al ser una edición normal, siempre mandará este log
+        await registrarAuditoria(
+            "EDICIÓN", 
+            "Gestión de Productos", 
+            "Se actualizaron los datos generales del producto", 
+            idProducto
+        );
+
         return true;
     } catch (error) {
         console.error("Error al actualizar producto:", error);
@@ -62,17 +79,51 @@ export const actualizarProducto = async (idProducto, datosNuevos) => {
     }
 };
 
-// NUEVA FUNCIÓN PARA SUBIR IMÁGENES
+// --- NUEVA FUNCIÓN EXCLUSIVA PARA EL ESTADO ---
+export const cambiarEstadoProducto = async (idProducto, nuevoEstadoActivo) => {
+    try {
+        const docRef = doc(db, coleccion, idProducto);
+        await updateDoc(docRef, { 
+            activo: nuevoEstadoActivo, 
+            fechaModificacion: new Date() 
+        });
+
+        const accion = nuevoEstadoActivo ? "ACTIVACIÓN" : "ELIMINACIÓN";
+        const mensaje = nuevoEstadoActivo 
+            ? "Se reactivó el producto en la tienda"
+            : "Se inhabilitó el producto ocultándolo de la tienda";
+
+        await registrarAuditoria(
+            accion, 
+            "Gestión de Productos", 
+            mensaje, 
+            idProducto
+        );
+
+        return true;
+    } catch (error) {
+        console.error("Error al cambiar estado de producto:", error);
+        throw error;
+    }
+};
+
 export const subirImagenProducto = async (archivo, idProducto, tipoVista) => {
     try {
         const storage = getStorage();
         const extension = archivo.name.split('.').pop();
-        // Guardamos en: productos/PROD-001/frontal.jpg
         const rutaImagen = `productos/${idProducto}/${tipoVista}.${extension}`;
         const storageRef = ref(storage, rutaImagen);
 
         await uploadBytes(storageRef, archivo);
         const urlDescarga = await getDownloadURL(storageRef);
+
+        await registrarAuditoria(
+            "EDICIÓN", 
+            "Gestión de Productos", 
+            `Se subió/actualizó la imagen (${tipoVista}) del producto`, 
+            idProducto
+        );
+
         return urlDescarga;
     } catch (error) {
         console.error(`Error al subir la imagen ${tipoVista}:`, error);
@@ -98,6 +149,12 @@ export const actualizarVisibilidadComentario = async (idProducto, idComentario, 
             visible,
             fechaModificacion: new Date()
         });
+
+        const accion = visible ? "ACTIVACIÓN" : "ELIMINACIÓN";
+        const mensaje = visible ? "Se restauró la visibilidad de un comentario" : "Se ocultó un comentario por moderación";
+
+        await registrarAuditoria(accion, "Gestión de Comentarios", mensaje, idProducto);
+
         return true;
     } catch (error) {
         console.error("Error al actualizar comentario:", error);

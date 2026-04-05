@@ -13,12 +13,10 @@ export default function GestionarProducto() {
     const [cargando, setCargando] = useState(false);
     const [cargandoDatos, setCargandoDatos] = useState(isEdit);
     
-    // Estados para datos dinámicos de la BD
     const [categoriasDb, setCategoriasDb] = useState([]);
     const [garantiasDb, setGarantiasDb] = useState([]);
     const [porcentajeInteres, setPorcentajeInteres] = useState(0);
 
-    // Estado del formulario
     const [formData, setFormData] = useState({
         productoId: 'Calculando...',
         nombre: '',
@@ -35,14 +33,12 @@ export default function GestionarProducto() {
         imagenTraseraUrl: ''
     });
 
-    // Archivos físicos (Files) para subir a Storage
     const [imagenesArchivo, setImagenesArchivo] = useState({
         frontal: null,
         lateral: null,
         trasera: null
     });
 
-    // URLs locales para previsualizar antes de guardar
     const [vistasPrevias, setVistasPrevias] = useState({
         frontal: null,
         lateral: null,
@@ -55,7 +51,6 @@ export default function GestionarProducto() {
 
     const cargarDatosIniciales = async () => {
         try {
-            // 1. Cargar Configuración Global
             const configRef = doc(db, 'configuraciones', 'config_global');
             const configSnap = await getDoc(configRef);
             let interesActual = 0;
@@ -64,14 +59,12 @@ export default function GestionarProducto() {
                 setPorcentajeInteres(interesActual);
             }
 
-            // 2. Cargar Categorías
             const catSnap = await getDocs(collection(db, 'categorias'));
             const categoriasData = catSnap.docs
                 .map(d => ({ id: d.id, ...d.data() }))
-                .filter(cat => cat.estado === "Activo");
+                .filter(cat => cat.estado === "ACTIVO");
             setCategoriasDb(categoriasData);
 
-            // 3. Cargar Garantías
             const garantiasSnap = await getDocs(collection(db, 'configuraciones', 'config_global', 'garantias'));
             const garantiasData = garantiasSnap.docs.map(d => d.data());
             garantiasData.sort((a, b) => {
@@ -83,7 +76,6 @@ export default function GestionarProducto() {
             setGarantiasDb(garantiasData);
 
             if (isEdit) {
-                // MODO EDICIÓN
                 const prod = await obtenerProductoPorId(id);
                 
                 let garantiaSeleccionada = "";
@@ -113,7 +105,6 @@ export default function GestionarProducto() {
                 });
 
             } else {
-                // MODO CREACIÓN: Generar Siguiente ID
                 const q = query(collection(db, 'productos'), orderBy('productoId', 'desc'), limit(1));
                 const prodSnap = await getDocs(q);
                 let proxId = 'PROD-001';
@@ -172,9 +163,7 @@ export default function GestionarProducto() {
                 alert("La imagen es demasiado pesada. Máximo 5MB.");
                 return;
             }
-            // Guardamos el archivo para subirlo luego
             setImagenesArchivo(prev => ({ ...prev, [tipo]: file }));
-            // Generamos preview local
             setVistasPrevias(prev => ({ ...prev, [tipo]: URL.createObjectURL(file) }));
         }
     };
@@ -196,7 +185,6 @@ export default function GestionarProducto() {
         try {
             const elId = formData.productoId;
 
-            // 1. Subir imágenes si el usuario seleccionó nuevas
             let urlFrontal = formData.imagenFrontalUrl;
             let urlLateral = formData.imagenLateralUrl;
             let urlTrasera = formData.imagenTraseraUrl;
@@ -205,7 +193,6 @@ export default function GestionarProducto() {
             if (imagenesArchivo.lateral) urlLateral = await subirImagenProducto(imagenesArchivo.lateral, elId, 'lateral');
             if (imagenesArchivo.trasera) urlTrasera = await subirImagenProducto(imagenesArchivo.trasera, elId, 'trasera');
 
-            // 2. Preparar datos
             const [tipoGarantia, valorGarantia] = formData.garantia.split('-');
             const valorNumerico = parseInt(valorGarantia, 10);
 
@@ -232,11 +219,10 @@ export default function GestionarProducto() {
                 datosGuardar.garantiaDias = null;
             }
 
-            // 3. Guardar o Actualizar
             if (isEdit) {
                 await actualizarProducto(id, datosGuardar);
             } else {
-                datosGuardar.cantidadVendida = 0; // Solo en creación
+                datosGuardar.cantidadVendida = 0;
                 await crearProducto(datosGuardar);
             }
 

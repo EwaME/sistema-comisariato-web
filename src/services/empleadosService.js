@@ -1,7 +1,9 @@
-import { collection, getDocs, getDoc, doc, query, where, setDoc, updateDoc } from "firebase/firestore";
+import { collection, getDocs, getDoc, doc, query, where, setDoc, updateDoc, addDoc } from "firebase/firestore";
 import { db } from "../firebase/firebase"; 
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { crearUsuarioBaseEmpleado } from "./usuariosService";
+import { registrarAuditoria } from "./auditoriasService";
+import emailjs from '@emailjs/browser';
 
 const coleccion = "empleados";
 
@@ -47,6 +49,13 @@ export const crearEmpleado = async (empleadoId, datosEmpleado) => {
         
         await crearUsuarioBaseEmpleado({ id: empleadoId, ...datosEmpleado });
         
+        await registrarAuditoria(
+            "CREACIÓN", 
+            "Gestión de Empleados", 
+            `Se registró un nuevo empleado: ${datosEmpleado.nombres} ${datosEmpleado.apellidos}`, 
+            empleadoId
+        );
+
         return true;
     } catch (error) {
         console.error("Error al crear empleado:", error);
@@ -77,6 +86,13 @@ export const actualizarEmpleado = async (idEmpleado, datosNuevos) => {
             }
         }
         
+        await registrarAuditoria(
+            "EDICIÓN", 
+            "Gestión de Empleados", 
+            `Se actualizaron los datos del empleado: ${datosNuevos.nombres} ${datosNuevos.apellidos}`, 
+            idEmpleado
+        );
+
         return true;
     } catch (error) {
         console.error("Error al actualizar empleado:", error);
@@ -93,7 +109,7 @@ export const desactivarEmpleado = async (idEmpleado) => {
         });
 
         const usuariosRef = collection(db, "usuarios");
-        const q = query(usuariosRef, where("idEmpleado", "==", idEmpleado)); 
+        const q = query(usuariosRef, where("empleadoId", "==", idEmpleado)); 
         const querySnapshot = await getDocs(q);
 
         if (!querySnapshot.empty) {
@@ -107,6 +123,13 @@ export const desactivarEmpleado = async (idEmpleado) => {
 
             await Promise.all(promesasUsuarios);
         }
+
+        await registrarAuditoria(
+            "ELIMINACIÓN", 
+            "Gestión de Empleados", 
+            `Se desactivó el empleado y su usuario de acceso`, 
+            idEmpleado
+        );
 
         return true;
     } catch (error) {
@@ -129,5 +152,33 @@ export const subirImagenEmpleado = async (archivo, idEmpleado) => {
     } catch (error) {
         console.error("Error al subir la imagen:", error);
         throw error;
+    }
+};
+
+export const enviarCorreoBienvenida = async (correoDestino, nombreCompleto) => {
+    const SERVICE_ID = "service_dcudf5l";
+    const TEMPLATE_ID = "template_gjphc7v";
+    const PUBLIC_KEY = "RzoFvVrmrGrLsQ_pb";
+
+    const templateParams = {
+        nombre: nombreCompleto,
+        correo: correoDestino,
+        to_email: correoDestino,
+    };
+
+    try {
+        await emailjs.send(SERVICE_ID, TEMPLATE_ID, templateParams, PUBLIC_KEY);
+        
+        await registrarAuditoria(
+            "NOTIFICACIÓN", 
+            "Gestión de Empleados", 
+            `Correo de bienvenida enviado exitosamente a ${correoDestino} vía EmailJS`, 
+            "N/A"
+        );
+        
+        return true;
+    } catch (error) {
+        console.error("Error al enviar correo con EmailJS:", error);
+        return false;
     }
 };
