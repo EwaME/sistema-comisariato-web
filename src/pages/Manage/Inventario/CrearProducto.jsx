@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ChevronLeft, Camera, Heart, Hash, Info, Loader2 } from 'lucide-react';
+import { ChevronLeft, Camera, Heart, Hash, Info, Loader2, AlertCircle, X } from 'lucide-react';
 import { crearProducto, obtenerProductoPorId, actualizarProducto, subirImagenProducto } from '../../../services/productosService'; 
 import { doc, getDoc, collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
 import { db } from '../../../firebase/firebase';
@@ -44,6 +44,13 @@ export default function GestionarProducto() {
         lateral: null,
         trasera: null
     });
+
+    const [toast, setToast] = useState({ visible: false, mensaje: '' });
+
+    const mostrarToast = (mensaje) => {
+        setToast({ visible: true, mensaje });
+        setTimeout(() => setToast({ visible: false, mensaje: '' }), 5000);
+    };
 
     useEffect(() => {
         cargarDatosIniciales();
@@ -181,6 +188,22 @@ export default function GestionarProducto() {
         if (!formData.garantia) return alert("Debes seleccionar un plazo de garantía válido.");
         if (formData.productoId === 'Calculando...' || formData.productoId === 'PROD-ERROR') return alert("ID inválido.");
 
+        if (formData.activo) {
+            try {
+                const configRef = doc(db, 'configuraciones', 'config_global');
+                const configSnap = await getDoc(configRef);
+                if (configSnap.exists()) {
+                    const stockMinimoCierre = configSnap.data().StockMinimoCierre || 0;
+                    if (stock <= stockMinimoCierre) {
+                        setCargando(false);
+                        return mostrarToast(`No puedes activar un producto con stock insuficiente. El stock (${stock}) debe ser mayor al mínimo de cierre (${stockMinimoCierre}).`);
+                    }
+                }
+            } catch (err) {
+                console.error("Error validando stock mínimo:", err);
+            }
+        }
+
         setCargando(true);
         try {
             const elId = formData.productoId;
@@ -232,7 +255,7 @@ export default function GestionarProducto() {
             
         } catch (error) {
             console.error("Error al guardar:", error);
-            alert("Hubo un error al guardar el producto.");
+            mostrarToast("Hubo un error al guardar el producto.");
         } finally {
             setCargando(false);
         }
@@ -257,6 +280,23 @@ export default function GestionarProducto() {
 
     return (
         <div className="p-4 md:p-8 max-w-[1600px] mx-auto bg-[#F8F9FF] min-h-screen">
+
+            {toast.visible && (
+                <div className="fixed top-6 right-6 z-50 animate-in fade-in slide-in-from-top-5 duration-300">
+                    <div className="bg-red-50 border border-red-100 p-4 rounded-2xl shadow-[0_8px_30px_rgb(239,68,68,0.15)] flex items-start gap-3 max-w-sm">
+                        <div className="bg-white rounded-full p-1 shadow-sm shrink-0">
+                            <AlertCircle className="w-5 h-5 text-red-500" />
+                        </div>
+                        <div className="mt-0.5">
+                            <h4 className="text-[13px] font-extrabold text-red-800">No se pudo procesar</h4>
+                            <p className="text-[12px] font-medium text-red-600 mt-0.5 leading-tight">{toast.mensaje}</p>
+                        </div>
+                        <button onClick={() => setToast({ visible: false, mensaje: '' })} className="text-red-400 hover:text-red-600 transition-colors ml-auto -mt-1 -mr-1 p-1">
+                            <X className="w-4 h-4" />
+                        </button>
+                    </div>
+                </div>
+            )}
             
             <div className="mb-6">
                 <button onClick={() => navigate('/inventario')} className="flex items-center gap-2 text-sm font-bold text-gray-500 hover:text-[#020817] transition-colors">
