@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Eye, EyeOff, Headset, KeyRound, Loader2, Building2, Briefcase, CreditCard, Calendar, DollarSign, IdCard, Phone, Mail, CheckCircle2, History, ShieldCheck, Wallet } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom'; // Agregamos esto
+import { Eye, EyeOff, Headset, KeyRound, Loader2, Building2, Briefcase, CreditCard, Calendar, DollarSign, IdCard, Phone, Mail, CheckCircle2, History, ShieldCheck, Wallet, AlertTriangle } from 'lucide-react'; // Agregué AlertTriangle
 import { getAuth, EmailAuthProvider, reauthenticateWithCredential, updatePassword } from "firebase/auth";
+import { doc, updateDoc } from "firebase/firestore"; // Importamos doc y updateDoc
+import { db } from "../../firebase/firebase"; // Importamos la db de Firestore
 import { obtenerUsuarioPorId } from '../../services/usuariosService';
 import { obtenerEmpleadoPorId } from '../../services/empleadosService';
 import { registrarAuditoria } from '../../services/auditoriasService';
@@ -8,7 +11,12 @@ import { obtenerCreditosRecientesPorEmpleado } from '../../services/creditosServ
 
 export default function MiPerfil() {
     const auth = getAuth();
+    const location = useLocation(); // Para cachar estados que vienen por ruta
+    const navigate = useNavigate(); // Para redirigir
     
+    // Verificamos si viene forzado desde el Login
+    const mensajeObligatorio = location.state?.mensajeObligatorio;
+
     const [cargando, setCargando] = useState(true);
     const [usuarioData, setUsuarioData] = useState(null);
     const [empleadoData, setEmpleadoData] = useState(null);
@@ -107,15 +115,32 @@ export default function MiPerfil() {
             const credencial = EmailAuthProvider.credential(auth.currentUser.email, pwdActual);
             await reauthenticateWithCredential(auth.currentUser, credencial);
 
+            // 1. Cambiamos la clave en Firebase Auth
             await updatePassword(auth.currentUser, pwdNueva);
+            
+            // 2. ACTUALIZAMOS EL CAMPO passwordChanged EN FIRESTORE
+            const emailMinuscula = auth.currentUser.email.toLowerCase();
+            const usuarioRef = doc(db, "usuarios", emailMinuscula);
+            await updateDoc(usuarioRef, {
+                passwordChanged: true,
+                fechaModificacion: new Date()
+            });
+
+            // 3. Registramos la auditoría
             await registrarAuditoria("EDICIÓN", "Seguridad", "Cambio de contraseña exitoso", auth.currentUser.email);
             
-            setMensaje({ texto: "Contraseña actualizada exitosamente", tipo: "exito" });
             setPwdActual("");
             setPwdNueva("");
             setPwdConfirmar("");
 
-            setTimeout(() => setMensaje({ texto: "", tipo: "" }), 5000);
+            // 4. Lógica de redirección o éxito
+            if (mensajeObligatorio) {
+                setMensaje({ texto: "¡Contraseña actualizada! Redirigiendo al inicio...", tipo: "exito" });
+                setTimeout(() => navigate("/"), 2500); // Lo mandamos al inicio en 2.5 segs
+            } else {
+                setMensaje({ texto: "Contraseña actualizada exitosamente", tipo: "exito" });
+                setTimeout(() => setMensaje({ texto: "", tipo: "" }), 5000);
+            }
 
         } catch (error) {
             console.error(error);
@@ -141,6 +166,17 @@ export default function MiPerfil() {
     return (
         <div className="min-h-screen bg-slate-50/50 p-4 md:p-8">
             <div className="max-w-6xl mx-auto space-y-6">
+
+                {/* --- ALERTA DE CAMBIO DE CLAVE OBLIGATORIO --- */}
+                {mensajeObligatorio && (
+                    <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-xl shadow-sm flex items-start gap-3">
+                        <AlertTriangle className="text-amber-500 w-5 h-5 shrink-0 mt-0.5" />
+                        <div>
+                            <h3 className="text-sm font-bold text-amber-800">Acción Requerida</h3>
+                            <p className="text-sm text-amber-700 mt-1">{mensajeObligatorio}</p>
+                        </div>
+                    </div>
+                )}
                 
                 <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                     <div className="h-32 w-full bg-gradient-to-r from-indigo-500 via-purple-500 to-fuchsia-500"></div>

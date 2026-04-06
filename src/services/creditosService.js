@@ -14,6 +14,7 @@ import {
   limit
 } from "firebase/firestore";
 import { db } from "../firebase/firebase";
+import { registrarAuditoria } from "./auditoriasService";
 
 const coleccion = "creditos";
 
@@ -71,14 +72,11 @@ export const obtenerCuotasPorCreditoId = async (idCredito) => {};
 
 export const revisionState = async (idCredito, emailRevisor) => {
   try {
-    // 1. Obtener datos del revisor usando su email como ID de documento
     const revisorRef = doc(db, "usuarios", emailRevisor);
     const revisorSnap = await getDoc(revisorRef);
 
     if (!revisorSnap.exists()) {
-      throw new Error(
-        "El perfil de usuario no existe en la colección 'usuarios'",
-      );
+      throw new Error("El perfil de usuario no existe en la colección 'usuarios'");
     }
 
     const { nombre, fotoUrl } = revisorSnap.data();
@@ -91,6 +89,13 @@ export const revisionState = async (idCredito, emailRevisor) => {
       fechaInicioRevision: serverTimestamp(),
       revisorEmail: emailRevisor,
     });
+
+    await registrarAuditoria(
+      "INICIO REVISIÓN",
+      "Gestión de Créditos",
+      `El revisor ${nombre} (${emailRevisor}) ha tomado el crédito para evaluación.`,
+      idCredito
+    );
 
     return { success: true };
   } catch (error) {
@@ -112,6 +117,13 @@ export const actualizarRevisionCredito = async (
       Respuesta: respuestaRevisor,
       fechaRevision: serverTimestamp(),
     });
+
+    await registrarAuditoria(
+      estado.toUpperCase(),
+      "Gestión de Créditos",
+      `Se finalizó la revisión del crédito con estado: ${estado}. Observaciones: ${respuestaRevisor}`,
+      idDocumento
+    );
 
     return { success: true };
   } catch (error) {

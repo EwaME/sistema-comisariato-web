@@ -172,7 +172,7 @@ export const enviarCorreoBienvenida = async (correoDestino, nombreCompleto) => {
         await registrarAuditoria(
             "NOTIFICACIÓN", 
             "Gestión de Empleados", 
-            `Correo de bienvenida enviado exitosamente a ${correoDestino} vía EmailJS`, 
+            `Correo de bienvenida enviado exitosamente a ${correoDestino}`, 
             "N/A"
         );
         
