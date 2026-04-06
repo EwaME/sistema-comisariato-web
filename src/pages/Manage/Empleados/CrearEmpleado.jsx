@@ -501,7 +501,7 @@ export default function CrearEmpleado() {
 
           {!isEdit && (
             <div className="col-span-1 md:col-span-2 mt-2 bg-[#F8F9FF] border border-purple-100 p-4 rounded-xl flex items-start gap-4 transition-all hover:border-purple-200">
-              {/* <div className="mt-0.5">
+              <div className="mt-0.5">
                                 <input 
                                     id="checkCorreo"
                                     type="checkbox" 
@@ -520,7 +520,7 @@ export default function CrearEmpleado() {
                                 <p className="text-xs text-gray-500 font-medium leading-relaxed">
                                     Si habilitas esta opción, el sistema enviará un correo automático...
                                 </p>
-                            </label> */}
+                            </label>
             </div>
           )}
         </div>

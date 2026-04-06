@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { auth, db } from "../firebase/firebase";
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 
 const AuthContext = createContext();
 
@@ -12,10 +12,11 @@ export const AuthProvider = ({ children }) => {
 
     const getUserDataFromFirestore = async (email) => {
         try {
-            const q = query(collection(db, "usuarios"), where("email", "==", email));
-            const querySnapshot = await getDocs(q);
-            if (!querySnapshot.empty) {
-                return querySnapshot.docs[0].data(); 
+            const docRef = doc(db, "usuarios", email.toLowerCase());
+            const docSnap = await getDoc(docRef);
+            
+            if (docSnap.exists()) {
+                return docSnap.data(); 
             }
             return null;
         } catch (error) {
