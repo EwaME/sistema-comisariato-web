@@ -141,15 +141,21 @@ export default function Inventario() {
     };
 
     const confirmarCambioEstado = async () => {
-        if (inputConfirmacion !== productoSeleccionado.productoId) return; 
+        if (inputConfirmacion !== productoSeleccionado.productoId) return;
+
+        const intentandoReactivar = !productoSeleccionado.activo;
+        const stockActual = productoSeleccionado.stock || 0;
+        const stockMinimoCierre = configGlobal.StockMinimoCierre || 0;
+
+        if (intentandoReactivar && stockActual <= stockMinimoCierre) {
+            alert(`No se puede reactivar: El stock actual (${stockActual}) debe ser mayor al mínimo permitido para venta (${stockMinimoCierre}).`);
+            return;
+        }
 
         setProcesandoEstado(true);
-        const nuevoEstado = !productoSeleccionado.activo;
-        
         try {
-            await cambiarEstadoProducto(productoSeleccionado.id, nuevoEstado);
-            
-            setProductos(productos.map(p => p.id === productoSeleccionado.id ? { ...p, activo: nuevoEstado } : p));
+            await cambiarEstadoProducto(productoSeleccionado.id, !productoSeleccionado.activo);
+            setProductos(productos.map(p => p.id === productoSeleccionado.id ? { ...p, activo: !p.activo } : p));
             cerrarModalEstado();
         } catch (error) {
             alert("No se pudo actualizar el estado del producto");
@@ -285,6 +291,8 @@ export default function Inventario() {
                                         const esCierre = stockActual <= (configGlobal.StockMinimoCierre || 2);
                                         const esAviso = !esCierre && stockActual <= (configGlobal.StockMinimoAviso || 8);
 
+                                        const disableHabilitar = !estaActivo && esCierre;
+                                        
                                         return (
                                             <tr key={prod.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
                                                 <td className="py-5 px-4 text-gray-400 font-bold text-xs">{prod.productoId}</td>
@@ -329,8 +337,16 @@ export default function Inventario() {
                                                                 Editar
                                                             </Link>
                                                             <button 
-                                                                onClick={() => abrirModalEstado(prod)}
-                                                                className={`w-full px-4 py-2 text-xs font-medium text-left transition-colors ${estaActivo ? 'text-red-600 hover:bg-red-50' : 'text-green-600 hover:bg-green-50'}`}
+                                                                onClick={() => !disableHabilitar && abrirModalEstado(prod)}
+                                                                disabled={disableHabilitar}
+                                                                title={disableHabilitar ? "Stock insuficiente para habilitar" : ""}
+                                                                className={`w-full px-4 py-2 text-xs font-medium text-left transition-colors ${
+                                                                    disableHabilitar 
+                                                                        ? 'text-gray-400 bg-gray-50 cursor-not-allowed' 
+                                                                        : estaActivo 
+                                                                            ? 'text-red-600 hover:bg-red-50' 
+                                                                            : 'text-green-600 hover:bg-green-50'
+                                                                }`}
                                                             >
                                                                 {estaActivo ? 'Inhabilitar' : 'Habilitar'}
                                                             </button>
@@ -455,7 +471,10 @@ export default function Inventario() {
                             <p className={`text-xs font-medium mt-1 text-center px-4 ${productoSeleccionado.activo ? 'text-red-500' : 'text-green-600'}`}>
                                 {productoSeleccionado.activo 
                                     ? 'El producto ya no estará visible para la venta ni facturación.'
-                                    : 'El producto volverá a estar disponible en el inventario activo.'}
+                                    : (productoSeleccionado.stock <= configGlobal.StockMinimoCierre)
+                                        ? `Bloqueado: Stock insuficiente (${productoSeleccionado.stock}) para reactivar.`
+                                        : 'El producto volverá a estar disponible en el inventario activo.'
+                                }
                             </p>
                         </div>
 
@@ -488,7 +507,11 @@ export default function Inventario() {
                                 </button>
                                 <button 
                                     onClick={confirmarCambioEstado}
-                                    disabled={inputConfirmacion !== productoSeleccionado.productoId || procesandoEstado}
+                                    disabled={
+                                        inputConfirmacion !== productoSeleccionado.productoId || 
+                                        procesandoEstado || 
+                                        (!productoSeleccionado.activo && productoSeleccionado.stock <= configGlobal.StockMinimoCierre) // <-- Nueva validación
+                                    }
                                     className={`flex-1 text-white text-[11px] font-bold py-3 rounded-xl shadow-md transition-all tracking-widest uppercase
                                         ${(inputConfirmacion !== productoSeleccionado.productoId || procesandoEstado) 
                                             ? 'bg-gray-300 cursor-not-allowed opacity-70' 
