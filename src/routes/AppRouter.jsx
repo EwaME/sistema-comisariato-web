@@ -48,6 +48,8 @@ import RevisionReclamo from "../pages/Manage/Reclamos/Gest_Revision.jsx";
 
 import GuiasyAyudas from "../pages/GuiasyAyudas";
 
+import TestCuotas from "../pages/TestFunction";
+
 export default function AppRouter() {
   return (
     <Routes>
@@ -85,7 +87,10 @@ export default function AppRouter() {
         {/* 4. Gestión de Departamentos */}
         <Route path="/departamentos" element={<Gest_Departamentos />} />
         <Route path="/departamentos/nuevo" element={<CrearDepartamento />} />
-        <Route path="/departamentos/editar/:id" element={<CrearDepartamento />} />
+        <Route
+          path="/departamentos/editar/:id"
+          element={<CrearDepartamento />}
+        />
 
         {/* 5. Gestión de Cargos */}
         <Route path="/cargos" element={<Gest_Cargos />} />
@@ -102,7 +107,10 @@ export default function AppRouter() {
         <Route path="inventario/nuevo" element={<CrearProducto />} />
         <Route path="inventario/editar/:id" element={<CrearProducto />} />
         <Route path="inventario/detalle/:id" element={<DetalleProducto />} />
-        <Route path="inventario/comentarios/:id" element={<Gest_Comentarios_Producto />} />
+        <Route
+          path="inventario/comentarios/:id"
+          element={<Gest_Comentarios_Producto />}
+        />
 
         <Route path="categorias" element={<Categorias />} />
         <Route path="categorias/nuevo" element={<CrearCategoria />} />
@@ -124,6 +132,9 @@ export default function AppRouter() {
         {/* 9. Comunidad */}
         <Route path="sugerencias" element={<Sugerencias />} />
         <Route path="guias" element={<GuiasyAyudas />} />
+
+        {/* 10. Testing */}
+        <Route path="test-cuotas" element={<TestCuotas />} />
       </Route>
 
       {/* --- RUTA 404 (Si el usuario escribe una URL que no existe) --- */}

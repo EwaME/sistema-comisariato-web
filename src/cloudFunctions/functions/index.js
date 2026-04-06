@@ -56,6 +56,7 @@ exports.descontarStockAlAprobar = onDocumentUpdated(
         // 3. Restamos la cantidad usando FieldValue.increment
         transaction.update(productoRef, {
           stock: FieldValue.increment(-cantidad),
+          cantidadVendida: FieldValue.increment(cantidad),
         });
       });
 
