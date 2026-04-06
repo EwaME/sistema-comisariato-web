@@ -1,11 +1,11 @@
 import React, { useState } from "react";
 import { useAuth } from "../../auth/AuthProvider";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Mail, Eye, EyeOff } from "lucide-react";
-import { Link } from "react-router-dom";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "../../firebase/firebase";
 import { getAuth, signOut } from "firebase/auth";
+import { registrarAuditoria } from "../../services/auditoriasService";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -28,16 +28,33 @@ export default function Login() {
 
       if (!querySnapshot.empty) {
         const userData = querySnapshot.docs[0].data();
+
         if (userData.estado === "INACTIVO") {
           const auth = getAuth();
-          await signOut(auth);
+          await signOut(auth); 
+          
+          await registrarAuditoria("ACCESO DENEGADO", "Autenticación", "Intento de inicio de sesión de usuario INACTIVO", email);
+          
           setError("Acceso denegado: Tu cuenta ha sido inhabilitada.");
           return;
         }
+
+        await registrarAuditoria("INICIO DE SESIÓN", "Autenticación", "Usuario inició sesión correctamente", email);
+
+        if (userData.passwordChanged === false) {
+            navigate("/perfil", { state: { mensajeObligatorio: "Por seguridad, debes cambiar tu contraseña temporal antes de continuar." } });
+        } else {
+            navigate("/");
+        }
+
+      } else {
+        await registrarAuditoria("INICIO DE SESIÓN", "Autenticación", "Login exitoso, pero sin registro en colección usuarios", email);
+        navigate("/");
       }
 
-      navigate("/");
     } catch (err) {
+      await registrarAuditoria("ERROR DE ACCESO", "Autenticación", `Intento de login fallido. Código: ${err.code}`, email);
+
       if (err.code === "auth/invalid-credential") {
         setError("Correo o contraseña incorrectos.");
       } else {
@@ -93,9 +110,6 @@ export default function Login() {
       {/* --- COLUMNA DERECHA --- */}
       <div className="w-full md:w-1/2 flex flex-col items-center justify-center p-4 sm:p-8">
         <div className="w-full max-w-[420px] flex flex-col items-center">
-          {/* Círculo negro + candado PNG sobresaliendo */}
-
-          {/* Card */}
           <div className="w-full bg-white rounded-[1rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-200 p-8 sm:p-10 pt-16">
             <div className="relative z-10 mb-[1rem] w-full flex items-center justify-center">
               <div

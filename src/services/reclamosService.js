@@ -10,6 +10,7 @@ import {
   deleteField,
 } from "firebase/firestore";
 import { db } from "../firebase/firebase";
+import { registrarAuditoria } from "./auditoriasService";
 
 const coleccion = "reclamos";
 
@@ -59,20 +60,25 @@ export const revisionState = async (idReclamo, emailRevisor) => {
     const revisorSnap = await getDoc(revisorRef);
 
     if (!revisorSnap.exists()) {
-      throw new Error(
-        "El perfil de usuario no existe en la colección 'usuarios'",
-      );
+      throw new Error("El perfil de usuario no existe en la colección 'usuarios'");
     }
     const { nombre, fotoUrl } = revisorSnap.data();
 
-    const creditoRef = doc(db, coleccion, idReclamo);
-    await updateDoc(creditoRef, {
+    const reclamoRef = doc(db, coleccion, idReclamo);
+    await updateDoc(reclamoRef, {
       estado: "En revisión",
       revisadoPor: nombre || "Revisor sin nombre",
       revisorFotoTemp: fotoUrl || "",
       fechaInicioRevision: serverTimestamp(),
       revisorEmail: emailRevisor,
     });
+
+    await registrarAuditoria(
+      "INICIO REVISIÓN",
+      "Gestión de Reclamos",
+      `El revisor ${nombre} ha comenzado a evaluar el reclamo.`,
+      idReclamo
+    );
 
     return { success: true };
   } catch (error) {
@@ -91,8 +97,15 @@ export const actualizarRevisionReclamo = async (
     await updateDoc(docRef, {
       estado: "Revisado",
       respuesta: respuestaRevisor,
-      fechaInicioRevision: serverTimestamp(),
+      fechaInicioRevision: serverTimestamp(), 
     });
+
+    await registrarAuditoria(
+      "RESOLUCIÓN",
+      "Gestión de Reclamos",
+      `Se emitió una respuesta al reclamo. Detalle: ${respuestaRevisor}`,
+      idDocumento
+    );
 
     return { success: true };
   } catch (error) {
@@ -112,6 +125,13 @@ export const cancelarRevision = async (idDocumento) => {
       revisorEmail: deleteField(),
       fechaInicioRevision: deleteField(),
     });
+
+    await registrarAuditoria(
+      "CANCELACIÓN",
+      "Gestión de Reclamos",
+      `Se canceló la revisión en curso y el reclamo volvió a estado Pendiente.`,
+      idDocumento
+    );
 
     return { success: true };
   } catch (error) {

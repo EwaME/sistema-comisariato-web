@@ -103,14 +103,19 @@ export default function Auditorias() {
 
     const getBadgeStyle = (accion) => {
         switch (accion?.toUpperCase()) {
-            case 'EDICIÓN': return 'bg-blue-50 text-blue-500 border-blue-100';
-            case 'CREACIÓN': return 'bg-emerald-50 text-emerald-500 border-emerald-100';
-            case 'PAGO': return 'bg-amber-50 text-amber-500 border-amber-100';
-            case 'ELIMINACIÓN': return 'bg-red-50 text-red-500 border-red-100';
-            case 'ACTIVACIÓN': return 'bg-purple-50 text-purple-500 border-purple-100';
-            case 'ALERTA': return 'bg-yellow-50 text-yellow-500 border-yellow-100';
-            case 'EXPORTACIÓN': return 'bg-green-50 text-green-500 border-green-100';
-            default: return 'bg-gray-50 text-gray-500 border-gray-100';
+            case 'ACCESO': return 'bg-green-50 text-green-600 border-green-200';          
+            case 'NOTIFICACIÓN': return 'bg-purple-50 text-purple-600 border-purple-200'; 
+            case 'EDICIÓN': return 'bg-blue-50 text-blue-600 border-blue-200';            
+            case 'CREACIÓN': return 'bg-teal-50 text-teal-600 border-teal-200';           
+            case 'PAGO': return 'bg-amber-50 text-amber-600 border-amber-200';            
+            case 'ELIMINACIÓN': return 'bg-red-50 text-red-600 border-red-200';           
+            case 'INICIO REVISIÓN': return 'bg-orange-50 text-orange-600 border-orange-200'; 
+            case 'RECHAZADO': return 'bg-rose-50 text-rose-600 border-rose-200';          
+            case 'APROBADO': return 'bg-emerald-50 text-emerald-600 border-emerald-200';  
+            case 'ACTIVACIÓN': return 'bg-violet-50 text-violet-600 border-violet-200';   
+            case 'ALERTA': return 'bg-yellow-50 text-yellow-600 border-yellow-200';       
+            case 'EXPORTACIÓN': return 'bg-cyan-50 text-cyan-600 border-cyan-200';        
+            default: return 'bg-gray-50 text-gray-500 border-gray-200';
         }
     };
 

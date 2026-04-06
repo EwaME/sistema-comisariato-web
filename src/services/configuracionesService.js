@@ -35,7 +35,6 @@ export const agregarPlazo = async (plazoMeses) => {
     const colRef = collection(db, "configuraciones", "config_global", "plazos");
     const snap = await getDocs(colRef);
     
-    // CORRECCIÓN: Encontrar el número más alto en lugar de usar length
     let maxNum = 0;
     snap.docs.forEach(d => {
         const parts = d.id.split('-');
