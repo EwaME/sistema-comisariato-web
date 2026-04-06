@@ -11,7 +11,7 @@ import {
   serverTimestamp,
   getAggregateFromServer,
   sum,
-  limit
+  limit,
 } from "firebase/firestore";
 import { db } from "../firebase/firebase";
 import { registrarAuditoria } from "./auditoriasService";
@@ -76,7 +76,9 @@ export const revisionState = async (idCredito, emailRevisor) => {
     const revisorSnap = await getDoc(revisorRef);
 
     if (!revisorSnap.exists()) {
-      throw new Error("El perfil de usuario no existe en la colección 'usuarios'");
+      throw new Error(
+        "El perfil de usuario no existe en la colección 'usuarios'",
+      );
     }
 
     const { nombre, fotoUrl } = revisorSnap.data();
@@ -94,7 +96,7 @@ export const revisionState = async (idCredito, emailRevisor) => {
       "INICIO REVISIÓN",
       "Gestión de Créditos",
       `El revisor ${nombre} (${emailRevisor}) ha tomado el crédito para evaluación.`,
-      idCredito
+      idCredito,
     );
 
     return { success: true };
@@ -122,7 +124,7 @@ export const actualizarRevisionCredito = async (
       estado.toUpperCase(),
       "Gestión de Créditos",
       `Se finalizó la revisión del crédito con estado: ${estado}. Observaciones: ${respuestaRevisor}`,
-      idDocumento
+      idDocumento,
     );
 
     return { success: true };
@@ -156,16 +158,16 @@ export const obtenerTotalCuotasAprobadas = async (usuarioId) => {
 export const obtenerCreditosRecientesPorEmpleado = async (empleadoId) => {
   try {
     const creditosRef = collection(db, coleccion);
-    
+
     const q = query(
       creditosRef,
-      where("empleadoId", "==", empleadoId), 
+      where("empleadoId", "==", empleadoId),
       orderBy("fechaRegistro", "desc"),
-      limit(3)
+      limit(3),
     );
-    
+
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    return querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
   } catch (error) {
     console.error("Error al obtener historial de créditos:", error);
     throw error;
@@ -175,16 +177,16 @@ export const obtenerCreditosRecientesPorEmpleado = async (empleadoId) => {
 export const obtenerTotalCuotasPorEmpleadoId = async (empleadoId) => {
   try {
     const creditosRef = collection(db, "creditos");
-    
+
     const q = query(
       creditosRef,
       where("empleadoId", "==", empleadoId),
-      where("estado", "==", "Aprobado")
+      where("estado", "==", "Aprobado"),
     );
 
     const querySnapshot = await getDocs(q);
     let total = 0;
-    
+
     querySnapshot.forEach((doc) => {
       total += doc.data().cuotaMensual || 0;
     });
@@ -192,6 +194,24 @@ export const obtenerTotalCuotasPorEmpleadoId = async (empleadoId) => {
     return total;
   } catch (error) {
     console.error("Error al sumar cuotas:", error);
-    throw error; 
+    throw error;
   }
+};
+
+export const obtenerListaEsperaRealTime = (callback) => {
+  const creditosRef = collection(db, "creditos");
+
+  const q = query(
+    creditosRef,
+    where("estado", "in", ["Pendiente", "En revisión"]),
+    orderBy("fechaRegistro", "asc"),
+  );
+
+  return onSnapshot(q, (querySnapshot) => {
+    const lista = querySnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+    callback(lista);
+  });
 };
