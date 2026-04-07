@@ -1,6 +1,6 @@
 import React from "react";
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
-import loadingAnimation from "../assets/loading.lottie";
+import loadingAnimation from "../assets/Loading.lottie";
 const Loading = () => {
   return (
     <div
