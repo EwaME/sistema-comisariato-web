@@ -3,15 +3,19 @@ import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import { Outlet } from "react-router-dom";
 
+import { useInactividad } from "../hooks/useInactividad";
+
 export default function AdminLayout() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+
+  useInactividad();
 
   return (
     <div className="h-screen bg-[#f0eeeb] flex p-0 md:p-3 gap-0 overflow-hidden">
       {isMobileOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-9999 md:hidden"
+          className="fixed inset-0 bg-black/50 z-[9999] md:hidden"
           onClick={() => setIsMobileOpen(false)}
         />
       )}
@@ -35,7 +39,6 @@ export default function AdminLayout() {
           setIsMobileOpen={setIsMobileOpen}
         />
 
-        {/* CONTENIDO */}
         <main className="flex-1 overflow-y-auto overflow-x-hidden">
           <Outlet />
         </main>

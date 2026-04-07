@@ -16,7 +16,15 @@ export const generarUsuarioTemp = (nombres = "", apellidos = "", dni = "") => {
 export const obtenerUsuarios = async () => {
     try {
         const querySnapshot = await getDocs(collection(db, coleccion));
-        return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const usuarios = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        usuarios.sort((a, b) => {
+            const idA = a.empleadoId || "";
+            const idB = b.empleadoId || "";
+            return idA.localeCompare(idB);
+        });
+
+        return usuarios;
     } catch (error) {
         throw error;
     }

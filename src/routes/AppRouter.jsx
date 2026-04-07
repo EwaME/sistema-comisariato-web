@@ -74,8 +74,8 @@ export default function AppRouter() {
         <Route path="perfil" element={<ProtectedRoute allowedRoles={TODOS_WEB}><MiPerfil /></ProtectedRoute>} />
 
         {/* 2. Administración */}
-        <Route path="usuarios" element={<ProtectedRoute allowedRoles={["ACREDITADOR", "MODERADOR"]}><Usuarios /></ProtectedRoute>} />
-        <Route path="usuarios/nuevo" element={<ProtectedRoute allowedRoles={["ACREDITADOR", "MODERADOR"]}><CrearUsuario /></ProtectedRoute>} />
+        <Route path="usuarios" element={<ProtectedRoute allowedRoles={["MODERADOR"]}><Usuarios /></ProtectedRoute>} />
+        <Route path="usuarios/nuevo" element={<ProtectedRoute allowedRoles={["MODERADOR"]}><CrearUsuario /></ProtectedRoute>} />
 
         {/* 3. Gestión de Empleados */}
         <Route path="empleados" element={<ProtectedRoute allowedRoles={ADMIN_ONLY}><Empleados /></ProtectedRoute>} />

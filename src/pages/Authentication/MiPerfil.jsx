@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom'; // Agregamos esto
-import { Eye, EyeOff, Headset, KeyRound, Loader2, Building2, Briefcase, CreditCard, Calendar, DollarSign, IdCard, Phone, Mail, CheckCircle2, History, ShieldCheck, Wallet, AlertTriangle } from 'lucide-react'; // Agregué AlertTriangle
-import { getAuth, EmailAuthProvider, reauthenticateWithCredential, updatePassword } from "firebase/auth";
-import { doc, updateDoc } from "firebase/firestore"; // Importamos doc y updateDoc
-import { db } from "../../firebase/firebase"; // Importamos la db de Firestore
+import { useLocation, useNavigate } from 'react-router-dom'; 
+import { Eye, EyeOff, Headset, KeyRound, Loader2, Building2, Briefcase, CreditCard, Calendar, DollarSign, IdCard, Phone, Mail, CheckCircle2, History, ShieldCheck, Wallet, AlertTriangle } from 'lucide-react'; 
+import { getAuth, EmailAuthProvider, reauthenticateWithCredential, updatePassword, signOut } from "firebase/auth";
+import { doc, updateDoc } from "firebase/firestore"; 
+import { db } from "../../firebase/firebase";
 import { obtenerUsuarioPorId } from '../../services/usuariosService';
 import { obtenerEmpleadoPorId } from '../../services/empleadosService';
 import { registrarAuditoria } from '../../services/auditoriasService';
@@ -11,10 +11,9 @@ import { obtenerCreditosRecientesPorEmpleado } from '../../services/creditosServ
 
 export default function MiPerfil() {
     const auth = getAuth();
-    const location = useLocation(); // Para cachar estados que vienen por ruta
-    const navigate = useNavigate(); // Para redirigir
+    const location = useLocation(); 
+    const navigate = useNavigate(); 
     
-    // Verificamos si viene forzado desde el Login
     const mensajeObligatorio = location.state?.mensajeObligatorio;
 
     const [cargando, setCargando] = useState(true);
@@ -77,6 +76,15 @@ export default function MiPerfil() {
         cargarPerfil();
     }, [auth.currentUser]);
 
+    const handleLogout = async () => {
+        try {
+            await signOut(auth);
+            navigate("/login");
+        } catch (error) {
+            console.error("Error al cerrar sesión:", error);
+        }
+    };
+
     const calcularFortaleza = (pwd) => {
         let score = 0;
         if (pwd.length >= 12) score += 1;
@@ -133,14 +141,14 @@ export default function MiPerfil() {
             setPwdNueva("");
             setPwdConfirmar("");
 
-            // 4. Lógica de redirección o éxito
-            if (mensajeObligatorio) {
-                setMensaje({ texto: "¡Contraseña actualizada! Redirigiendo al inicio...", tipo: "exito" });
-                setTimeout(() => navigate("/"), 2500); // Lo mandamos al inicio en 2.5 segs
-            } else {
-                setMensaje({ texto: "Contraseña actualizada exitosamente", tipo: "exito" });
-                setTimeout(() => setMensaje({ texto: "", tipo: "" }), 5000);
-            }
+            // 4. Lógica de redirección o éxito (Cerrar sesión por seguridad)
+            setMensaje({ texto: "¡Contraseña actualizada exitosamente! Por seguridad, cerrando sesión...", tipo: "exito" });
+            
+            // Esperamos 2.5 segundos para que el usuario lea el mensaje y luego cerramos sesión
+            setTimeout(async () => {
+                await signOut(auth);
+                navigate("/login");
+            }, 2500);
 
         } catch (error) {
             console.error(error);
