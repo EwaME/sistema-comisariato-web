@@ -47,14 +47,18 @@ import RevisionReclamo from "../pages/Manage/Reclamos/Gest_Revision.jsx";
 import GuiasyAyudas from "../pages/GuiasyAyudas";
 
 export default function AppRouter() {
+  const TODOS_WEB = ["ACREDITADOR", "ANALISTA", "GESTOR DE INVENTARIO", "MODERADOR"];
+  
+  const ADMIN_ONLY = []; 
+
   return (
     <Routes>
-      {/* --- RUTA PÚBLICA --- */}
+      {/* --- RUTAS PÚBLICAS --- */}
       <Route path="/login" element={<Login />} />
       <Route path="/recuperar-password" element={<RecuperarPassword />} />
       <Route path="/nueva-contrasena" element={<NuevaPassword />} />
 
-      {/* --- RUTAS PROTEGIDAS (Requieren inicio de sesión) --- */}
+      {/* --- RUTAS PROTEGIDAS --- */}
       <Route
         path="/"
         element={
@@ -63,68 +67,67 @@ export default function AppRouter() {
           </ProtectedRoute>
         }
       >
-        {/* Redirección por defecto al entrar a la raíz "/" */}
         <Route index element={<Navigate to="/dashboard" replace />} />
 
         {/* 1. General */}
-        <Route path="dashboard" element={<Dashboard />} />
-        <Route path="perfil" element={<MiPerfil />} />
+        <Route path="dashboard" element={<ProtectedRoute allowedRoles={TODOS_WEB}><Dashboard /></ProtectedRoute>} />
+        <Route path="perfil" element={<ProtectedRoute allowedRoles={TODOS_WEB}><MiPerfil /></ProtectedRoute>} />
 
         {/* 2. Administración */}
-        <Route path="usuarios" element={<Usuarios />} />
-        <Route path="usuarios/nuevo" element={<CrearUsuario />} />
+        <Route path="usuarios" element={<ProtectedRoute allowedRoles={["MODERADOR"]}><Usuarios /></ProtectedRoute>} />
+        <Route path="usuarios/nuevo" element={<ProtectedRoute allowedRoles={["MODERADOR"]}><CrearUsuario /></ProtectedRoute>} />
 
         {/* 3. Gestión de Empleados */}
-        <Route path="empleados" element={<Empleados />} />
-        <Route path="empleados/nuevo" element={<CrearEmpleado />} />
-        <Route path="empleados/editar/:id" element={<CrearEmpleado />} />
-        <Route path="empleados/detalle/:id" element={<DetalleEmpleado />} />
+        <Route path="empleados" element={<ProtectedRoute allowedRoles={ADMIN_ONLY}><Empleados /></ProtectedRoute>} />
+        <Route path="empleados/nuevo" element={<ProtectedRoute allowedRoles={ADMIN_ONLY}><CrearEmpleado /></ProtectedRoute>} />
+        <Route path="empleados/editar/:id" element={<ProtectedRoute allowedRoles={ADMIN_ONLY}><CrearEmpleado /></ProtectedRoute>} />
+        <Route path="empleados/detalle/:id" element={<ProtectedRoute allowedRoles={ADMIN_ONLY}><DetalleEmpleado /></ProtectedRoute>} />
 
         {/* 4. Gestión de Departamentos */}
-        <Route path="/departamentos" element={<Gest_Departamentos />} />
-        <Route path="/departamentos/nuevo" element={<CrearDepartamento />} />
-        <Route path="/departamentos/editar/:id" element={<CrearDepartamento />} />
+        <Route path="departamentos" element={<ProtectedRoute allowedRoles={ADMIN_ONLY}><Gest_Departamentos /></ProtectedRoute>} />
+        <Route path="departamentos/nuevo" element={<ProtectedRoute allowedRoles={ADMIN_ONLY}><CrearDepartamento /></ProtectedRoute>} />
+        <Route path="departamentos/editar/:id" element={<ProtectedRoute allowedRoles={ADMIN_ONLY}><CrearDepartamento /></ProtectedRoute>} />
 
         {/* 5. Gestión de Cargos */}
-        <Route path="/cargos" element={<Gest_Cargos />} />
-        <Route path="/cargos/nuevo" element={<CrearCargo />} />
-        <Route path="/cargos/editar/:id" element={<CrearCargo />} />
+        <Route path="cargos" element={<ProtectedRoute allowedRoles={ADMIN_ONLY}><Gest_Cargos /></ProtectedRoute>} />
+        <Route path="cargos/nuevo" element={<ProtectedRoute allowedRoles={ADMIN_ONLY}><CrearCargo /></ProtectedRoute>} />
+        <Route path="cargos/editar/:id" element={<ProtectedRoute allowedRoles={ADMIN_ONLY}><CrearCargo /></ProtectedRoute>} />
 
         {/* 5. Gestión de Roles */}
-        <Route path="/roles" element={<Gest_Roles />} />
-        <Route path="/roles/nuevo" element={<CrearRol />} />
-        <Route path="/roles/editar/:id" element={<CrearRol />} />
+        <Route path="roles" element={<ProtectedRoute allowedRoles={ADMIN_ONLY}><Gest_Roles /></ProtectedRoute>} />
+        <Route path="roles/nuevo" element={<ProtectedRoute allowedRoles={ADMIN_ONLY}><CrearRol /></ProtectedRoute>} />
+        <Route path="roles/editar/:id" element={<ProtectedRoute allowedRoles={ADMIN_ONLY}><CrearRol /></ProtectedRoute>} />
 
         {/* 6. Gestión de Stock */}
-        <Route path="inventario" element={<Inventario />} />
-        <Route path="inventario/nuevo" element={<CrearProducto />} />
-        <Route path="inventario/editar/:id" element={<CrearProducto />} />
-        <Route path="inventario/detalle/:id" element={<DetalleProducto />} />
-        <Route path="inventario/comentarios/:id" element={<Gest_Comentarios_Producto />} />
+        <Route path="inventario" element={<ProtectedRoute allowedRoles={["GESTOR DE INVENTARIO"]}><Inventario /></ProtectedRoute>} />
+        <Route path="inventario/nuevo" element={<ProtectedRoute allowedRoles={["GESTOR DE INVENTARIO"]}><CrearProducto /></ProtectedRoute>} />
+        <Route path="inventario/editar/:id" element={<ProtectedRoute allowedRoles={["GESTOR DE INVENTARIO"]}><CrearProducto /></ProtectedRoute>} />
+        <Route path="inventario/detalle/:id" element={<ProtectedRoute allowedRoles={["GESTOR DE INVENTARIO"]}><DetalleProducto /></ProtectedRoute>} />
+        <Route path="inventario/comentarios/:id" element={<ProtectedRoute allowedRoles={["GESTOR DE INVENTARIO"]}><Gest_Comentarios_Producto /></ProtectedRoute>} />
 
-        <Route path="categorias" element={<Categorias />} />
-        <Route path="categorias/nuevo" element={<CrearCategoria />} />
-        <Route path="categorias/editar/:id" element={<CrearCategoria />} />
+        <Route path="categorias" element={<ProtectedRoute allowedRoles={["GESTOR DE INVENTARIO"]}><Categorias /></ProtectedRoute>} />
+        <Route path="categorias/nuevo" element={<ProtectedRoute allowedRoles={["GESTOR DE INVENTARIO"]}><CrearCategoria /></ProtectedRoute>} />
+        <Route path="categorias/editar/:id" element={<ProtectedRoute allowedRoles={["GESTOR DE INVENTARIO"]}><CrearCategoria /></ProtectedRoute>} />
 
         {/* 7. Acreditaciones */}
-        <Route path="creditos" element={<Creditos />} />
-        <Route path="creditos/revision/:id" element={<RevisionCredito />} />
-        <Route path="creditos/detalle/:id" element={<DetalleCredito />} />
+        <Route path="creditos" element={<ProtectedRoute allowedRoles={["ACREDITADOR"]}><Creditos /></ProtectedRoute>} />
+        <Route path="creditos/revision/:id" element={<ProtectedRoute allowedRoles={["ACREDITADOR"]}><RevisionCredito /></ProtectedRoute>} />
+        <Route path="creditos/detalle/:id" element={<ProtectedRoute allowedRoles={["ACREDITADOR"]}><DetalleCredito /></ProtectedRoute>} />
 
-        <Route path="reclamos" element={<Reclamos />} />
-        <Route path="reclamos/revision/:id" element={<RevisionReclamo />} />
+        <Route path="reclamos" element={<ProtectedRoute allowedRoles={["ACREDITADOR"]}><Reclamos /></ProtectedRoute>} />
+        <Route path="reclamos/revision/:id" element={<ProtectedRoute allowedRoles={["ACREDITADOR"]}><RevisionReclamo /></ProtectedRoute>} />
 
         {/* 8. Gestión de Sistema */}
-        <Route path="configuraciones" element={<Configuraciones />} />
-        <Route path="auditorias" element={<Auditorias />} />
-        <Route path="reportes" element={<Reportes />} />
+        <Route path="configuraciones" element={<ProtectedRoute allowedRoles={ADMIN_ONLY}><Configuraciones /></ProtectedRoute>} />
+        <Route path="auditorias" element={<ProtectedRoute allowedRoles={ADMIN_ONLY}><Auditorias /></ProtectedRoute>} />
+        <Route path="reportes" element={<ProtectedRoute allowedRoles={["ANALISTA"]}><Reportes /></ProtectedRoute>} />
 
         {/* 9. Comunidad */}
-        <Route path="sugerencias" element={<Sugerencias />} />
-        <Route path="guias" element={<GuiasyAyudas />} />
+        <Route path="sugerencias" element={<ProtectedRoute allowedRoles={["MODERADOR"]}><Sugerencias /></ProtectedRoute>} />
+        <Route path="guias" element={<ProtectedRoute allowedRoles={["MODERADOR"]}><GuiasyAyudas /></ProtectedRoute>} />
       </Route>
 
-      {/* --- RUTA 404 (Si el usuario escribe una URL que no existe) --- */}
+      {/* --- RUTA 404 --- */}
       <Route
         path="*"
         element={

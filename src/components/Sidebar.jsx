@@ -11,7 +11,6 @@ import {
   AlertCircle,
   BarChart3,
   Edit3,
-  MessageSquare,
   BookOpen,
   PanelLeftClose,
   PanelRightClose,
@@ -39,7 +38,7 @@ export default function Sidebar({
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [dbUser, setDbUser] = useState(null);
   
-  const { logout, user } = useAuth();
+  const { logout, user, role } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -87,6 +86,13 @@ export default function Sidebar({
     scrollTimeout.current = setTimeout(() => {
       setIsScrolling(false);
     }, 1000);
+  };
+
+  const checkAccess = (allowedRoles) => {
+    if (!role) return false;
+    const userRoles = Array.isArray(role) ? role : [role];
+    if (userRoles.includes("ADMINISTRADOR")) return true;
+    return userRoles.some(r => allowedRoles.includes(r));
   };
 
   const renderMenuItem = (Icon, label, to) => (
@@ -181,90 +187,114 @@ export default function Sidebar({
           ${isCollapsed ? "scrollbar-hide" : ""}
         `}
       >
-        <div className="mb-6">
-          {!isCollapsed && (
-            <p className="text-[9px] font-bold text-gray-400 tracking-widest uppercase mb-3 px-6">
-              General
-            </p>
-          )}
-          <ul className="space-y-1 px-4">
-            {renderMenuItem(LayoutDashboard, "Dashboard", "/dashboard")}
-          </ul>
-        </div>
+        {/* Dashboard: Lo ven casi todos los de la WEB */}
+        {checkAccess(["ACREDITADOR", "ANALISTA", "GESTOR DE INVENTARIO", "MODERADOR"]) && (
+          <div className="mb-6">
+            {!isCollapsed && (
+              <p className="text-[9px] font-bold text-gray-400 tracking-widest uppercase mb-3 px-6">
+                General
+              </p>
+            )}
+            <ul className="space-y-1 px-4">
+              {renderMenuItem(LayoutDashboard, "Dashboard", "/dashboard")}
+            </ul>
+          </div>
+        )}
 
-        <div className="mb-6">
-          {!isCollapsed && (
-            <p className="text-[9px] font-bold text-gray-400 tracking-widest uppercase mb-3 px-6">
-              Administración
-            </p>
-          )}
-          <ul className="space-y-1 px-4">
-            {renderMenuItem(UserSquare, "Empleados", "/empleados")}
-            {renderMenuItem(Users, "Usuarios", "/usuarios")}
-          </ul>
-        </div>
+        {/* Administración */}
+        {checkAccess(["ACREDITADOR", "MODERADOR"]) && (
+          <div className="mb-6">
+            {!isCollapsed && (
+              <p className="text-[9px] font-bold text-gray-400 tracking-widest uppercase mb-3 px-6">
+                Administración
+              </p>
+            )}
+            <ul className="space-y-1 px-4">
+              {/* Solo el Admin (implicito) ve Empleados */}
+              {checkAccess([]) && renderMenuItem(UserSquare, "Empleados", "/empleados")} 
+              {/* Usuarios: Admin, Moderador, Acreditador */}
+              {checkAccess(["ACREDITADOR", "MODERADOR"]) && renderMenuItem(Users, "Usuarios", "/usuarios")}
+            </ul>
+          </div>
+        )}
 
-        <div className="mb-6">
-          {!isCollapsed && (
-            <p className="text-[9px] font-bold text-gray-400 tracking-widest uppercase mb-3 px-6">
-              Organización
-            </p>
-          )}
-          <ul className="space-y-1 px-4">
-            {renderMenuItem(Building2, "Departamentos", "/departamentos")}
-            {renderMenuItem(Briefcase, "Cargos", "/cargos")}
-            {renderMenuItem(Shield, "Roles", "/roles")}
-          </ul>
-        </div>
+        {/* Organización: Estrictamente para el ADMINISTRADOR */}
+        {checkAccess([]) && (
+          <div className="mb-6">
+            {!isCollapsed && (
+              <p className="text-[9px] font-bold text-gray-400 tracking-widest uppercase mb-3 px-6">
+                Organización
+              </p>
+            )}
+            <ul className="space-y-1 px-4">
+              {renderMenuItem(Building2, "Departamentos", "/departamentos")}
+              {renderMenuItem(Briefcase, "Cargos", "/cargos")}
+              {renderMenuItem(Shield, "Roles", "/roles")}
+            </ul>
+          </div>
+        )}
 
-        <div className="mb-6">
-          {!isCollapsed && (
-            <p className="text-[9px] font-bold text-gray-400 tracking-widest uppercase mb-3 px-6">
-              Gestión de Stock
-            </p>
-          )}
-          <ul className="space-y-1 px-4">
-            {renderMenuItem(Archive, "Inventario", "/inventario")}
-            {renderMenuItem(Tags, "Categorías", "/categorias")}
-          </ul>
-        </div>
+        {/* Gestión de Stock: Admin y Gestor de Inventario */}
+        {checkAccess(["GESTOR DE INVENTARIO"]) && (
+          <div className="mb-6">
+            {!isCollapsed && (
+              <p className="text-[9px] font-bold text-gray-400 tracking-widest uppercase mb-3 px-6">
+                Gestión de Stock
+              </p>
+            )}
+            <ul className="space-y-1 px-4">
+              {renderMenuItem(Archive, "Inventario", "/inventario")}
+              {renderMenuItem(Tags, "Categorías", "/categorias")}
+            </ul>
+          </div>
+        )}
 
-        <div className="mb-6">
-          {!isCollapsed && (
-            <p className="text-[9px] font-bold text-gray-400 tracking-widest uppercase mb-3 px-6">
-              Acreditaciones
-            </p>
-          )}
-          <ul className="space-y-1 px-4">
-            {renderMenuItem(Receipt, "Créditos", "/creditos")}
-            {renderMenuItem(AlertCircle, "Reclamos", "/reclamos")}
-          </ul>
-        </div>
+        {/* Acreditaciones: Admin y Acreditador */}
+        {checkAccess(["ACREDITADOR"]) && (
+          <div className="mb-6">
+            {!isCollapsed && (
+              <p className="text-[9px] font-bold text-gray-400 tracking-widest uppercase mb-3 px-6">
+                Acreditaciones
+              </p>
+            )}
+            <ul className="space-y-1 px-4">
+              {renderMenuItem(Receipt, "Créditos", "/creditos")}
+              {renderMenuItem(AlertCircle, "Reclamos", "/reclamos")}
+            </ul>
+          </div>
+        )}
 
-        <div className="mb-6">
-          {!isCollapsed && (
-            <p className="text-[9px] font-bold text-gray-400 tracking-widest uppercase mb-3 px-6">
-              Comunidad
-            </p>
-          )}
-          <ul className="space-y-1 px-4">
-            {renderMenuItem(Edit3, "Sugerencias", "/sugerencias")}
-            {renderMenuItem(BookOpen, "Guías", "/guias")}
-          </ul>
-        </div>
+        {/* Comunidad: Admin y Moderador */}
+        {checkAccess(["MODERADOR"]) && (
+          <div className="mb-6">
+            {!isCollapsed && (
+              <p className="text-[9px] font-bold text-gray-400 tracking-widest uppercase mb-3 px-6">
+                Comunidad
+              </p>
+            )}
+            <ul className="space-y-1 px-4">
+              {renderMenuItem(Edit3, "Sugerencias", "/sugerencias")}
+              {renderMenuItem(BookOpen, "Guías", "/guias")}
+            </ul>
+          </div>
+        )}
 
-        <div className="mb-6">
-          {!isCollapsed && (
-            <p className="text-[9px] font-bold text-gray-400 tracking-widest uppercase mb-3 px-6">
-              Análisis y Gestión
-            </p>
-          )}
-          <ul className="space-y-1 px-4">
-            {renderMenuItem(BarChart3, "Reportes", "/reportes")}
-            {renderMenuItem(Settings, "Configuraciones", "/configuraciones")}
-            {renderMenuItem(ShieldCheck, "Auditorías", "/auditorias")}
-          </ul>
-        </div>
+        {/* Análisis y Gestión: Admin, Analista (para reportes) */}
+        {checkAccess(["ANALISTA"]) && (
+          <div className="mb-6">
+            {!isCollapsed && (
+              <p className="text-[9px] font-bold text-gray-400 tracking-widest uppercase mb-3 px-6">
+                Análisis y Gestión
+              </p>
+            )}
+            <ul className="space-y-1 px-4">
+              {checkAccess(["ANALISTA"]) && renderMenuItem(BarChart3, "Reportes", "/reportes")}
+              {/* Configuraciones y Auditorías solo el Admin */}
+              {checkAccess([]) && renderMenuItem(Settings, "Configuraciones", "/configuraciones")}
+              {checkAccess([]) && renderMenuItem(ShieldCheck, "Auditorías", "/auditorias")}
+            </ul>
+          </div>
+        )}
       </div>
 
       <div className="relative p-4 shrink-0 mb-2 mt-2" ref={profileMenuRef}>

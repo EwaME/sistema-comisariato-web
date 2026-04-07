@@ -14,6 +14,9 @@ export const obtenerEmpleados = async () => {
             id: doc.id,
             ...doc.data() 
         }));
+
+        empleados.sort((a, b) => a.id.localeCompare(b.id));
+
         return empleados;
     } catch (error) {
         console.error("Error al obtener los empleados:", error);

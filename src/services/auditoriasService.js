@@ -20,7 +20,12 @@ export const registrarAuditoria = async (accion, modulo, descripcion, idReferenc
             if (userDoc.exists()) {
                 const data = userDoc.data();
                 nombreUsuario = data.nombre || "Usuario Web";
-                rolUsuario = data.rol && data.rol.length > 0 ? data.rol[0] : "EMPLEADO";
+                
+                if (data.rol && data.rol.length > 0) {
+                    rolUsuario = data.rol.length > 1 ? data.rol[1] : data.rol[0];
+                } else {
+                    rolUsuario = "EMPLEADO";
+                }
             }
         }
 
