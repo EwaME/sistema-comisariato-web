@@ -16,12 +16,12 @@ import {
   PanelRightClose,
   X,
   Factory,
-  Building2, 
-  Briefcase, 
+  Building2,
+  Briefcase,
   Shield,
   ShieldCheck,
   LogOut,
-  User
+  User,
 } from "lucide-react";
 import { useAuth } from "../auth/AuthProvider";
 import { obtenerUsuarioPorId } from "../services/usuariosService";
@@ -37,7 +37,7 @@ export default function Sidebar({
   const [isScrolling, setIsScrolling] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [dbUser, setDbUser] = useState(null);
-  
+
   const { logout, user, role } = useAuth();
   const navigate = useNavigate();
 
@@ -60,7 +60,10 @@ export default function Sidebar({
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
+      if (
+        profileMenuRef.current &&
+        !profileMenuRef.current.contains(event.target)
+      ) {
         setShowProfileMenu(false);
       }
     };
@@ -92,7 +95,7 @@ export default function Sidebar({
     if (!role) return false;
     const userRoles = Array.isArray(role) ? role : [role];
     if (userRoles.includes("ADMINISTRADOR")) return true;
-    return userRoles.some(r => allowedRoles.includes(r));
+    return userRoles.some((r) => allowedRoles.includes(r));
   };
 
   const renderMenuItem = (Icon, label, to) => (
@@ -133,16 +136,22 @@ export default function Sidebar({
         <div
           className={`flex items-center gap-3 overflow-hidden ${isCollapsed ? "justify-center" : ""}`}
         >
-          <div className="bg-[#020817] text-white p-2 rounded-lg shrink-0">
-            <Factory className="w-5 h-5" />
+          <div className="bg-[#020817] text-white p-1 rounded-lg shrink-0">
+            <img src="/public/CrediFlowManagement.png" className="w-8 h-8" />
           </div>
           {!isCollapsed && (
             <div className="whitespace-nowrap transition-opacity duration-300">
-              <h1 className="text-[15px] font-extrabold text-[#020817] leading-tight">
-                Comisariato
-              </h1>
+              <div className=" flex flex-row">
+                <h1 className="text-[18px] font-black text-[#020817] leading-tight">
+                  Credi
+                </h1>
+                <h1 className="text-[18px] font-black text-[#7C3AED] leading-tight">
+                  Flow
+                </h1>
+              </div>
+
               <p className="text-[8px] text-gray-400 font-bold tracking-widest uppercase">
-                Azucarera Cucayagua
+                Management
               </p>
             </div>
           )}
@@ -154,7 +163,7 @@ export default function Sidebar({
             ${
               isCollapsed
                 ? "absolute -right-3 top-6 bg-white border border-gray-200 shadow-sm rounded-full"
-                : "border border-gray-100 bg-white"
+                : "border border-gray-100 bg-black text-white"
             }`}
         >
           {isCollapsed ? (
@@ -188,7 +197,12 @@ export default function Sidebar({
         `}
       >
         {/* Dashboard: Lo ven casi todos los de la WEB */}
-        {checkAccess(["ACREDITADOR", "ANALISTA", "GESTOR DE INVENTARIO", "MODERADOR"]) && (
+        {checkAccess([
+          "ACREDITADOR",
+          "ANALISTA",
+          "GESTOR DE INVENTARIO",
+          "MODERADOR",
+        ]) && (
           <div className="mb-6">
             {!isCollapsed && (
               <p className="text-[9px] font-bold text-gray-400 tracking-widest uppercase mb-3 px-6">
@@ -211,9 +225,11 @@ export default function Sidebar({
             )}
             <ul className="space-y-1 px-4">
               {/* Solo el Admin (implicito) ve Empleados */}
-              {checkAccess([]) && renderMenuItem(UserSquare, "Empleados", "/empleados")} 
+              {checkAccess([]) &&
+                renderMenuItem(UserSquare, "Empleados", "/empleados")}
               {/* Usuarios: Admin, Moderador, Acreditador */}
-              {checkAccess(["ACREDITADOR", "MODERADOR"]) && renderMenuItem(Users, "Usuarios", "/usuarios")}
+              {checkAccess(["ACREDITADOR", "MODERADOR"]) &&
+                renderMenuItem(Users, "Usuarios", "/usuarios")}
             </ul>
           </div>
         )}
@@ -288,10 +304,13 @@ export default function Sidebar({
               </p>
             )}
             <ul className="space-y-1 px-4">
-              {checkAccess(["ANALISTA"]) && renderMenuItem(BarChart3, "Reportes", "/reportes")}
+              {checkAccess(["ANALISTA"]) &&
+                renderMenuItem(BarChart3, "Reportes", "/reportes")}
               {/* Configuraciones y Auditorías solo el Admin */}
-              {checkAccess([]) && renderMenuItem(Settings, "Configuraciones", "/configuraciones")}
-              {checkAccess([]) && renderMenuItem(ShieldCheck, "Auditorías", "/auditorias")}
+              {checkAccess([]) &&
+                renderMenuItem(Settings, "Configuraciones", "/configuraciones")}
+              {checkAccess([]) &&
+                renderMenuItem(ShieldCheck, "Auditorías", "/auditorias")}
             </ul>
           </div>
         )}
@@ -310,38 +329,47 @@ export default function Sidebar({
         >
           <div className="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center overflow-hidden shrink-0 shadow-sm border border-white">
             {dbUser?.fotoUrl ? (
-                <img src={dbUser.fotoUrl} alt="Perfil" className="w-full h-full object-cover" />
+              <img
+                src={dbUser.fotoUrl}
+                alt="Perfil"
+                className="w-full h-full object-cover"
+              />
             ) : (
-                <span className="text-lg">🦖</span>
+              <span className="text-lg">🦖</span>
             )}
           </div>
           {!isCollapsed && (
             <div className="whitespace-nowrap transition-opacity duration-300">
               <p className="text-[13px] font-bold text-[#020817]">
-                {dbUser?.nombre ? `${dbUser.nombre.split(" ")[0]} ${dbUser.nombre.split(" ")[1] || ""}` : "Cargando..."}
+                {dbUser?.nombre
+                  ? `${dbUser.nombre.split(" ")[0]} ${dbUser.nombre.split(" ")[1] || ""}`
+                  : "Cargando..."}
               </p>
               <p className="text-[10px] text-[#7C3AED] font-bold capitalize">
-                {dbUser?.rol ? dbUser.rol[1]?.toLowerCase() || dbUser.rol[0]?.toLowerCase() : "..."}
+                {dbUser?.rol
+                  ? dbUser.rol[1]?.toLowerCase() || dbUser.rol[0]?.toLowerCase()
+                  : "..."}
               </p>
             </div>
           )}
         </div>
 
         {showProfileMenu && (
-          <div className={`absolute bottom-full mb-2 bg-white border border-gray-100 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] py-2 z-50
+          <div
+            className={`absolute bottom-full mb-2 bg-white border border-gray-100 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] py-2 z-50
             ${isCollapsed ? "left-4 w-48" : "left-4 right-4 w-auto"}`}
           >
             <button
               onClick={() => {
-                  navigate("/perfil");
-                  setShowProfileMenu(false);
+                navigate("/perfil");
+                setShowProfileMenu(false);
               }}
               className="w-full text-left px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-3 border-b border-gray-50"
             >
               <User className="w-4 h-4 text-gray-500" />
               Mi Perfil
             </button>
-            
+
             <button
               onClick={handleLogout}
               className="w-full text-left px-4 py-2 text-sm font-bold text-red-500 hover:bg-red-50 transition-colors flex items-center gap-3 mt-1"

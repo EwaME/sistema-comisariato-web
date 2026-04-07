@@ -13,6 +13,7 @@ import {
   ArrowRight,
   Inbox,
   Lock,
+  Users,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 
@@ -33,7 +34,18 @@ export default function Gest_Creditos() {
   const [terminoBusqueda, setTerminoBusqueda] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("");
 
-  // Componente de animación para revisiones activas
+  // Extraer revisores únicos para el Tooltip
+  const revisoresActivos = listaEspera
+    .filter((s) => s.revisorEmail && s.revisorFotoTemp)
+    .reduce((acc, current) => {
+      const x = acc.find((item) => item.email === current.revisorEmail);
+      if (!x)
+        return acc.concat([
+          { email: current.revisorEmail, foto: current.revisorFotoTemp },
+        ]);
+      return acc;
+    }, []);
+
   const DotsPlaying = () => (
     <div className="flex gap-1 items-center ml-1">
       <div className="w-1 h-1 bg-purple-600 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
@@ -65,15 +77,12 @@ export default function Gest_Creditos() {
 
   const handleIniciarRevision = async (idCredito, revisorActualEmail) => {
     if (!user?.email) return;
-
-    // BLOQUEO: Si alguien más lo está revisando, no dejar entrar
     if (revisorActualEmail && revisorActualEmail !== user.email) {
       alert(
         `Esta solicitud ya está siendo revisada por: ${revisorActualEmail}`,
       );
       return;
     }
-
     try {
       await revisionState(idCredito, user.email);
       navigate(`revision/${idCredito}`);
@@ -117,30 +126,59 @@ export default function Gest_Creditos() {
 
   return (
     <div className="p-4 md:p-8 max-w-[1600px] mx-auto bg-[#FDFDFF] min-h-screen">
-      <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
+      {/* HEADER LIMPIO SOLO CON TOOLTIP */}
+      <div className="mb-12 flex flex-col sm:flex-row items-center justify-between gap-6">
         <div>
-          <h2 className="text-2xl font-extrabold text-[#020817]">
+          <h2 className="text-3xl font-black text-[#020817] tracking-tight">
             Gestión de Créditos
           </h2>
-          <p className="text-[13px] text-gray-500 mt-1 font-medium">
-            Revisa, aprueba o rechaza solicitudes de crédito en tiempo real.
+          <p className="text-[12px] text-gray-400 mt-1 font-bold uppercase tracking-wider">
+            Panel de Administración Operativa
           </p>
         </div>
-        <div className="flex items-center gap-3 bg-white p-2 rounded-2xl border border-gray-100 shadow-sm">
-          <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600 font-bold">
+
+        {/* CARD DE PENDIENTES CON TOOLTIP */}
+        <div className="group relative flex items-center gap-5 bg-white p-5 rounded-[1.5rem] border border-gray-100 shadow-sm transition-all hover:shadow-2xl hover:shadow-purple-100 cursor-pointer">
+          <div className="w-14 h-14 rounded-[1rem] bg-[#020817] flex items-center justify-center text-white font-black text-xl shadow-lg">
             {listaEspera.length}
           </div>
           <div className="pr-4">
-            <p className="text-[10px] font-black text-gray-400 uppercase leading-none">
-              Pendientes
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+              En Cola
             </p>
-            <p className="text-xs font-bold text-gray-700">En cola</p>
+            <p className="text-sm font-black text-gray-800">Pendientes</p>
           </div>
+
+          {/* TOOLTIP DINÁMICO (Se muestra al hacer hover) */}
+          {revisoresActivos.length > 0 && (
+            <div className="absolute top-full mt-4 right-0 w-60 bg-[#020817] rounded-[1rem] p-5 shadow-2xl opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all z-50 pointer-events-none border border-white/10">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
+                <p className="text-[10px] font-black text-white uppercase tracking-widest">
+                  Revisores Activos
+                </p>
+              </div>
+              <div className="space-y-4">
+                {revisoresActivos.map((revisor, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <img
+                      src={revisor.foto}
+                      className="w-8 h-8 rounded-full object-cover border-2 border-purple-900"
+                      alt="rev"
+                    />
+                    <p className="text-[11px] text-gray-300 font-bold truncate">
+                      {revisor.email.split("@")[0]}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* LISTA DE ESPERA CON LÓGICA DE BLOQUEO */}
+        {/* LISTA DE ESPERA */}
         <aside className="lg:col-span-4 xl:col-span-3 space-y-4">
           <div className="flex justify-between items-center px-1">
             <h3 className="text-xs font-black uppercase tracking-widest text-gray-400">
@@ -181,9 +219,9 @@ export default function Gest_Creditos() {
               </div>
             ) : (
               esperaPaginada.map((solicitud) => {
-                const estaSiendoRevisado =
-                  solicitud.estado === "En revisión" ||
-                  solicitud.estado === "En Revisión";
+                const estaSiendoRevisado = solicitud.estado
+                  ?.toLowerCase()
+                  .includes("revisión");
                 const soyElRevisor = solicitud.revisorEmail === user?.email;
                 const otroRevisor = estaSiendoRevisado && !soyElRevisor;
 
@@ -192,17 +230,16 @@ export default function Gest_Creditos() {
                     key={solicitud.id}
                     className="bg-white border border-gray-100 rounded-[1.5rem] p-4 shadow-sm hover:shadow-md transition-all relative overflow-hidden"
                   >
-                    {/* Badge de "En Revisión" por otros */}
                     {otroRevisor && (
                       <div className="absolute top-0 right-0 bg-purple-600 text-white text-[8px] font-black px-3 py-1 rounded-bl-xl flex items-center gap-1 z-10">
                         <Lock className="w-2.5 h-2.5" /> EN REVISIÓN
                       </div>
                     )}
-
                     <div className="flex items-center gap-3 mb-4">
                       <img
                         src={solicitud.imagenProductoURL}
                         className={`w-14 h-14 rounded-2xl object-cover bg-gray-50 border border-gray-50 shadow-sm ${otroRevisor ? "opacity-50 grayscale" : ""}`}
+                        alt="prod"
                       />
                       <div className="flex-1 min-w-0">
                         <h4 className="text-sm font-black text-gray-800 truncate leading-tight">
@@ -213,14 +250,13 @@ export default function Gest_Creditos() {
                         </p>
                       </div>
                     </div>
-
-                    {/* Mostrar quién está revisando */}
                     {estaSiendoRevisado && (
                       <div className="mb-3 flex items-center gap-2 bg-purple-50/50 p-2 rounded-xl border border-purple-100">
-                        <div className="w-5 h-5 rounded-full bg-purple-600 flex items-center justify-center text-[8px] text-white font-bold">
+                        <div className="w-5 h-5 rounded-full bg-purple-600 overflow-hidden">
                           <img
                             src={solicitud.revisorFotoTemp}
-                            className={`w-5 h-5 rounded-2xl object-cover bg-gray-50 border border-gray-50 shadow-sm`}
+                            className="w-full h-full object-cover"
+                            alt="rev"
                           />
                         </div>
                         <p className="text-[9px] font-bold text-purple-700 flex items-center">
@@ -231,7 +267,6 @@ export default function Gest_Creditos() {
                         </p>
                       </div>
                     )}
-
                     <div className="grid grid-cols-2 gap-2 mb-4 bg-gray-50/50 p-2 rounded-xl">
                       <div>
                         <p className="text-[8px] font-black text-gray-400 uppercase">
@@ -250,7 +285,6 @@ export default function Gest_Creditos() {
                         </p>
                       </div>
                     </div>
-
                     <button
                       onClick={() =>
                         handleIniciarRevision(
@@ -260,11 +294,7 @@ export default function Gest_Creditos() {
                       }
                       disabled={otroRevisor}
                       className={`w-full py-3 text-[10px] font-black rounded-xl transition-all flex items-center justify-center gap-2 active:scale-[0.98] 
-                        ${
-                          otroRevisor
-                            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                            : "bg-[#020817] hover:bg-gray-800 text-white shadow-lg shadow-gray-200"
-                        }`}
+                        ${otroRevisor ? "bg-gray-100 text-gray-400 cursor-not-allowed" : "bg-[#020817] hover:bg-gray-800 text-white shadow-lg shadow-gray-200"}`}
                     >
                       {soyElRevisor
                         ? "CONTINUAR REVISIÓN"
@@ -280,8 +310,8 @@ export default function Gest_Creditos() {
           </div>
         </aside>
 
-        {/* TABLA DE HISTORIAL (DERECHA) */}
-        <main className="lg:col-span-8 xl:col-span-9 bg-white border border-gray-100 rounded-[2.5rem] p-8 shadow-sm overflow-hidden">
+        {/* TABLA DE HISTORIAL */}
+        <main className="lg:col-span-8 xl:col-span-9 bg-white border border-gray-100 rounded-[1rem] p-8 shadow-sm overflow-hidden">
           <div className="flex flex-col lg:flex-row justify-between items-center gap-6 mb-8">
             <div className="w-full text-center lg:text-left">
               <h3 className="text-xl font-black text-gray-800 tracking-tight">
@@ -291,7 +321,6 @@ export default function Gest_Creditos() {
                 Registro histórico de transacciones finalizadas.
               </p>
             </div>
-
             <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -317,6 +346,7 @@ export default function Gest_Creditos() {
                 <option value="">Todos los Estados</option>
                 <option value="Aprobado">Aprobado</option>
                 <option value="Rechazado">Rechazado</option>
+                <option value="Liquidado">Liquidado</option>
               </select>
             </div>
           </div>
@@ -342,6 +372,7 @@ export default function Gest_Creditos() {
                         <img
                           src={item.imagenProductoURL}
                           className="w-12 h-12 rounded-2xl object-cover grayscale group-hover:grayscale-0 transition-all border border-gray-100 shadow-sm"
+                          alt="prod"
                         />
                         <div>
                           <p className="font-black text-gray-700 leading-tight">
@@ -366,7 +397,11 @@ export default function Gest_Creditos() {
                         className={`text-[9px] font-black px-4 py-1.5 rounded-full border shadow-sm ${
                           item.estado === "Aprobado"
                             ? "bg-emerald-50 text-emerald-600 border-emerald-100"
-                            : "bg-red-50 text-red-600 border-red-100"
+                            : item.estado === "Rechazado"
+                              ? "bg-red-50 text-red-600 border-red-100"
+                              : item.estado === "Liquidado"
+                                ? "bg-blue-50 text-blue-600 border-blue-100"
+                                : "bg-purple-50 text-purple-600 border-purple-100"
                         }`}
                       >
                         {item.estado?.toUpperCase()}

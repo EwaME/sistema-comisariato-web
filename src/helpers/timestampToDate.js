@@ -33,6 +33,16 @@ export const calcularVencimiento = (fechaEmisionTimestamp, mesesGarantia) => {
   return nuevaFecha;
 };
 
+export const calcularVencimientoDias = (fechaTimestamp, dias) => {
+  if (!fechaTimestamp || !dias) return null;
+  const fecha = fechaTimestamp.toDate
+    ? fechaTimestamp.toDate()
+    : new Date(fechaTimestamp);
+  const resultado = new Date(fecha);
+  resultado.setDate(resultado.getDate() + dias);
+  return resultado;
+};
+
 export const fromTimestampToSimpleDate = (timestamp) => {
   if (!timestamp || (!timestamp.seconds && !timestamp.toDate)) return "---";
 

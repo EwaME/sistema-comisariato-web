@@ -8,6 +8,7 @@ import {
   updateDoc,
   serverTimestamp,
   deleteField,
+  where,
 } from "firebase/firestore";
 import { db } from "../firebase/firebase";
 import { registrarAuditoria } from "./auditoriasService";
@@ -60,7 +61,9 @@ export const revisionState = async (idReclamo, emailRevisor) => {
     const revisorSnap = await getDoc(revisorRef);
 
     if (!revisorSnap.exists()) {
-      throw new Error("El perfil de usuario no existe en la colección 'usuarios'");
+      throw new Error(
+        "El perfil de usuario no existe en la colección 'usuarios'",
+      );
     }
     const { nombre, fotoUrl } = revisorSnap.data();
 
@@ -77,7 +80,7 @@ export const revisionState = async (idReclamo, emailRevisor) => {
       "INICIO REVISIÓN",
       "Gestión de Reclamos",
       `El revisor ${nombre} ha comenzado a evaluar el reclamo.`,
-      idReclamo
+      idReclamo,
     );
 
     return { success: true };
@@ -97,14 +100,14 @@ export const actualizarRevisionReclamo = async (
     await updateDoc(docRef, {
       estado: "Revisado",
       respuesta: respuestaRevisor,
-      fechaInicioRevision: serverTimestamp(), 
+      fechaInicioRevision: serverTimestamp(),
     });
 
     await registrarAuditoria(
       "RESOLUCIÓN",
       "Gestión de Reclamos",
       `Se emitió una respuesta al reclamo. Detalle: ${respuestaRevisor}`,
-      idDocumento
+      idDocumento,
     );
 
     return { success: true };
@@ -130,7 +133,7 @@ export const cancelarRevision = async (idDocumento) => {
       "CANCELACIÓN",
       "Gestión de Reclamos",
       `Se canceló la revisión en curso y el reclamo volvió a estado Pendiente.`,
-      idDocumento
+      idDocumento,
     );
 
     return { success: true };
@@ -138,4 +141,20 @@ export const cancelarRevision = async (idDocumento) => {
     console.error("Error al actualizar el crédito:", error);
     throw error;
   }
+};
+
+export const obtenerListaEsperaReclamosRealTime = (callback) => {
+  const reclamosRef = collection(db, coleccion);
+  const q = query(
+    reclamosRef,
+    where("estado", "in", ["Pendiente", "En revisión"]),
+    orderBy("fechaEmision", "asc"),
+  );
+  return onSnapshot(q, (querySnapshot) => {
+    const lista = querySnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+    callback(lista);
+  });
 };

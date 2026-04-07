@@ -40,6 +40,13 @@ const RevisionCredito = () => {
   const limiteValido = porcFuturo <= 100;
   const puedeAprobar = tieneStockSuficiente && limiteValido;
 
+  const formatearLempiras = (monto) => {
+    return new Intl.NumberFormat("es-HN", {
+      style: "currency",
+      currency: "HNL",
+    }).format(monto);
+  };
+
   const abrirConfirmacion = (tipo) => {
     setTipoAccion(tipo);
     setMostrarModal(true);
@@ -164,7 +171,7 @@ const RevisionCredito = () => {
                     ID: {empleado.empleadoId}
                   </span>
                   <span className="bg-[#020817] px-3 py-1 rounded-full text-[10px] font-black text-white uppercase tracking-wider">
-                    Límite: L. {empleado.limiteCredito?.toLocaleString()}
+                    Límite: {formatearLempiras(empleado.limiteCredito)}
                   </span>
                 </div>
               </div>
@@ -179,7 +186,7 @@ const RevisionCredito = () => {
                 <p
                   className={`text-base font-black ${limiteValido ? "text-emerald-600" : "text-red-600"}`}
                 >
-                  L. {(empleado.limiteCredito - creditoUsado).toLocaleString()}
+                  {formatearLempiras(empleado.limiteCredito - creditoUsado)}
                 </p>
               </div>
               <div>
@@ -187,15 +194,15 @@ const RevisionCredito = () => {
                   Uso Actual
                 </p>
                 <p className="text-base font-black text-gray-900">
-                  L. {creditoUsado.toLocaleString()}
+                  {formatearLempiras(creditoUsado)}
                 </p>
               </div>
               <div>
                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">
-                  Cuota Solicitada
+                  Proximo valor
                 </p>
                 <p className="text-base font-black text-[#7C3AED]">
-                  L. {credito.cuotaMensual.toLocaleString()}
+                  {formatearLempiras(creditoFuturo)}
                 </p>
               </div>
             </div>
@@ -308,7 +315,7 @@ const RevisionCredito = () => {
                     Cuota HNL
                   </p>
                   <p className="text-xl font-black text-gray-900">
-                    {credito.cuotaMensual.toFixed(2)}
+                    {formatearLempiras(credito.cuotaMensual)}
                   </p>
                 </div>
               </div>

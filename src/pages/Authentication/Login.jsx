@@ -12,6 +12,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -19,6 +20,7 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setLoading(true);
 
     try {
       await login(email, password);
@@ -31,35 +33,60 @@ export default function Login() {
 
         if (userData.estado === "INACTIVO") {
           const auth = getAuth();
-          await signOut(auth); 
-          
-          await registrarAuditoria("ACCESO DENEGADO", "Autenticación", "Intento de inicio de sesión de usuario INACTIVO", email);
-          
+          await signOut(auth);
+
+          await registrarAuditoria(
+            "ACCESO DENEGADO",
+            "Autenticación",
+            "Intento de inicio de sesión de usuario INACTIVO",
+            email,
+          );
+
           setError("Acceso denegado: Tu cuenta ha sido inhabilitada.");
           return;
         }
 
-        await registrarAuditoria("INICIO DE SESIÓN", "Autenticación", "Usuario inició sesión correctamente", email);
+        await registrarAuditoria(
+          "INICIO DE SESIÓN",
+          "Autenticación",
+          "Usuario inició sesión correctamente",
+          email,
+        );
 
         if (userData.passwordChanged === false) {
-            navigate("/perfil", { state: { mensajeObligatorio: "Por seguridad, debes cambiar tu contraseña temporal antes de continuar." } });
+          navigate("/perfil", {
+            state: {
+              mensajeObligatorio:
+                "Por seguridad, debes cambiar tu contraseña temporal antes de continuar.",
+            },
+          });
         } else {
-            navigate("/");
+          navigate("/");
         }
-
       } else {
-        await registrarAuditoria("INICIO DE SESIÓN", "Autenticación", "Login exitoso, pero sin registro en colección usuarios", email);
+        await registrarAuditoria(
+          "INICIO DE SESIÓN",
+          "Autenticación",
+          "Login exitoso, pero sin registro en colección usuarios",
+          email,
+        );
         navigate("/");
       }
-
     } catch (err) {
-      await registrarAuditoria("ERROR DE ACCESO", "Autenticación", `Intento de login fallido. Código: ${err.code}`, email);
+      await registrarAuditoria(
+        "ERROR DE ACCESO",
+        "Autenticación",
+        `Intento de login fallido. Código: ${err.code}`,
+        email,
+      );
 
       if (err.code === "auth/invalid-credential") {
         setError("Correo o contraseña incorrectos.");
       } else {
         setError("Ocurrió un error al intentar ingresar.");
       }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -195,9 +222,10 @@ export default function Login() {
 
               <button
                 type="submit"
-                className="w-full bg-[#020817] text-white text-[13px] font-bold tracking-wide py-4 rounded-xl hover:bg-black transition-colors mt-4"
+                disabled={loading}
+                className="w-full bg-[#020817] text-white text-[13px] font-bold tracking-wide py-4 rounded-xl hover:bg-black transition-colors mt-4 disabled:opacity-70"
               >
-                INICIAR SESIÓN
+                {loading ? "VERIFICANDO..." : "INICIAR SESIÓN"}
               </button>
             </form>
           </div>

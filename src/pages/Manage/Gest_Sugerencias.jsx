@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 
 import { obtenerSugerencias } from "../../services/sugerenciasService";
+import Loading from "../../components/Loading";
 
 import { fromTimestamp } from "../../helpers/timestampToDate";
 
@@ -35,7 +36,6 @@ export default function Sugerencias() {
     startIndex + itemsPorPagina,
   );
 
-  // Reset de página si los datos cambian drásticamente
   useEffect(() => {
     if (paginaActual > totalPaginas && totalPaginas > 0) {
       setPaginaActual(1);
@@ -43,14 +43,7 @@ export default function Sugerencias() {
   }, [sugerencias.length, paginaActual, totalPaginas]);
 
   if (cargando) {
-    return (
-      <div className="min-h-screen bg-[#F8F9FF] flex flex-col items-center justify-center">
-        <Loader2 className="w-10 h-10 animate-spin text-[#7C3AED] mb-4" />
-        <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">
-          Cargando sugerencias...
-        </p>
-      </div>
-    );
+    return <Loading />;
   }
 
   return (
