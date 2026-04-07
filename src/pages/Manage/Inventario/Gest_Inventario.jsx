@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, MoreHorizontal, ChevronRight, Loader2, ChevronLeft, Filter, AlertCircle, TrendingUp, TrendingDown, XCircle, X, Settings, Trophy } from 'lucide-react'; 
 import { Link } from 'react-router-dom';
-import { obtenerProductos, actualizarProducto, cambiarEstadoProducto } from '../../../services/productosService'; 
+import { obtenerProductos, actualizarProducto, cambiarEstadoProducto, escucharProductosRealTime } from '../../../services/productosService';
 import { doc, getDoc, collection, getDocs } from 'firebase/firestore';
 import { db } from '../../../firebase/firebase';
 
@@ -30,22 +30,17 @@ export default function Inventario() {
     const [procesandoEstado, setProcesandoEstado] = useState(false);
 
     useEffect(() => {
-        cargarDatos();
+        setCargando(true);
+        const desuscribir = escucharProductosRealTime((data) => {
+            setProductos(data);
+            setCargando(false);
+        });
+
         cargarConfiguracion();
         cargarCategorias();
-    }, []);
 
-    const cargarDatos = async () => {
-        try {
-            setCargando(true);
-            const data = await obtenerProductos();
-            setProductos(data);
-        } catch (error) {
-            console.error("Error al cargar productos:", error);
-        } finally {
-            setCargando(false);
-        }
-    };
+        return () => desuscribir();
+    }, []);
 
     const cargarConfiguracion = async () => {
         try {

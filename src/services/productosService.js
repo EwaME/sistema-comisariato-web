@@ -1,4 +1,4 @@
-import { collection, getDocs, doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import { collection, getDocs, doc, getDoc, setDoc, updateDoc, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase/firebase"; 
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { registrarAuditoria } from "./auditoriasService";
@@ -64,7 +64,6 @@ export const actualizarProducto = async (idProducto, datosNuevos) => {
             fechaModificacion: new Date()
         });
 
-        // Al ser una edición normal, siempre mandará este log
         await registrarAuditoria(
             "EDICIÓN", 
             "Gestión de Productos", 
@@ -79,7 +78,6 @@ export const actualizarProducto = async (idProducto, datosNuevos) => {
     }
 };
 
-// --- NUEVA FUNCIÓN EXCLUSIVA PARA EL ESTADO ---
 export const cambiarEstadoProducto = async (idProducto, nuevoEstadoActivo) => {
     try {
         const docRef = doc(db, coleccion, idProducto);
@@ -160,4 +158,18 @@ export const actualizarVisibilidadComentario = async (idProducto, idComentario, 
         console.error("Error al actualizar comentario:", error);
         throw error;
     }
+};
+
+export const escucharProductosRealTime = (callback) => {
+    const q = collection(db, coleccion);
+    
+    return onSnapshot(q, (querySnapshot) => {
+        const productos = querySnapshot.docs.map(doc => ({ 
+            id: doc.id, 
+            ...doc.data() 
+        }));
+        callback(productos);
+    }, (error) => {
+        console.error("Error al escuchar productos en tiempo real:", error);
+    });
 };
