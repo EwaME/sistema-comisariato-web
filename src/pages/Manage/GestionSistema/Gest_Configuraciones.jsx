@@ -17,6 +17,7 @@ import {
   Save,
   Zap,
   KeyRound,
+  LogOut
 } from "lucide-react";
 import {
   obtenerConfiguracion,
@@ -30,6 +31,7 @@ import {
 } from "../../../services/configuracionesService";
 
 import { getFunctions, httpsCallable } from "firebase/functions";
+import { getAuth, EmailAuthProvider, reauthenticateWithCredential, signOut } from "firebase/auth";
 
 const weekDays = ["L", "M", "X", "J", "V", "S", "D"];
 
@@ -65,7 +67,6 @@ export default function Gest_Configuraciones() {
   const [guardando, setGuardando] = useState(false);
   const [guardado, setGuardado] = useState(false);
 
-  // Config principal
   const [mensajeEspera, setMensajeEspera] = useState("");
   const [mensajeAprobado, setMensajeAprobado] = useState("");
   const [mensajeRechazado, setMensajeRechazado] = useState("");
@@ -79,12 +80,10 @@ export default function Gest_Configuraciones() {
   const [deduccionesAutomaticas, setDeduccionesAutomaticas] = useState(true);
   const [ultimaEjecucion, setUltimaEjecucion] = useState(null);
 
-  // Plazos
   const [plazos, setPlazos] = useState([]);
   const [nuevoPlazoMeses, setNuevoPlazoMeses] = useState("");
   const [agregandoPlazo, setAgregandoPlazo] = useState(false);
 
-  // Garantías
   const [garantias, setGarantias] = useState([]);
   const [nuevaGarantia, setNuevaGarantia] = useState({
     tipo: "meses",
@@ -93,12 +92,14 @@ export default function Gest_Configuraciones() {
   });
   const [agregandoGarantia, setAgregandoGarantia] = useState(false);
 
-  // Modal Deducciones
   const [modalDeducciones, setModalDeducciones] = useState(false);
-  const [inputPassword, setInputPassword] = useState("");
+  const [inputPasswordDeduccion, setInputPasswordDeduccion] = useState("");
   const [ejecutandoManual, setEjecutandoManual] = useState(false);
 
-  // Calendario
+  const [modalGuardar, setModalGuardar] = useState(false);
+  const [passwordGuardar, setPasswordGuardar] = useState("");
+  const [errorPasswordGuardar, setErrorPasswordGuardar] = useState("");
+
   const hoy = new Date();
   const [mesCalendario, setMesCalendario] = useState(hoy.getMonth());
   const [añoCalendario, setAñoCalendario] = useState(hoy.getFullYear());
@@ -142,9 +143,24 @@ export default function Gest_Configuraciones() {
     }
   };
 
-  const handleGuardar = async () => {
+  const handleAbrirModalGuardar = () => {
+    setModalGuardar(true);
+    setPasswordGuardar("");
+    setErrorPasswordGuardar("");
+  };
+
+  const confirmarGuardar = async () => {
     setGuardando(true);
+    setErrorPasswordGuardar("");
     try {
+      const auth = getAuth();
+      const user = auth.currentUser;
+      
+      if (!user) throw new Error("No hay usuario en sesión");
+
+      const credential = EmailAuthProvider.credential(user.email, passwordGuardar);
+      await reauthenticateWithCredential(user, credential);
+
       await actualizarConfiguracion({
         mensajeEspera,
         mensajeAprobado,
@@ -157,12 +173,14 @@ export default function Gest_Configuraciones() {
         tiempoInactividad: parseInt(tiempoInactividad),
         diaFechaCobro: String(diaFechaCobro),
       });
+
       setGuardado(true);
-      setTimeout(() => setGuardado(false), 3000);
+      
+      await signOut(auth);
+
     } catch (error) {
-      alert("Error al guardar la configuración.");
-      console.error("Error al guardar configuración:", error);
-    } finally {
+      console.error("Error al autenticar o guardar:", error);
+      setErrorPasswordGuardar("Contraseña incorrecta. Inténtalo de nuevo.");
       setGuardando(false);
     }
   };
@@ -272,7 +290,6 @@ export default function Gest_Configuraciones() {
 
   return (
     <div className="p-4 md:p-4 max-w-[1600px] mx-auto relative">
-      {/* <section className="rounded-[1.6rem] border border-[#E6E8F2] bg-[#F8F9FF] overflow-hidden"> */}
       <div className="px-6 md:px-8 py-7">
         <header className="mb-6">
           <h1 className="text-[34px] leading-none font-black text-[#101828]">
@@ -283,20 +300,17 @@ export default function Gest_Configuraciones() {
           </p>
         </header>
         <div>
+          {/* GESTIÓN DE CRÉDITOS */}
           <div className="px-4 md:px-6 py-5 border-b border-[#EEF0F6]">
             <h2 className="flex items-center gap-2 text-[23px] font-black tracking-tight text-[#2D3648]">
-              <Wallet size={20} className="text-[#7C3AED]" /> GESTIÓN DE
-              CRÉDITOS
+              <Wallet size={20} className="text-[#7C3AED]" /> GESTIÓN DE CRÉDITOS
             </h2>
           </div>
 
           <div className="px-4 md:px-6 py-5 space-y-5">
-            {/* Mensaje de espera */}
             <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-4 items-start">
               <div>
-                <p className="text-[14px] font-bold text-[#2D3648]">
-                  Mensaje de espera
-                </p>
+                <p className="text-[14px] font-bold text-[#2D3648]">Mensaje de espera</p>
                 <p className="text-[12px] text-[#8A91A6] leading-4 mt-1">
                   Texto mostrado durante la validación del buró de crédito.
                 </p>
@@ -309,12 +323,9 @@ export default function Gest_Configuraciones() {
               />
             </div>
 
-            {/* Mensaje aprobado */}
             <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-4 items-start">
               <div>
-                <p className="text-[14px] font-bold text-[#2D3648]">
-                  Mensaje de aprobación
-                </p>
+                <p className="text-[14px] font-bold text-[#2D3648]">Mensaje de aprobación</p>
                 <p className="text-[12px] text-[#8A91A6] leading-4 mt-1">
                   Notificación enviada cuando el crédito es aprobado.
                 </p>
@@ -327,12 +338,9 @@ export default function Gest_Configuraciones() {
               />
             </div>
 
-            {/* Mensaje rechazado */}
             <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-4 items-start">
               <div>
-                <p className="text-[14px] font-bold text-[#2D3648]">
-                  Mensaje de rechazo
-                </p>
+                <p className="text-[14px] font-bold text-[#2D3648]">Mensaje de rechazo</p>
                 <p className="text-[12px] text-[#8A91A6] leading-4 mt-1">
                   Notificación enviada cuando el crédito es denegado.
                 </p>
@@ -345,12 +353,9 @@ export default function Gest_Configuraciones() {
               />
             </div>
 
-            {/* Límites y tasa */}
             <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-4 items-start">
               <div>
-                <p className="text-[14px] font-bold text-[#2D3648]">
-                  Límites y Tasa Base
-                </p>
+                <p className="text-[14px] font-bold text-[#2D3648]">Límites y Tasa Base</p>
                 <p className="text-[12px] text-[#8A91A6] leading-4 mt-1">
                   Valores por defecto para nuevos solicitantes.
                 </p>
@@ -366,9 +371,7 @@ export default function Gest_Configuraciones() {
                       onChange={(e) => setPorcSueldo(e.target.value)}
                       className="w-full h-11 rounded-[10px] border border-[#E5E8F1] bg-[#F6F7FB] px-4 pr-8 text-[14px] text-[#495063] outline-none focus:ring-2 focus:ring-[#7C3AED]/20"
                     />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] font-bold text-[#A4ABBD]">
-                      %
-                    </span>
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] font-bold text-[#A4ABBD]">%</span>
                   </div>
                   <p className="mt-1 text-[10px] font-bold text-[#B0B6C7] uppercase tracking-wide">
                     Límite máximo de crédito (% del sueldo base)
@@ -385,9 +388,7 @@ export default function Gest_Configuraciones() {
                       onChange={(e) => setPorcentajeInteres(e.target.value)}
                       className="w-full h-11 rounded-[10px] border border-[#E5E8F1] bg-[#F6F7FB] px-4 pr-8 text-[14px] text-[#495063] outline-none focus:ring-2 focus:ring-[#7C3AED]/20"
                     />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] font-bold text-[#A4ABBD]">
-                      %
-                    </span>
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] font-bold text-[#A4ABBD]">%</span>
                   </div>
                   <p className="mt-1 text-[10px] font-bold text-[#B0B6C7] uppercase tracking-wide">
                     Tasa de interés (se aplica al precio crédito)
@@ -396,15 +397,10 @@ export default function Gest_Configuraciones() {
               </div>
             </div>
 
-            {/* Gestión de plazos */}
             <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-4 items-start">
               <div>
-                <p className="text-[14px] font-bold text-[#2D3648]">
-                  Gestión de Plazos
-                </p>
-                <p className="text-[12px] text-[#8A91A6] leading-4 mt-1">
-                  Opciones de créditos aplicables.
-                </p>
+                <p className="text-[14px] font-bold text-[#2D3648]">Gestión de Plazos</p>
+                <p className="text-[12px] text-[#8A91A6] leading-4 mt-1">Opciones de créditos aplicables.</p>
               </div>
               <div className="flex flex-col gap-3">
                 <div className="rounded-[10px] border border-[#E5E8F1] bg-[#F9FAFD] min-h-11 px-2 py-1.5 flex flex-wrap items-center gap-2">
@@ -415,16 +411,11 @@ export default function Gest_Configuraciones() {
                       onClick={() => handleEliminarPlazo(plazo)}
                       className="h-7 px-2.5 rounded-full bg-white border border-[#E6E9F2] text-[11px] font-semibold text-[#667086] inline-flex items-center gap-1.5 hover:border-red-200 hover:text-red-500 transition-colors"
                     >
-                      {plazo.plazoMeses}{" "}
-                      {plazo.plazoMeses === 1 ? "mes" : "meses"}
+                      {plazo.plazoMeses} {plazo.plazoMeses === 1 ? "mes" : "meses"}
                       <X size={11} />
                     </button>
                   ))}
-                  {plazos.length === 0 && (
-                    <span className="text-[11px] text-[#B0B6C7] px-2">
-                      Sin plazos configurados
-                    </span>
-                  )}
+                  {plazos.length === 0 && <span className="text-[11px] text-[#B0B6C7] px-2">Sin plazos configurados</span>}
                 </div>
                 <div className="flex items-center gap-2">
                   <input
@@ -443,26 +434,16 @@ export default function Gest_Configuraciones() {
                     disabled={!nuevoPlazoMeses || agregandoPlazo}
                     className="h-9 px-4 rounded-full bg-[#020817] text-white text-[11px] font-bold inline-flex items-center gap-1.5 disabled:opacity-40 hover:bg-black transition-colors"
                   >
-                    {agregandoPlazo ? (
-                      <Loader2 size={11} className="animate-spin" />
-                    ) : (
-                      <Plus size={11} />
-                    )}
-                    AGREGAR
+                    {agregandoPlazo ? <Loader2 size={11} className="animate-spin" /> : <Plus size={11} />} AGREGAR
                   </button>
                 </div>
               </div>
             </div>
 
-            {/* Gestión de garantías */}
             <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-4 items-start">
               <div>
-                <p className="text-[14px] font-bold text-[#2D3648]">
-                  Plazos de Garantía
-                </p>
-                <p className="text-[12px] text-[#8A91A6] leading-4 mt-1">
-                  Opciones disponibles al registrar productos.
-                </p>
+                <p className="text-[14px] font-bold text-[#2D3648]">Plazos de Garantía</p>
+                <p className="text-[12px] text-[#8A91A6] leading-4 mt-1">Opciones disponibles al registrar productos.</p>
               </div>
               <div className="flex flex-col gap-3">
                 <div className="rounded-[10px] border border-[#E5E8F1] bg-[#F9FAFD] min-h-11 px-2 py-1.5 flex flex-wrap items-center gap-2">
@@ -473,30 +454,17 @@ export default function Gest_Configuraciones() {
                       onClick={() => handleEliminarGarantia(g)}
                       className="h-7 px-2.5 rounded-full bg-white border border-[#E6E9F2] text-[11px] font-semibold text-[#667086] inline-flex items-center gap-1.5 hover:border-red-200 hover:text-red-500 transition-colors"
                     >
-                      {g.diasCobertura
-                        ? `${g.diasCobertura} días`
-                        : `${g.mesesCobertura} meses`}
-                      {g.requiereRevision && (
-                        <span className="text-amber-500">·R</span>
-                      )}
+                      {g.diasCobertura ? `${g.diasCobertura} días` : `${g.mesesCobertura} meses`}
+                      {g.requiereRevision && <span className="text-amber-500">·R</span>}
                       <X size={11} />
                     </button>
                   ))}
-                  {garantias.length === 0 && (
-                    <span className="text-[11px] text-[#B0B6C7] px-2">
-                      Sin garantías configuradas
-                    </span>
-                  )}
+                  {garantias.length === 0 && <span className="text-[11px] text-[#B0B6C7] px-2">Sin garantías configuradas</span>}
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <select
                     value={nuevaGarantia.tipo}
-                    onChange={(e) =>
-                      setNuevaGarantia((prev) => ({
-                        ...prev,
-                        tipo: e.target.value,
-                      }))
-                    }
+                    onChange={(e) => setNuevaGarantia((prev) => ({ ...prev, tipo: e.target.value }))}
                     className="h-9 rounded-[10px] border border-[#E5E8F1] bg-[#F6F7FB] px-3 text-[13px] text-[#495063] outline-none"
                   >
                     <option value="dias">Días</option>
@@ -506,12 +474,7 @@ export default function Gest_Configuraciones() {
                     type="number"
                     min="1"
                     value={nuevaGarantia.valor}
-                    onChange={(e) =>
-                      setNuevaGarantia((prev) => ({
-                        ...prev,
-                        valor: e.target.value,
-                      }))
-                    }
+                    onChange={(e) => setNuevaGarantia((prev) => ({ ...prev, valor: e.target.value }))}
                     placeholder="Ej: 12"
                     className="w-24 h-9 rounded-[10px] border border-[#E5E8F1] bg-[#F6F7FB] px-3 text-[13px] text-[#495063] outline-none focus:ring-2 focus:ring-[#7C3AED]/20"
                   />
@@ -519,12 +482,7 @@ export default function Gest_Configuraciones() {
                     <input
                       type="checkbox"
                       checked={nuevaGarantia.requiereRevision}
-                      onChange={(e) =>
-                        setNuevaGarantia((prev) => ({
-                          ...prev,
-                          requiereRevision: e.target.checked,
-                        }))
-                      }
+                      onChange={(e) => setNuevaGarantia((prev) => ({ ...prev, requiereRevision: e.target.checked }))}
                       className="h-3.5 w-3.5 rounded accent-[#7C3AED]"
                     />
                     Requiere revisión
@@ -535,12 +493,7 @@ export default function Gest_Configuraciones() {
                     disabled={!nuevaGarantia.valor || agregandoGarantia}
                     className="ml-2 h-9 px-4 rounded-full bg-[#020817] text-white text-[11px] font-bold inline-flex items-center gap-1.5 disabled:opacity-40 hover:bg-black transition-colors"
                   >
-                    {agregandoGarantia ? (
-                      <Loader2 size={11} className="animate-spin" />
-                    ) : (
-                      <Plus size={11} />
-                    )}
-                    AGREGAR
+                    {agregandoGarantia ? <Loader2 size={11} className="animate-spin" /> : <Plus size={11} />} AGREGAR
                   </button>
                 </div>
               </div>
@@ -548,21 +501,15 @@ export default function Gest_Configuraciones() {
           </div>
         </div>
 
-        {/* ==================== CONTROL DE INVENTARIO ==================== */}
+        {/* CONTROL DE INVENTARIO */}
         <div className="px-4 md:px-6 py-6 space-y-5">
           <h2 className="flex items-center gap-2 text-[23px] font-black tracking-tight text-[#2D3648]">
-            <Warehouse size={20} className="text-[#7C3AED]" /> CONTROL DE
-            INVENTARIO
+            <Warehouse size={20} className="text-[#7C3AED]" /> CONTROL DE INVENTARIO
           </h2>
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <p className="text-[14px] font-bold text-[#2D3648]">
-                Stock mínimo de aviso
-              </p>
-              <p className="text-[12px] text-[#8A91A6] leading-4 mt-1">
-                Umbral para emitir un aviso de forma automatizada.
-              </p>
+              <p className="text-[14px] font-bold text-[#2D3648]">Stock mínimo de aviso</p>
+              <p className="text-[12px] text-[#8A91A6] leading-4 mt-1">Umbral para emitir un aviso de forma automatizada.</p>
               <input
                 type="number"
                 min="0"
@@ -572,12 +519,8 @@ export default function Gest_Configuraciones() {
               />
             </div>
             <div>
-              <p className="text-[14px] font-bold text-[#2D3648]">
-                Stock mínimo de cierre
-              </p>
-              <p className="text-[12px] text-[#8A91A6] leading-4 mt-1">
-                Umbral para desactivar la posibilidad de compra en ComisApp.
-              </p>
+              <p className="text-[14px] font-bold text-[#2D3648]">Stock mínimo de cierre</p>
+              <p className="text-[12px] text-[#8A91A6] leading-4 mt-1">Umbral para desactivar la posibilidad de compra.</p>
               <input
                 type="number"
                 min="0"
@@ -589,20 +532,15 @@ export default function Gest_Configuraciones() {
           </div>
         </div>
 
-        {/* ==================== NOTIFICACIONES ==================== */}
+        {/* NOTIFICACIONES */}
         <div className="px-4 md:px-6 py-6 space-y-5">
           <h2 className="flex items-center gap-2 text-[23px] font-black tracking-tight text-[#2D3648]">
             <Bell size={20} className="text-[#7C3AED]" /> NOTIFICACIONES
           </h2>
-
           <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-4 items-center">
             <div>
-              <p className="text-[14px] font-bold text-[#2D3648]">
-                Correo de notificaciones
-              </p>
-              <p className="text-[12px] text-[#8A91A6] leading-4 mt-1">
-                Destino de alertas automáticas del sistema.
-              </p>
+              <p className="text-[14px] font-bold text-[#2D3648]">Correo de notificaciones</p>
+              <p className="text-[12px] text-[#8A91A6] leading-4 mt-1">Destino de alertas automáticas del sistema.</p>
             </div>
             <input
               type="email"
@@ -614,21 +552,15 @@ export default function Gest_Configuraciones() {
           </div>
         </div>
 
-        {/* ==================== SEGURIDAD Y ACTIVIDAD ==================== */}
+        {/* SEGURIDAD Y ACTIVIDAD */}
         <div className="px-4 md:px-6 py-6 space-y-5">
           <h2 className="flex items-center gap-2 text-[23px] font-black tracking-tight text-[#2D3648]">
-            <Shield size={20} className="text-[#7C3AED]" /> SEGURIDAD Y
-            ACTIVIDAD
+            <Shield size={20} className="text-[#7C3AED]" /> SEGURIDAD Y ACTIVIDAD
           </h2>
-
           <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-4 items-center">
             <div>
-              <p className="text-[14px] font-bold text-[#2D3648]">
-                Inactividad de sesión
-              </p>
-              <p className="text-[12px] text-[#8A91A6] leading-4 mt-1">
-                Tiempo antes de cerrar sesión automáticamente.
-              </p>
+              <p className="text-[14px] font-bold text-[#2D3648]">Inactividad de sesión</p>
+              <p className="text-[12px] text-[#8A91A6] leading-4 mt-1">Tiempo antes de cerrar sesión automáticamente.</p>
             </div>
             <div className="relative">
               <select
@@ -636,37 +568,29 @@ export default function Gest_Configuraciones() {
                 onChange={(e) => setTiempoInactividad(e.target.value)}
                 className="w-full h-11 appearance-none rounded-[10px] border border-[#E5E8F1] bg-[#F6F7FB] px-4 pr-9 text-[14px] text-[#495063] outline-none focus:ring-2 focus:ring-[#7C3AED]/20"
               >
+                <option value="1">1 Minuto</option>
+                <option value="5">5 Minutos</option>
                 <option value="15">15 Minutos</option>
                 <option value="30">30 Minutos</option>
                 <option value="45">45 Minutos</option>
                 <option value="60">60 Minutos</option>
               </select>
-              <ChevronDown
-                size={14}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A4ABBD] pointer-events-none"
-              />
+              <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A4ABBD] pointer-events-none" />
             </div>
           </div>
         </div>
 
-        {/* ==================== HORARIO Y AUTOMATIZACIÓN ==================== */}
+        {/* HORARIO Y AUTOMATIZACIÓN */}
         <div className="px-4 md:px-6 py-6 space-y-5">
           <h2 className="flex items-center gap-2 text-[23px] font-black tracking-tight text-[#2D3648]">
-            <Timer size={20} className="text-[#7C3AED]" /> HORARIO Y
-            AUTOMATIZACIÓN
+            <Timer size={20} className="text-[#7C3AED]" /> HORARIO Y AUTOMATIZACIÓN
           </h2>
-
           <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-8 items-start">
-            {/* Columna Izquierda: Controles y Ejecución Manual */}
             <div className="flex flex-col gap-6">
               <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-4">
                 <div>
-                  <p className="text-[14px] font-bold text-[#2D3648]">
-                    Próxima Fecha de Deducción
-                  </p>
-                  <p className="text-[12px] text-[#8A91A6] leading-4 mt-1">
-                    Configure el día del mes para el cobro automático.
-                  </p>
+                  <p className="text-[14px] font-bold text-[#2D3648]">Próxima Fecha de Deducción</p>
+                  <p className="text-[12px] text-[#8A91A6] leading-4 mt-1">Configure el día del mes para el cobro automático.</p>
                 </div>
                 <div className="relative max-w-[200px]">
                   <select
@@ -675,53 +599,33 @@ export default function Gest_Configuraciones() {
                     className="w-full h-11 appearance-none rounded-[10px] border border-[#E5E8F1] bg-[#F6F7FB] px-4 pr-9 text-[14px] text-[#495063] outline-none focus:ring-2 focus:ring-[#7C3AED]/20"
                   >
                     {[1, 5, 10, 15, 20, 25].map((d) => (
-                      <option key={d} value={String(d)}>
-                        Día {d}
-                      </option>
+                      <option key={d} value={String(d)}>Día {d}</option>
                     ))}
                   </select>
-                  <ChevronDown
-                    size={14}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A4ABBD] pointer-events-none"
-                  />
+                  <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A4ABBD] pointer-events-none" />
                 </div>
               </div>
 
               <div className="bg-[#F8F9FF] p-5 rounded-2xl border border-[#EEF0F6]">
                 <div className="flex items-center justify-between mb-2">
                   <div>
-                    <strong className="block text-[14px] font-extrabold text-[#2D3648]">
-                      Deducciones Automáticas
-                    </strong>
-                    <small className="text-[12px] text-[#8A91A6]">
-                      Ejecuta tareas cada día seleccionado (Recomendado).
-                    </small>
+                    <strong className="block text-[14px] font-extrabold text-[#2D3648]">Deducciones Automáticas</strong>
+                    <small className="text-[12px] text-[#8A91A6]">Ejecuta tareas cada día seleccionado (Recomendado).</small>
                   </div>
                   <button
                     type="button"
                     onClick={() => setDeduccionesAutomaticas((prev) => !prev)}
                     className={`relative h-6 w-11 rounded-full transition-colors ${deduccionesAutomaticas ? "bg-[#7C3AED]" : "bg-[#D5DBEB]"}`}
                   >
-                    <span
-                      className={`absolute left-1 top-1 block h-4 w-4 rounded-full bg-white transition-transform ${deduccionesAutomaticas ? "translate-x-5" : "translate-x-0"}`}
-                    />
+                    <span className={`absolute left-1 top-1 block h-4 w-4 rounded-full bg-white transition-transform ${deduccionesAutomaticas ? "translate-x-5" : "translate-x-0"}`} />
                   </button>
                 </div>
-
                 <hr className="my-4 border-[#E6E8F2]" />
-
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                   <div className="flex items-start gap-2 text-[11px] text-[#585a5f] max-w-[240px]">
-                    <Zap
-                      size={14}
-                      className="text-orange-500 shrink-0 mt-0.5"
-                    />
-                    <span>
-                      Si deshabilitas la automatización u ocurre un error,
-                      deberás forzar los cobros manualmente.
-                    </span>
+                    <Zap size={14} className="text-orange-500 shrink-0 mt-0.5" />
+                    <span>Si deshabilitas la automatización o ha ocurrido un error, deberás forzar los cobros manualmente.</span>
                   </div>
-
                   <button
                     type="button"
                     onClick={() => setModalDeducciones(true)}
@@ -730,17 +634,14 @@ export default function Gest_Configuraciones() {
                     <Timer size={14} /> Ejecutar Deducción Manual
                   </button>
                 </div>
-
                 {ultimaEjecucion && (
                   <div className="mt-4 w-full flex items-center justify-center gap-2 rounded-lg bg-white border border-gray-100 px-3 py-2 text-[11px] font-semibold text-gray-500 shadow-sm">
-                    <Check size={12} className="text-emerald-500" /> Última
-                    ejecución manual: {ultimaEjecucion}
+                    <Check size={12} className="text-emerald-500" /> Última ejecución manual: {ultimaEjecucion}
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Columna Derecha: Calendario (Widget Style) */}
             <aside className="rounded-[1.25rem] border border-[#E8EBF3] bg-white p-5 shadow-[0_4px_20px_rgb(0,0,0,0.03)] h-fit mx-auto lg:mx-0 w-full max-w-[320px]">
               <div className="flex items-center justify-between mb-4">
                 <strong className="text-[15px] font-extrabold text-[#020817] uppercase tracking-wide">
@@ -773,15 +674,11 @@ export default function Gest_Configuraciones() {
                   </button>
                 </div>
               </div>
-
               <div className="grid grid-cols-7 text-center text-[10px] font-black text-[#A0A7BA] mb-2">
                 {weekDays.map((d) => (
-                  <span key={d} className="py-1">
-                    {d}
-                  </span>
+                  <span key={d} className="py-1">{d}</span>
                 ))}
               </div>
-
               <div className="grid grid-cols-7 gap-y-1 gap-x-1 text-center">
                 {diasGrid.map((day, index) => (
                   <button
@@ -803,22 +700,19 @@ export default function Gest_Configuraciones() {
                   </button>
                 ))}
               </div>
-
               <div className="mt-5 pt-4 border-t border-[#F0F2F8] text-center">
                 <p className="text-[11px] text-[#9EA5B8]">
-                  Día de cobro:{" "}
-                  <strong className="text-[#020817] bg-gray-100 px-2 py-0.5 rounded">
-                    Día {diaFechaCobro}
-                  </strong>
+                  Día de cobro: <strong className="text-[#020817] bg-gray-100 px-2 py-0.5 rounded">Día {diaFechaCobro}</strong>
                 </p>
               </div>
             </aside>
           </div>
         </div>
       </div>
+      
       <div className="px-6 md:px-8 py-5 border-t border-[#E6E8F2] flex justify-end">
         <button
-          onClick={handleGuardar}
+          onClick={handleAbrirModalGuardar}
           disabled={guardando}
           className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-[15px] font-bold uppercase tracking-widest transition-all shadow-sm
                             ${
@@ -836,18 +730,9 @@ export default function Gest_Configuraciones() {
           ) : (
             <Save size={14} />
           )}
-          {guardando
-            ? "Guardando..."
-            : guardado
-              ? "¡Guardado!"
-              : "Guardar Cambios"}
+          {guardando ? "Procesando..." : guardado ? "¡Guardado!" : "Guardar Cambios"}
         </button>
-
-        {/* <div className="rounded-[1.25rem] border border-[#E6E8F2] bg-white overflow-hidden flex flex-col divide-y divide-[#EEF0F6]">
-            
-          </div> */}
       </div>
-      {/* </section> */}
 
       {/* MODAL EJECUTAR DEDUCCIONES MANUALES */}
       {modalDeducciones && (
@@ -857,7 +742,7 @@ export default function Gest_Configuraciones() {
               <button
                 onClick={() => {
                   setModalDeducciones(false);
-                  setInputPassword("");
+                  setInputPasswordDeduccion("");
                 }}
                 className="absolute top-4 right-4 text-orange-400 hover:text-orange-600 transition-colors"
               >
@@ -883,8 +768,8 @@ export default function Gest_Configuraciones() {
                   <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <input
                     type="password"
-                    value={inputPassword}
-                    onChange={(e) => setInputPassword(e.target.value)}
+                    value={inputPasswordDeduccion}
+                    onChange={(e) => setInputPasswordDeduccion(e.target.value)}
                     placeholder="Contraseña de administrador..."
                     className="w-full text-center bg-[#F8F9FF] border border-gray-200 text-sm font-bold pl-10 pr-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
                   />
@@ -894,7 +779,7 @@ export default function Gest_Configuraciones() {
                 <button
                   onClick={() => {
                     setModalDeducciones(false);
-                    setInputPassword("");
+                    setInputPasswordDeduccion("");
                   }}
                   className="flex-1 bg-white border border-gray-200 text-gray-600 text-[11px] font-bold py-3 rounded-xl hover:bg-gray-50 transition-colors tracking-widest uppercase"
                 >
@@ -902,20 +787,84 @@ export default function Gest_Configuraciones() {
                 </button>
                 <button
                   onClick={confirmarEjecucionManual}
-                  disabled={!inputPassword || ejecutandoManual}
+                  disabled={!inputPasswordDeduccion || ejecutandoManual}
                   className={`flex-1 text-white text-[11px] font-bold py-3 rounded-xl shadow-md transition-all tracking-widest uppercase flex items-center justify-center gap-2
                                         ${
-                                          !inputPassword || ejecutandoManual
+                                          !inputPasswordDeduccion || ejecutandoManual
                                             ? "bg-orange-300 cursor-not-allowed opacity-70 shadow-none"
                                             : "bg-orange-500 hover:bg-orange-600 shadow-orange-500/20"
                                         }`}
                 >
-                  {ejecutandoManual ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Timer className="w-4 h-4" />
-                  )}
+                  {ejecutandoManual ? <Loader2 className="w-4 h-4 animate-spin" /> : <Timer className="w-4 h-4" />}
                   {ejecutandoManual ? "Procesando..." : "Sí, Ejecutar"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL GUARDAR CONFIGURACIONES */}
+      {modalGuardar && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#020817]/60 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-[1.5rem] shadow-2xl w-full max-w-md overflow-hidden transform transition-all border border-gray-100">
+            <div className="bg-purple-50/80 p-6 flex flex-col items-center border-b border-purple-100 relative">
+              <button
+                onClick={() => setModalGuardar(false)}
+                className="absolute top-4 right-4 text-purple-400 hover:text-purple-600 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+              <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-md mb-4 border border-purple-100">
+                <Save className="w-8 h-8 text-[#7C3AED]" />
+              </div>
+              <h3 className="text-lg font-extrabold text-[#020817] text-center">
+                Confirmar Cambios
+              </h3>
+              <p className="text-[12px] font-medium text-purple-600 mt-2 text-center px-4 leading-relaxed">
+                Para aplicar la nueva configuración, tu sesión se cerrará automáticamente. Ingresa tu contraseña para confirmar.
+              </p>
+            </div>
+            <div className="p-6">
+              <div className="mb-5">
+                <label className="block text-[11px] font-extrabold text-gray-500 uppercase tracking-widest mb-2 text-center">
+                  Autenticación Requerida
+                </label>
+                <div className="relative">
+                  <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="password"
+                    value={passwordGuardar}
+                    onChange={(e) => setPasswordGuardar(e.target.value)}
+                    placeholder="Contraseña de administrador..."
+                    className="w-full text-center bg-[#F8F9FF] border border-gray-200 text-sm font-bold pl-10 pr-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/20 focus:border-[#7C3AED] transition-all"
+                  />
+                </div>
+                {errorPasswordGuardar && (
+                  <p className="text-[11px] font-semibold text-red-500 text-center mt-2">
+                    {errorPasswordGuardar}
+                  </p>
+                )}
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setModalGuardar(false)}
+                  className="flex-1 bg-white border border-gray-200 text-gray-600 text-[11px] font-bold py-3 rounded-xl hover:bg-gray-50 transition-colors tracking-widest uppercase"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={confirmarGuardar}
+                  disabled={!passwordGuardar || guardando}
+                  className={`flex-1 text-white text-[11px] font-bold py-3 rounded-xl shadow-md transition-all tracking-widest uppercase flex items-center justify-center gap-2
+                                        ${
+                                          !passwordGuardar || guardando
+                                            ? "bg-purple-300 cursor-not-allowed opacity-70 shadow-none"
+                                            : "bg-[#7C3AED] hover:bg-purple-700 shadow-[#7C3AED]/20"
+                                        }`}
+                >
+                  {guardando ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogOut className="w-4 h-4" />}
+                  {guardando ? "Procesando..." : "Confirmar"}
                 </button>
               </div>
             </div>

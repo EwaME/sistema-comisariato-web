@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "../../auth/AuthProvider";
-import { useNavigate, Link } from "react-router-dom";
-import { Mail, Eye, EyeOff } from "lucide-react";
+import { useNavigate, Link, useLocation } from "react-router-dom";
+import { Mail, Eye, EyeOff, AlertTriangle, Info } from "lucide-react";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "../../firebase/firebase";
 import { getAuth, signOut } from "firebase/auth";
@@ -13,13 +13,32 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  
+  const [mensajeNav, setMensajeNav] = useState(null);
 
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    const mensajeGuardado = sessionStorage.getItem('mensajeLogin');
+    if (mensajeGuardado) {
+      setMensajeNav(JSON.parse(mensajeGuardado));
+      sessionStorage.removeItem('mensajeLogin');
+    } 
+    else if (location.state?.mensajeAlerta) {
+      setMensajeNav({
+        texto: location.state.mensajeAlerta,
+        tipo: location.state.tipoAlerta || "info"
+      });
+      window.history.replaceState({}, document.title);
+    }
+  }, [location]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setMensajeNav(null); 
     setLoading(true);
 
     try {
@@ -137,6 +156,23 @@ export default function Login() {
       {/* --- COLUMNA DERECHA --- */}
       <div className="w-full md:w-1/2 flex flex-col items-center justify-center p-4 sm:p-8">
         <div className="w-full max-w-[420px] flex flex-col items-center">
+          
+          {/* AQUÍ ESTÁ EL AVISO DE SESIÓN EXPIRADA / CONFIGURACIÓN GUARDADA */}
+          {mensajeNav && (
+            <div className={`w-full mb-6 p-4 rounded-2xl flex items-start gap-3 border shadow-sm
+              ${mensajeNav.tipo === 'warning' ? 'bg-orange-50 border-orange-200 text-orange-800' : 
+                mensajeNav.tipo === 'error' ? 'bg-red-50 border-red-200 text-red-800' : 
+                'bg-blue-50 border-blue-200 text-blue-800'}`}
+            >
+              <div className="shrink-0 mt-0.5">
+                {mensajeNav.tipo === 'warning' ? <AlertTriangle className="w-5 h-5" /> : <Info className="w-5 h-5" />}
+              </div>
+              <p className="text-sm font-medium leading-relaxed">
+                {mensajeNav.texto}
+              </p>
+            </div>
+          )}
+
           <div className="w-full bg-white rounded-[1rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-200 p-8 sm:p-10 pt-16">
             <div className="relative z-10 mb-[1rem] w-full flex items-center justify-center">
               <div
