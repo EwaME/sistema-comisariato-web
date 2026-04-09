@@ -14,27 +14,68 @@ import {
   ShieldCheck,
   ShieldOff,
   Clock,
+  Package, // Icono para el producto
 } from "lucide-react";
 
 import {
   obtenerReclamoPorId,
   actualizarRevisionReclamo,
   cancelarRevision,
+  obtenerProductoPorId,
 } from "../../../services/reclamosService";
 import { obtenerCreditosPorId } from "../../../services/creditosService";
 import {
   fromTimestamp,
   calcularVencimiento,
-  calcularVencimientoDias, // ← nueva función
+  calcularVencimientoDias,
   fromTimestampToSimpleDate,
 } from "../../../helpers/timestampToDate";
 
+// --- COMPONENTE DE LA TARJETA DE PRODUCTO (MEJORADO) ---
+const ProductoReferenciaCard = ({ producto }) => {
+  if (!producto) return null;
+
+  return (
+    <div className="bg-white p-6 rounded-[1.5rem] border border-gray-100 shadow-sm hover:border-gray-200 transition-all group">
+      <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-4">
+        Producto de Referencia
+      </p>
+      <div className="flex items-center gap-4">
+        <div className="w-20 h-20 rounded-2xl border border-gray-100 overflow-hidden bg-gray-50 flex-shrink-0 shadow-inner flex items-center justify-center">
+          {producto.imagenFrontalUrl ? (
+            <img
+              src={producto.imagenFrontalUrl}
+              alt={producto.nombre}
+              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+            />
+          ) : (
+            <Package className="w-8 h-8 text-gray-300" />
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-[10px] text-[#7C3AED] font-black uppercase tracking-tight mb-1">
+            Modelo Registrado
+          </p>
+          <h4 className="text-lg font-black text-gray-900 leading-tight truncate">
+            {producto.nombre}
+          </h4>
+          <p className="text-[11px] text-gray-400 font-bold uppercase mt-1">
+            Ref: {producto.id?.toString().slice(-8) || "N/A"}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// --- COMPONENTE PRINCIPAL ---
 const RevisionReclamo = () => {
   const { id } = useParams();
   const navigate = useNavigate();
 
   const [reclamo, setReclamo] = useState(null);
   const [credito, setCredito] = useState(null);
+  const [producto, setProducto] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [respuesta, setRespuesta] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -63,6 +104,13 @@ const RevisionReclamo = () => {
         if (data.creditId) {
           const creditoData = await obtenerCreditosPorId(data.creditId);
           setCredito(creditoData);
+
+          if (creditoData.productoId) {
+            const productoData = await obtenerProductoPorId(
+              creditoData.productoId,
+            );
+            setProducto(productoData);
+          }
         }
         setReclamo(data);
       } catch (error) {
@@ -137,6 +185,7 @@ const RevisionReclamo = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* COLUMNA IZQUIERDA: DETALLES */}
           <div className="lg:col-span-8 space-y-6">
             <div className="bg-white p-6 md:p-8 rounded-[1.5rem] border border-gray-100 shadow-sm">
               <h2 className="text-xl font-black text-gray-800 mb-2 tracking-tight">
@@ -254,6 +303,8 @@ const RevisionReclamo = () => {
           </div>
 
           <div className="lg:col-span-4 space-y-6">
+            <ProductoReferenciaCard producto={producto} />
+
             <div className="bg-white p-6 rounded-[1.5rem] border border-gray-100 shadow-sm">
               <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-5">
                 Información del Solicitante
@@ -263,7 +314,9 @@ const RevisionReclamo = () => {
                   <img
                     src={
                       credito?.fotoUrl ||
-                      `https://ui-avatars.com/api/?name=${encodeURIComponent(reclamo?.solicitante || "U")}&background=F3F4F6&color=6B7280`
+                      `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                        reclamo?.solicitante || "U",
+                      )}&background=F3F4F6&color=6B7280`
                     }
                     alt="Avatar"
                     className="w-full h-full object-cover"
@@ -368,6 +421,7 @@ const RevisionReclamo = () => {
         </div>
       </main>
 
+      {/* MODAL DE IMAGEN (ZOOM) */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4">
           <div className="absolute top-6 right-6 flex gap-3">
@@ -412,6 +466,7 @@ const RevisionReclamo = () => {
         </div>
       )}
 
+      {/* MODAL DE CONFIRMACIÓN */}
       {mostrarModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-white rounded-[2rem] p-8 max-w-sm w-full shadow-2xl border border-gray-100 animate-in fade-in zoom-in duration-200">

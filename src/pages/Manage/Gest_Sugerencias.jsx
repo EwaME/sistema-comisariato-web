@@ -1,30 +1,35 @@
 import React, { useState, useEffect } from "react";
-import {
-  CalendarDays,
-  ChevronLeft,
-  ChevronRight,
-  MessageSquare,
-  Loader2,
-} from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 
 import { obtenerSugerencias } from "../../services/sugerenciasService";
-import Loading from "../../components/Loading";
-
 import { fromTimestamp } from "../../helpers/timestampToDate";
 
 export default function Sugerencias() {
   const [sugerencias, setSugerencias] = useState([]);
   const [cargando, setCargando] = useState(true);
 
-  // --- LÓGICA DE PAGINACIÓN (Basada en Gest_Creditos) ---
+  // --- LÓGICA DE PAGINACIÓN ---
   const [paginaActual, setPaginaActual] = useState(1);
   const itemsPorPagina = 4;
 
   useEffect(() => {
-    const desuscribirse = obtenerSugerencias((nuevasSugerencias) => {
-      setSugerencias(nuevasSugerencias);
+    // Definimos la recarga ficticia con una promesa
+    const fakeLoading = (data) => {
+      return new Promise((resolve) => {
+        setTimeout(() => resolve(data), 800); // 800ms de carga ficticia
+      });
+    };
+
+    const desuscribirse = obtenerSugerencias(async (nuevasSugerencias) => {
+      // Cada vez que hay cambios, activamos el esqueleto brevemente
+      setCargando(true);
+
+      const data = await fakeLoading(nuevasSugerencias);
+
+      setSugerencias(data);
       setCargando(false);
     });
+
     return () => desuscribirse();
   }, []);
 
@@ -42,9 +47,13 @@ export default function Sugerencias() {
     }
   }, [sugerencias.length, paginaActual, totalPaginas]);
 
-  if (cargando) {
-    return <Loading />;
-  }
+  // Función para manejar el cambio de página con efecto de carga
+  const manejarCambioPagina = (nuevaPagina) => {
+    setCargando(true);
+    setPaginaActual(nuevaPagina);
+    // Simulamos carga al cambiar de página
+    setTimeout(() => setCargando(false), 500);
+  };
 
   return (
     <div className="p-4 md:p-8 max-w-[1600px] mx-auto">
@@ -60,7 +69,11 @@ export default function Sugerencias() {
       <section className="bg-white rounded-[1.25rem] border border-gray-100 shadow-[0_2px_18px_rgb(0,0,0,0.03)] overflow-hidden">
         {/* Lista de Sugerencias */}
         <div className="p-4 md:p-5 space-y-4 md:space-y-5">
-          {sugerenciasPaginadas.length > 0 ? (
+          {cargando ? (
+            Array(4)
+              .fill(0)
+              .map((_, i) => <SkeletonItem key={i} />)
+          ) : sugerenciasPaginadas.length > 0 ? (
             sugerenciasPaginadas.map((sugerencia) => (
               <article
                 key={sugerencia.id}
@@ -68,15 +81,16 @@ export default function Sugerencias() {
               >
                 <div className="flex flex-col sm:flex-row gap-4">
                   <div className="sm:w-20 shrink-0 flex sm:flex-col items-center sm:items-start gap-3 sm:gap-2">
-                    <div className="w-11 h-11 rounded-full bg-[#E2E8F0] text-[#334155] font-black text-[11px] flex items-center justify-center shadow-sm overflow-hidden">
+                    <div className="w-11 h-11 rounded-full bg-[#E2E8F0] shadow-sm overflow-hidden">
                       <img
+                        className="w-full h-full object-cover"
                         src={sugerencia.fotoUsuario}
                         alt="Foto del usuario"
                       />
                     </div>
                     <p className="text-[11px] leading-4 font-extrabold text-[#020817] sm:max-w-[72px]">
                       {sugerencia.nombreUsuario.split(" ")[0]}{" "}
-                      {sugerencia.nombreUsuario.split(" ")[2]}
+                      {sugerencia.nombreUsuario.split(" ")[2] || ""}
                     </p>
                   </div>
 
@@ -105,32 +119,42 @@ export default function Sugerencias() {
           )}
         </div>
 
-        {/* Footer / Paginado (Misma lógica que Gest_Creditos) */}
+        {/* Footer / Paginado */}
         <div className="px-4 md:px-5 py-4 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-            Mostrando {startIndex + 1} a{" "}
-            {Math.min(startIndex + itemsPorPagina, sugerencias.length)} de{" "}
-            {sugerencias.length} sugerencias
-          </p>
+          <div className={`${cargando ? "animate-pulse" : ""}`}>
+            {cargando ? (
+              <div className="w-48 h-3 bg-gray-100 rounded"></div>
+            ) : (
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                Mostrando {startIndex + 1} a{" "}
+                {Math.min(startIndex + itemsPorPagina, sugerencias.length)} de{" "}
+                {sugerencias.length} sugerencias
+              </p>
+            )}
+          </div>
 
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setPaginaActual((p) => Math.max(1, p - 1))}
-              disabled={paginaActual === 1}
+              onClick={() => manejarCambioPagina(Math.max(1, paginaActual - 1))}
+              disabled={cargando || paginaActual === 1}
               className="p-2 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
 
             <span className="text-xs font-bold text-[#020817] px-3">
-              Página {paginaActual} de {totalPaginas || 1}
+              {cargando
+                ? "---"
+                : `Página ${paginaActual} de ${totalPaginas || 1}`}
             </span>
 
             <button
               onClick={() =>
-                setPaginaActual((p) => Math.min(totalPaginas, p + 1))
+                manejarCambioPagina(Math.min(totalPaginas, paginaActual + 1))
               }
-              disabled={paginaActual === totalPaginas || totalPaginas === 0}
+              disabled={
+                cargando || paginaActual === totalPaginas || totalPaginas === 0
+              }
               className="p-2 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               <ChevronRight className="w-4 h-4" />
@@ -138,6 +162,27 @@ export default function Sugerencias() {
           </div>
         </div>
       </section>
+    </div>
+  );
+}
+
+function SkeletonItem() {
+  return (
+    <div className="border border-gray-50 rounded-2xl p-4 md:p-5 animate-pulse">
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="sm:w-20 shrink-0 flex sm:flex-col items-center sm:items-start gap-3 sm:gap-2">
+          <div className="w-11 h-11 rounded-full bg-gray-100" />
+          <div className="w-14 h-3 bg-gray-100 rounded" />
+        </div>
+        <div className="flex-1">
+          <div className="w-1/3 h-6 bg-gray-100 rounded mb-3" />
+          <div className="space-y-2 mb-4">
+            <div className="w-full h-3 bg-gray-50 rounded" />
+            <div className="w-5/6 h-3 bg-gray-50 rounded" />
+          </div>
+          <div className="w-24 h-3 bg-gray-100 rounded" />
+        </div>
+      </div>
     </div>
   );
 }

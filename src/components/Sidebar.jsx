@@ -137,7 +137,7 @@ export default function Sidebar({
           className={`flex items-center gap-3 overflow-hidden ${isCollapsed ? "justify-center" : ""}`}
         >
           <div className="bg-[#020817] text-white p-1 rounded-lg shrink-0">
-            <img src="/public/CrediFlowManagement.png" className="w-8 h-8" />
+            <img src="/CrediFlowManagement.png" className="w-8 h-8" />
           </div>
           {!isCollapsed && (
             <div className="whitespace-nowrap transition-opacity duration-300">
@@ -216,7 +216,7 @@ export default function Sidebar({
         )}
 
         {/* Administración */}
-        {checkAccess(["ACREDITADOR", "MODERADOR"]) && (
+        {checkAccess(["MODERADOR"]) && (
           <div className="mb-6">
             {!isCollapsed && (
               <p className="text-[9px] font-bold text-gray-400 tracking-widest uppercase mb-3 px-6">
@@ -228,7 +228,7 @@ export default function Sidebar({
               {checkAccess([]) &&
                 renderMenuItem(UserSquare, "Empleados", "/empleados")}
               {/* Usuarios: Admin, Moderador, Acreditador */}
-              {checkAccess(["ACREDITADOR", "MODERADOR"]) &&
+              {checkAccess(["MODERADOR"]) &&
                 renderMenuItem(Users, "Usuarios", "/usuarios")}
             </ul>
           </div>
