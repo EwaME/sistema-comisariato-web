@@ -46,15 +46,17 @@ import RevisionReclamo from "../pages/Manage/Reclamos/Gest_Revision.jsx";
 
 import GuiasyAyudas from "../pages/GuiasyAyudas";
 import DashboardContainer from "../pages/Dashboards/DashboardContainer.jsx";
+
 export default function AppRouter() {
   const TODOS_WEB = [
+    "ADMINISTRADOR",
     "ACREDITADOR",
     "ANALISTA",
     "GESTOR DE INVENTARIO",
     "MODERADOR",
   ];
 
-  const ADMIN_ONLY = [];
+  const ADMIN_ONLY = ["ADMINISTRADOR"];
 
   return (
     <Routes>
@@ -73,6 +75,7 @@ export default function AppRouter() {
         }
       >
         <Route index element={<Navigate to="/dashboard" replace />} />
+        
         {/* 1. General */}
         <Route
           path="dashboard"
@@ -82,7 +85,6 @@ export default function AppRouter() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="perfil"
           element={
@@ -91,11 +93,12 @@ export default function AppRouter() {
             </ProtectedRoute>
           }
         />
-        {/* 2. Administración */}
+
+        {/* 2. Administración y Moderación (Usuarios compartidos) */}
         <Route
           path="usuarios"
           element={
-            <ProtectedRoute allowedRoles={["MODERADOR"]}>
+            <ProtectedRoute allowedRoles={["ADMINISTRADOR", "MODERADOR"]}>
               <Usuarios />
             </ProtectedRoute>
           }
@@ -103,11 +106,12 @@ export default function AppRouter() {
         <Route
           path="usuarios/nuevo"
           element={
-            <ProtectedRoute allowedRoles={["MODERADOR"]}>
+            <ProtectedRoute allowedRoles={["ADMINISTRADOR", "MODERADOR"]}>
               <CrearUsuario />
             </ProtectedRoute>
           }
         />
+
         {/* 3. Gestión de Empleados */}
         <Route
           path="empleados"
@@ -141,6 +145,7 @@ export default function AppRouter() {
             </ProtectedRoute>
           }
         />
+
         {/* 4. Gestión de Departamentos */}
         <Route
           path="departamentos"
@@ -166,6 +171,7 @@ export default function AppRouter() {
             </ProtectedRoute>
           }
         />
+
         {/* 5. Gestión de Cargos */}
         <Route
           path="cargos"
@@ -191,7 +197,8 @@ export default function AppRouter() {
             </ProtectedRoute>
           }
         />
-        {/* 5. Gestión de Roles */}
+
+        {/* 6. Gestión de Roles */}
         <Route
           path="roles"
           element={
@@ -216,7 +223,8 @@ export default function AppRouter() {
             </ProtectedRoute>
           }
         />
-        {/* 6. Gestión de Stock */}
+
+        {/* 7. Gestión de Stock */}
         <Route
           path="inventario"
           element={
@@ -281,7 +289,8 @@ export default function AppRouter() {
             </ProtectedRoute>
           }
         />
-        {/* 7. Acreditaciones */}
+
+        {/* 8. Acreditaciones */}
         <Route
           path="creditos"
           element={
@@ -322,7 +331,8 @@ export default function AppRouter() {
             </ProtectedRoute>
           }
         />
-        {/* 8. Gestión de Sistema */}
+
+        {/* 9. Gestión de Sistema (Analista y Administrador) */}
         <Route
           path="configuraciones"
           element={
@@ -334,7 +344,7 @@ export default function AppRouter() {
         <Route
           path="auditorias"
           element={
-            <ProtectedRoute allowedRoles={ADMIN_ONLY}>
+            <ProtectedRoute allowedRoles={["ADMINISTRADOR", "ANALISTA"]}>
               <Auditorias />
             </ProtectedRoute>
           }
@@ -342,12 +352,13 @@ export default function AppRouter() {
         <Route
           path="reportes"
           element={
-            <ProtectedRoute allowedRoles={["ANALISTA"]}>
+            <ProtectedRoute allowedRoles={["ADMINISTRADOR", "ANALISTA"]}>
               <Reportes />
             </ProtectedRoute>
           }
         />
-        {/* 9. Comunidad */}
+
+        {/* 10. Comunidad (Moderador) */}
         <Route
           path="sugerencias"
           element={

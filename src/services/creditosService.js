@@ -188,30 +188,6 @@ export const obtenerCreditosRecientesPorEmpleado = async (empleadoId) => {
   }
 };
 
-export const obtenerTotalCuotasPorEmpleadoId = async (empleadoId) => {
-  try {
-    const creditosRef = collection(db, "creditos");
-
-    const q = query(
-      creditosRef,
-      where("empleadoId", "==", empleadoId),
-      where("estado", "==", "Aprobado"),
-    );
-
-    const querySnapshot = await getDocs(q);
-    let total = 0;
-
-    querySnapshot.forEach((doc) => {
-      total += doc.data().cuotaMensual || 0;
-    });
-
-    return total;
-  } catch (error) {
-    console.error("Error al sumar cuotas:", error);
-    throw error;
-  }
-};
-
 export const obtenerListaEsperaRealTime = (callback) => {
   const creditosRef = collection(db, "creditos");
 
@@ -228,4 +204,56 @@ export const obtenerListaEsperaRealTime = (callback) => {
     }));
     callback(lista);
   });
+};
+
+export const obtenerTotalCuotasPorEmpleadoId = async (empleadoId) => {
+  try {
+    const creditosRef = collection(db, "creditos");
+
+    const q = query(
+      creditosRef,
+      where("empleadoId", "==", empleadoId),
+      where("estado", "==", "Aprobado"),
+    );
+
+    const querySnapshot = await getDocs(q);
+    let totalUsado = 0;
+
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      const totalCuotas = data.cantidad || 1; 
+      const pagadas = data.cuotasPagadas || 0; 
+      const cuota = parseFloat(data.cuotaMensual) || 0;
+
+      if (pagadas < totalCuotas) {
+        const saldoPendiente = (totalCuotas - pagadas) * cuota;
+        totalUsado += saldoPendiente;
+      }
+    });
+
+    return totalUsado;
+  } catch (error) {
+    console.error("Error al sumar el crédito usado:", error);
+    throw error;
+  }
+};
+
+export const obtenerCreditosActivosPorEmpleadoId = async (empleadoId) => {
+  try {
+    const creditosRef = collection(db, "creditos");
+    const q = query(
+      creditosRef,
+      where("empleadoId", "==", empleadoId),
+      where("estado", "==", "Aprobado")
+    );
+    const querySnapshot = await getDocs(q);
+    
+    return querySnapshot.docs
+      .map((doc) => ({ id: doc.id, ...doc.data() }))
+      .filter(credito => (credito.cuotasPagadas || 0) < (credito.cantidad || 1));
+      
+  } catch (error) {
+    console.error("Error al obtener historial de productos activos:", error);
+    throw error;
+  }
 };

@@ -22,7 +22,7 @@ export default function ProtectedRoute({ children, allowedRoles }) {
     if (allowedRoles && role) {
         const userRoles = Array.isArray(role) ? role : [role];
         
-        const hasPermission = userRoles.includes("ADMINISTRADOR") || userRoles.some(r => allowedRoles.includes(r));
+        const hasPermission = userRoles.some(r => allowedRoles.includes(r));
 
         if (!hasPermission) {
             return (

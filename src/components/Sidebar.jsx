@@ -91,10 +91,11 @@ export default function Sidebar({
     }, 1000);
   };
 
+  // --- FUNCIÓN ESTRICTA DE ACCESOS ---
   const checkAccess = (allowedRoles) => {
     if (!role) return false;
     const userRoles = Array.isArray(role) ? role : [role];
-    if (userRoles.includes("ADMINISTRADOR")) return true;
+    // Se removió la excepción del administrador. Solo retorna true si hay coincidencia exacta.
     return userRoles.some((r) => allowedRoles.includes(r));
   };
 
@@ -137,7 +138,7 @@ export default function Sidebar({
           className={`flex items-center gap-3 overflow-hidden ${isCollapsed ? "justify-center" : ""}`}
         >
           <div className="bg-[#020817] text-white p-1 rounded-lg shrink-0">
-            <img src="/CrediFlowManagement.png" className="w-8 h-8" />
+            <img src="/CrediFlowManagement.png" className="w-8 h-8" alt="Logo" />
           </div>
           {!isCollapsed && (
             <div className="whitespace-nowrap transition-opacity duration-300">
@@ -196,8 +197,9 @@ export default function Sidebar({
           ${isCollapsed ? "scrollbar-hide" : ""}
         `}
       >
-        {/* Dashboard: Lo ven casi todos los de la WEB */}
+        {/* Dashboard: General */}
         {checkAccess([
+          "ADMINISTRADOR",
           "ACREDITADOR",
           "ANALISTA",
           "GESTOR DE INVENTARIO",
@@ -215,8 +217,8 @@ export default function Sidebar({
           </div>
         )}
 
-        {/* Administración */}
-        {checkAccess(["MODERADOR"]) && (
+        {/* Administración: Admin y Moderador */}
+        {checkAccess(["ADMINISTRADOR", "MODERADOR"]) && (
           <div className="mb-6">
             {!isCollapsed && (
               <p className="text-[9px] font-bold text-gray-400 tracking-widest uppercase mb-3 px-6">
@@ -224,18 +226,16 @@ export default function Sidebar({
               </p>
             )}
             <ul className="space-y-1 px-4">
-              {/* Solo el Admin (implicito) ve Empleados */}
-              {checkAccess([]) &&
+              {checkAccess(["ADMINISTRADOR"]) &&
                 renderMenuItem(UserSquare, "Empleados", "/empleados")}
-              {/* Usuarios: Admin, Moderador, Acreditador */}
-              {checkAccess(["MODERADOR"]) &&
+              {checkAccess(["ADMINISTRADOR", "MODERADOR"]) &&
                 renderMenuItem(Users, "Usuarios", "/usuarios")}
             </ul>
           </div>
         )}
 
-        {/* Organización: Estrictamente para el ADMINISTRADOR */}
-        {checkAccess([]) && (
+        {/* Organización: Solo Administrador */}
+        {checkAccess(["ADMINISTRADOR"]) && (
           <div className="mb-6">
             {!isCollapsed && (
               <p className="text-[9px] font-bold text-gray-400 tracking-widest uppercase mb-3 px-6">
@@ -250,7 +250,7 @@ export default function Sidebar({
           </div>
         )}
 
-        {/* Gestión de Stock: Admin y Gestor de Inventario */}
+        {/* Gestión de Stock: Solo Gestor de Inventario */}
         {checkAccess(["GESTOR DE INVENTARIO"]) && (
           <div className="mb-6">
             {!isCollapsed && (
@@ -265,7 +265,7 @@ export default function Sidebar({
           </div>
         )}
 
-        {/* Acreditaciones: Admin y Acreditador */}
+        {/* Acreditaciones: Solo Acreditador */}
         {checkAccess(["ACREDITADOR"]) && (
           <div className="mb-6">
             {!isCollapsed && (
@@ -280,7 +280,7 @@ export default function Sidebar({
           </div>
         )}
 
-        {/* Comunidad: Admin y Moderador */}
+        {/* Comunidad: Solo Moderador */}
         {checkAccess(["MODERADOR"]) && (
           <div className="mb-6">
             {!isCollapsed && (
@@ -295,27 +295,27 @@ export default function Sidebar({
           </div>
         )}
 
-        {/* Análisis y Gestión: Admin, Analista (para reportes) */}
-        {checkAccess(["ANALISTA"]) && (
+        {/* Gestión de Sistema: Admin y Analista */}
+        {checkAccess(["ADMINISTRADOR", "ANALISTA"]) && (
           <div className="mb-6">
             {!isCollapsed && (
               <p className="text-[9px] font-bold text-gray-400 tracking-widest uppercase mb-3 px-6">
-                Análisis y Gestión
+                Gestión de Sistema
               </p>
             )}
             <ul className="space-y-1 px-4">
-              {checkAccess(["ANALISTA"]) &&
+              {checkAccess(["ADMINISTRADOR", "ANALISTA"]) &&
                 renderMenuItem(BarChart3, "Reportes", "/reportes")}
-              {/* Configuraciones y Auditorías solo el Admin */}
-              {checkAccess([]) &&
+              {checkAccess(["ADMINISTRADOR"]) &&
                 renderMenuItem(Settings, "Configuraciones", "/configuraciones")}
-              {checkAccess([]) &&
+              {checkAccess(["ADMINISTRADOR", "ANALISTA"]) &&
                 renderMenuItem(ShieldCheck, "Auditorías", "/auditorias")}
             </ul>
           </div>
         )}
       </div>
 
+      {/* --- Menú de Perfil --- */}
       <div className="relative p-4 shrink-0 mb-2 mt-2" ref={profileMenuRef}>
         {!isCollapsed && (
           <p className="text-[9px] font-bold text-gray-400 tracking-widest uppercase mb-3 px-2">

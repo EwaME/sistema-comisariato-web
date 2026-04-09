@@ -16,9 +16,12 @@ import {
   obtenerEmpleados,
   desactivarEmpleado,
 } from "../../../services/empleadosService";
+// IMPORTAMOS EL SERVICIO DE DEPARTAMENTOS
+import { obtenerDepartamentos } from "../../../services/departamentosService";
 
 export default function Empleados() {
   const [empleados, setEmpleados] = useState([]);
+  const [departamentos, setDepartamentos] = useState([]); // NUEVO ESTADO PARA DEPARTAMENTOS
   const [cargando, setCargando] = useState(true);
 
   const [busqueda, setBusqueda] = useState("");
@@ -47,10 +50,20 @@ export default function Empleados() {
   useEffect(() => {
     const cargarDatos = async () => {
       try {
-        const data = await obtenerEmpleados();
-        setEmpleados(data);
+        // CARGAMOS AMBAS COSAS EN PARALELO PARA MAYOR VELOCIDAD
+        const [dataEmpleados, dataDepartamentos] = await Promise.all([
+            obtenerEmpleados(),
+            obtenerDepartamentos()
+        ]);
+        
+        setEmpleados(dataEmpleados);
+        
+        // Filtramos para mostrar solo los departamentos activos en el dropdown (opcional, pero buena práctica)
+        const deptosActivos = dataDepartamentos.filter(d => d.estado !== "INACTIVO");
+        setDepartamentos(deptosActivos);
+
       } catch (error) {
-        console.error("No se pudieron cargar los empleados", error);
+        console.error("No se pudieron cargar los datos", error);
       } finally {
         setCargando(false);
       }
@@ -265,10 +278,12 @@ export default function Empleados() {
                     className="w-full bg-[#F8F9FF] border border-gray-100 text-sm font-medium px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/20"
                   >
                     <option value="">Todos los departamentos</option>
-                    <option value="Molienda">Molienda</option>
-                    <option value="Logística">Logística</option>
-                    <option value="Mantenimiento">Mantenimiento</option>
-                    <option value="Administración">Administración</option>
+                    {/* AQUÍ RENDERIZAMOS LOS DEPARTAMENTOS DE LA DB */}
+                    {departamentos.map((dep) => (
+                      <option key={dep.id} value={dep.nombre || dep.id}>
+                        {dep.nombre || dep.id}
+                      </option>
+                    ))}
                   </select>
                 </div>
 

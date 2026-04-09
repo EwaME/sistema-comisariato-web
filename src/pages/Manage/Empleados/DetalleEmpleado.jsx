@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Edit, UserMinus, Loader2, Wallet, CreditCard, AlertCircle, X } from 'lucide-react'; 
+import { ChevronLeft, Edit, UserMinus, Loader2, Wallet, CreditCard, AlertCircle, X, ShoppingBag } from 'lucide-react'; 
 import { obtenerEmpleadoPorId, desactivarEmpleado } from '../../../services/empleadosService';
-import { obtenerTotalCuotasPorEmpleadoId } from '../../../services/creditosService';
+import { obtenerTotalCuotasPorEmpleadoId, obtenerCreditosActivosPorEmpleadoId } from '../../../services/creditosService';
 
 export default function DetalleEmpleado() {
     const { id } = useParams();
@@ -10,6 +10,7 @@ export default function DetalleEmpleado() {
     
     const [empleado, setEmpleado] = useState(null);
     const [creditoUsado, setCreditoUsado] = useState(0); 
+    const [creditosActivos, setCreditosActivos] = useState([]); // <-- Nuevo estado para los detalles
     const [cargando, setCargando] = useState(true);
     const [error, setError] = useState('');
 
@@ -20,9 +21,11 @@ export default function DetalleEmpleado() {
     useEffect(() => {
         const cargarDetalle = async () => {
             try {
-                const [resEmpleado, resUsado] = await Promise.allSettled([
+                // Ejecutamos las 3 consultas al mismo tiempo para no hacer esperar al usuario
+                const [resEmpleado, resUsado, resActivos] = await Promise.allSettled([
                     obtenerEmpleadoPorId(id),
-                    obtenerTotalCuotasPorEmpleadoId(id)
+                    obtenerTotalCuotasPorEmpleadoId(id),
+                    obtenerCreditosActivosPorEmpleadoId(id)
                 ]);
                 
                 if (resEmpleado.status === 'rejected') {
@@ -34,9 +37,13 @@ export default function DetalleEmpleado() {
                 if (resUsado.status === 'fulfilled') {
                     setCreditoUsado(resUsado.value);
                 } else {
-                    console.error("Revisa la consola, Firebase tiene un error con los créditos:", resUsado.reason);
                     setCreditoUsado(0);
                 }
+
+                if (resActivos.status === 'fulfilled') {
+                    setCreditosActivos(resActivos.value);
+                }
+
             } catch (err) {
                 console.error(err);
                 setError('No se pudo encontrar la información del empleado.');
@@ -96,9 +103,7 @@ export default function DetalleEmpleado() {
     
     // --- LÓGICA DE LA BARRITA ---
     const limite = empleado.limiteCredito || 0;
-    // Evitamos que pase del 100% visualmente si por alguna razón hay un desfase
     const porcentajeUso = limite > 0 ? Math.min(100, Math.round((creditoUsado / limite) * 100)) : 0;
-    // Si debe más del 80%, la barra se pone roja en señal de advertencia
     const colorBarra = porcentajeUso > 80 ? 'bg-red-500' : 'bg-[#7C3AED]';
     const colorTexto = porcentajeUso > 80 ? 'text-red-500' : 'text-[#7C3AED]';
 
@@ -236,7 +241,65 @@ export default function DetalleEmpleado() {
                 </div>
             </div>
 
-            {/* MODAL MANTENIDO IGUAL */}
+            {/* --- MÓDULO: DETALLES DE PRODUCTOS / CRÉDITOS EN USO --- */}
+            <div className="mt-6 bg-white p-8 rounded-[1.5rem] shadow-[0_2px_20px_rgb(0,0,0,0.02)] border border-gray-50">
+                <div className="flex items-center gap-3 mb-6">
+                    <div className="p-2 bg-purple-50 rounded-lg text-[#7C3AED]">
+                        <ShoppingBag className="w-5 h-5" />
+                    </div>
+                    <h3 className="text-lg font-bold text-[#020817]">Detalle de Productos en Uso</h3>
+                </div>
+                
+                {creditosActivos.length > 0 ? (
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="border-b border-gray-100">
+                                    <th className="pb-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest w-1/2">Producto Adquirido</th>
+                                    <th className="pb-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Progreso de Pago</th>
+                                    <th className="pb-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right">Saldo Pendiente</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {creditosActivos.map((credito) => {
+                                    const pagadas = credito.cuotasPagadas || 0;
+                                    const totalCuotas = credito.cantidad || 1;
+                                    const cuota = parseFloat(credito.cuotaMensual) || 0;
+                                    const saldoPendiente = (totalCuotas - pagadas) * cuota;
+
+                                    return (
+                                        <tr key={credito.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors">
+                                            <td className="py-4">
+                                                <p className="text-sm font-bold text-[#020817]">{credito.nombreProducto || 'Producto sin nombre'}</p>
+                                                <p className="text-[11px] text-gray-500 font-medium mt-0.5">Ref: {credito.id}</p>
+                                            </td>
+                                            <td className="py-4">
+                                                <span className="bg-[#F5F3FF] text-[#7C3AED] text-[11px] font-bold px-3 py-1.5 rounded-full">
+                                                    {pagadas} de {totalCuotas} cuotas
+                                                </span>
+                                            </td>
+                                            <td className="py-4 text-right">
+                                                <p className="font-extrabold text-[#020817]">
+                                                    L {saldoPendiente.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                                </p>
+                                                <p className="text-[10px] text-gray-400 font-medium mt-0.5">
+                                                    L {cuota.toLocaleString('en-US')} / mes
+                                                </p>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                ) : (
+                    <div className="py-8 text-center bg-[#F8F9FF] rounded-xl border border-dashed border-gray-200">
+                        <p className="text-sm text-gray-500 font-medium">Este empleado no tiene productos ni créditos en curso.</p>
+                    </div>
+                )}
+            </div>
+
+            {/* MODAL INHABILITAR */}
             {modalInhabilitar && empleado && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#020817]/40 backdrop-blur-sm p-4">
                     <div className="bg-white rounded-[1.5rem] shadow-2xl w-full max-w-md overflow-hidden transform transition-all">

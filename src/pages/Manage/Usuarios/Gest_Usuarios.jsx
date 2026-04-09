@@ -20,6 +20,8 @@ import {
 
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "../../../firebase/firebase";
+// IMPORTAMOS getAuth PARA SABER QUIÉN ESTÁ LOGUEADO
+import { getAuth } from "firebase/auth";
 
 export default function Gest_Usuarios() {
   const [usuarios, setUsuarios] = useState([]);
@@ -28,6 +30,9 @@ export default function Gest_Usuarios() {
   const [busqueda, setBusqueda] = useState("");
   const [paginaActual, setPaginaActual] = useState(1);
   const itemsPorPagina = 10;
+
+  // NUEVO ESTADO PARA EL USUARIO ACTUAL
+  const [usuarioActualEmail, setUsuarioActualEmail] = useState("");
 
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
   const filtroRef = useRef(null);
@@ -52,6 +57,12 @@ export default function Gest_Usuarios() {
   const [procesandoRol, setProcesandoRol] = useState(false);
 
   useEffect(() => {
+    // OBTENEMOS EL USUARIO LOGUEADO AL INICIAR
+    const auth = getAuth();
+    if (auth.currentUser) {
+      setUsuarioActualEmail(auth.currentUser.email.toLowerCase());
+    }
+
     cargarDatos();
     cargarRoles();
   }, []);
@@ -59,11 +70,8 @@ export default function Gest_Usuarios() {
   const cargarDatos = async () => {
     try {
       setCargando(true);
-
-      // LOGICA DE DELAY: Esperamos la data Y un timer de 800ms para ese "pixín" extra
       const delayExtra = new Promise((resolve) => setTimeout(resolve, 800));
       const [data] = await Promise.all([obtenerUsuarios(), delayExtra]);
-
       setUsuarios(data);
     } catch (error) {
       console.error("Error:", error);
@@ -227,7 +235,6 @@ export default function Gest_Usuarios() {
     startIndex + itemsPorPagina,
   );
 
-  // COMPONENTE INTERNO DEL SKELETON PARA LA TABLA
   const TableSkeleton = () => (
     <div className="w-full animate-pulse">
       <div className="bg-gray-100 h-12 rounded-xl mb-4" />
@@ -417,6 +424,9 @@ export default function Gest_Usuarios() {
                     : user.rol
                       ? String(user.rol).split(", ")
                       : ["SIN ROL"];
+                  
+                  // AQUI HACEMOS LA VERIFICACION DEL USUARIO LOGUEADO
+                  const esElMismoUsuario = user.id.toLowerCase() === usuarioActualEmail;
 
                   return (
                     <tr
@@ -430,7 +440,7 @@ export default function Gest_Usuarios() {
                       </td>
                       <td className="py-5 px-4">
                         <p className="font-bold text-[#020817] text-sm">
-                          {user.nombre}
+                          {user.nombre} {esElMismoUsuario && <span className="text-[9px] bg-purple-100 text-purple-600 px-2 py-0.5 rounded-full ml-2 uppercase tracking-widest">Tú</span>}
                         </p>
                         <p className="font-medium text-gray-400 text-xs">
                           {user.id}
@@ -512,18 +522,32 @@ export default function Gest_Usuarios() {
                                 Opciones
                               </span>
                             </div>
+                            
+                            {/* BOTON DE ESTADO CON VALIDACION */}
                             <button
-                              onClick={() => abrirModalEstado(user)}
-                              className={`w-full px-4 py-2 text-xs font-medium text-left transition-colors ${activo ? "text-red-600 hover:bg-red-50" : "text-green-600 hover:bg-green-50"}`}
+                              onClick={() => { if (!esElMismoUsuario) abrirModalEstado(user) }}
+                              disabled={esElMismoUsuario}
+                              className={`w-full px-4 py-2 text-xs font-medium text-left transition-colors 
+                                ${esElMismoUsuario 
+                                  ? "text-gray-400 bg-gray-50 cursor-not-allowed" 
+                                  : activo 
+                                    ? "text-red-600 hover:bg-red-50" 
+                                    : "text-green-600 hover:bg-green-50"}`}
                             >
-                              {activo ? "Desactivar Acceso" : "Activar Acceso"}
+                              {activo ? "Desactivar Acceso" : "Activar Acceso"} {esElMismoUsuario && "(Tú)"}
                             </button>
+
+                            {/* BOTON DE ROL EXTRA CON VALIDACION */}
                             {activo && (
                               <button
-                                onClick={() => abrirModalSelectorRol(user)}
-                                className="w-full px-4 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 text-left transition-colors"
+                                onClick={() => { if (!esElMismoUsuario) abrirModalSelectorRol(user) }}
+                                disabled={esElMismoUsuario}
+                                className={`w-full px-4 py-2 text-xs font-medium text-left transition-colors 
+                                  ${esElMismoUsuario 
+                                    ? "text-gray-400 bg-gray-50 cursor-not-allowed" 
+                                    : "text-gray-700 hover:bg-gray-50"}`}
                               >
-                                Modificar Rol Extra
+                                Modificar Rol Extra {esElMismoUsuario && "(No permitido)"}
                               </button>
                             )}
                           </div>
@@ -569,7 +593,7 @@ export default function Gest_Usuarios() {
         )}
       </div>
 
-      {/* Modales de Confirmación y Rol permanecen igual en lógica... */}
+      {/* El resto de tus modales (modalConfirmacion y modalRol) quedan exactamente iguales */}
       {modalConfirmacion && usuarioSeleccionado && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#020817]/40 backdrop-blur-sm p-4">
           <div className="bg-white rounded-[1.5rem] shadow-2xl w-full max-w-md overflow-hidden transform transition-all">
