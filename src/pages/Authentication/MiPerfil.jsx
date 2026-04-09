@@ -631,7 +631,6 @@ export default function MiPerfil() {
           </div>
           {/* Header Actions */}
           <div style={{ display: "flex", gap: 12 }}>
-            <button className="k-btn-secondary">Descargar Reporte</button>
             <button className="k-btn-logout" onClick={handleLogout}>
               <LogOut size={15} /> Cerrar Sesión
             </button>

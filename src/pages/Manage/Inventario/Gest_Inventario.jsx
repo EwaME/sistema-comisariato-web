@@ -84,7 +84,7 @@ export default function Inventario() {
       const querySnapshot = await getDocs(collection(db, "categorias"));
       const categoriasData = querySnapshot.docs
         .map((doc) => doc.data())
-        .filter((cat) => cat.estado === "Activo")
+        .filter((cat) => cat.estado === "ACTIVO")
         .map((cat) => cat.nombre);
 
       setCategoriasDb(categoriasData);
