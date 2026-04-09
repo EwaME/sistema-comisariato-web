@@ -361,12 +361,12 @@ export default function CrearEmpleado() {
               Nombres
             </label>
             <input
-              required
+              readOnly
               name="nombres"
               value={formData.nombres}
               onChange={handleChange}
               placeholder="Ej. Edward Antonio"
-              className="w-full bg-[#F8F9FF] border border-gray-100 text-sm font-medium px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/20 focus:border-[#7C3AED]"
+              className="w-full bg-gray-100 border border-gray-200 text-sm font-bold text-gray-500 px-4 py-3 rounded-xl cursor-not-allowed"
             />
           </div>
           <div>
@@ -374,12 +374,12 @@ export default function CrearEmpleado() {
               Apellidos
             </label>
             <input
-              required
+              readOnly
               name="apellidos"
               value={formData.apellidos}
               onChange={handleChange}
               placeholder="Ej. Maradiaga Espinal"
-              className="w-full bg-[#F8F9FF] border border-gray-100 text-sm font-medium px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/20 focus:border-[#7C3AED]"
+              className="w-full bg-gray-100 border border-gray-200 text-sm font-bold text-gray-500 px-4 py-3 rounded-xl cursor-not-allowed"
             />
           </div>
 
@@ -388,13 +388,13 @@ export default function CrearEmpleado() {
               Número de Identidad
             </label>
             <input
-              required
+              readOnly
               name="dni"
               value={formData.dni}
               onChange={handleChange}
               placeholder="0000-0000-00000"
               maxLength="15"
-              className="w-full bg-[#F8F9FF] border border-gray-100 text-sm font-medium px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/20 focus:border-[#7C3AED]"
+              className="w-full bg-gray-100 border border-gray-200 text-sm font-bold text-gray-500 px-4 py-3 rounded-xl cursor-not-allowed"
             />
           </div>
 
@@ -459,12 +459,12 @@ export default function CrearEmpleado() {
             </label>
             <input
               type="email"
-              required
+              readOnly
               name="correo"
               value={formData.correo}
               onChange={handleChange}
               placeholder="usuario@comisariato.com"
-              className="w-full bg-[#F8F9FF] border border-gray-100 text-sm font-medium px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/20 focus:border-[#7C3AED]"
+              className="w-full bg-gray-100 border border-gray-200 text-sm font-bold text-gray-500 px-4 py-3 rounded-xl cursor-not-allowed"
             />
           </div>
 

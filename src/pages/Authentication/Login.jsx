@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../auth/AuthProvider";
 import { useNavigate, Link, useLocation } from "react-router-dom";
-import { Mail, Eye, EyeOff, AlertTriangle, Info } from "lucide-react";
+// Agregamos Loader2 a las importaciones
+import { Mail, Eye, EyeOff, AlertTriangle, Info, Loader2 } from "lucide-react";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "../../firebase/firebase";
 import { getAuth, signOut } from "firebase/auth";
@@ -62,6 +63,7 @@ export default function Login() {
           );
 
           setError("Acceso denegado: Tu cuenta ha sido inhabilitada.");
+          setLoading(false); // Solo apagamos el loading si hay un error
           return;
         }
 
@@ -82,6 +84,7 @@ export default function Login() {
         } else {
           navigate("/");
         }
+        // Nota: NO apagamos el loading aquí. Dejamos que el componente se desmonte cargando.
       } else {
         await registrarAuditoria(
           "INICIO DE SESIÓN",
@@ -104,9 +107,9 @@ export default function Login() {
       } else {
         setError("Ocurrió un error al intentar ingresar.");
       }
-    } finally {
-      setLoading(false);
+      setLoading(false); // Si hay un fallo de Firebase Auth, apagamos el loading
     }
+    // Quitamos el bloque 'finally { setLoading(false) }' para evitar el parpadeo
   };
 
   return (
@@ -256,12 +259,22 @@ export default function Login() {
                 </div>
               )}
 
+              {/* Botoón de Login Actualizado con Spinner */}
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-[#020817] text-white text-[13px] font-bold tracking-wide py-4 rounded-xl hover:bg-black transition-colors mt-4 disabled:opacity-70"
+                className={`w-full flex items-center justify-center gap-2 bg-[#020817] text-white text-[13px] font-bold tracking-wide py-4 rounded-xl transition-all mt-4 
+                  ${loading ? "opacity-90 cursor-wait bg-gray-800" : "hover:bg-black"}
+                `}
               >
-                {loading ? "VERIFICANDO..." : "INICIAR SESIÓN"}
+                {loading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin text-[#7C3AED]" />
+                    <span>VERIFICANDO...</span>
+                  </>
+                ) : (
+                  "INICIAR SESIÓN"
+                )}
               </button>
             </form>
           </div>
