@@ -8,6 +8,7 @@ import {
   ShieldCheck,
   Eye,
   EyeOff,
+  Info // <-- Agregado para el popover
 } from "lucide-react";
 import {
   getAuth,
@@ -337,6 +338,9 @@ export default function MiPerfil() {
 
   const [mensaje, setMensaje] = useState({ texto: "", tipo: "" });
   const [procesando, setProcesando] = useState(false);
+
+  // Estado para el popover del horario de WhatsApp
+  const [showHorarioPopover, setShowHorarioPopover] = useState(false);
 
   // Inject global styles once
   useEffect(() => {
@@ -1219,29 +1223,69 @@ export default function MiPerfil() {
               +504 3250-5304
             </p>
           </div>
-          <button
-            style={{
-              background: "#fff",
-              color: "var(--on-surface)",
-              border: "1px solid var(--surface-high)",
-              borderRadius: 9999,
-              padding: "12px 28px",
-              fontWeight: 700,
-              fontSize: 14,
-              cursor: "pointer",
-              boxShadow: "0 1px 4px rgba(0,0,0,.07)",
-              transition: "box-shadow .2s",
-              fontFamily: "'DM Sans', sans-serif",
-            }}
-            onMouseEnter={(e) =>
-              (e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,.12)")
-            }
-            onMouseLeave={(e) =>
-              (e.currentTarget.style.boxShadow = "0 1px 4px rgba(0,0,0,.07)")
-            }
-          >
-            Contactar a soporte
-          </button>
+          
+          {/* BOTON DE SOPORTE MODIFICADO CON POPOVER */}
+          <div style={{ position: "relative" }}>
+            {showHorarioPopover && (
+              <div
+                className="animate-in fade-in zoom-in duration-200"
+                style={{
+                  position: "absolute",
+                  bottom: "calc(100% + 14px)",
+                  right: 0,
+                  width: 190,
+                  background: "rgba(2, 8, 23, 0.95)",
+                  backdropFilter: "blur(12px)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  borderRadius: 14,
+                  padding: 16,
+                  color: "#fff",
+                  boxShadow: "0 20px 40px rgba(0,0,0,0.3)",
+                  zIndex: 50
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: 8 }}>
+                  <Info size={14} color="#4ade80" />
+                  <span style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.05em" }}>Horario de Atención</span>
+                </div>
+                <p style={{ fontSize: 12, margin: 0, color: "#cbd5e1", fontWeight: 500, lineHeight: 1.4 }}>
+                  Lunes a Viernes<br/>
+                  <span style={{ color: "#fff", fontWeight: 700, fontSize: 13 }}>8:00 AM - 5:00 PM</span>
+                </p>
+                {/* Triangulito (caret) */}
+                <div style={{ position: "absolute", top: "100%", right: 32, borderWidth: 6, borderStyle: "solid", borderColor: "rgba(2, 8, 23, 0.95) transparent transparent transparent" }} />
+              </div>
+            )}
+            <button
+              onClick={() => window.open('https://wa.me/50432505304', '_blank')}
+              style={{
+                background: "#fff",
+                color: "var(--on-surface)",
+                border: "1px solid var(--surface-high)",
+                borderRadius: 9999,
+                padding: "12px 28px",
+                fontWeight: 700,
+                fontSize: 14,
+                cursor: "pointer",
+                boxShadow: "0 1px 4px rgba(0,0,0,.07)",
+                transition: "all .2s ease",
+                fontFamily: "'DM Sans', sans-serif",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.boxShadow = "0 6px 16px rgba(112,42,225,.15)";
+                e.currentTarget.style.borderColor = "var(--primary)";
+                setShowHorarioPopover(true);
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.boxShadow = "0 1px 4px rgba(0,0,0,.07)";
+                e.currentTarget.style.borderColor = "var(--surface-high)";
+                setShowHorarioPopover(false);
+              }}
+            >
+              Contactar a soporte
+            </button>
+          </div>
+
         </div>
       </div>
     </div>
