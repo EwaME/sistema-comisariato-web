@@ -538,7 +538,8 @@ export default function CrearEmpleado() {
                                     </span>
                                 </div>
                                 <p className="text-xs text-gray-500 font-medium leading-relaxed">
-                                    Si habilitas esta opción, el sistema enviará un correo automático...
+                                    Si habilitas esta opción, el sistema enviará un correo automático al nuevo empleado con instrucciones para descargar la aplicación móvil del Comisariato y acceder a su cuenta. 
+                                    Solo activar si el nuevo empleado no tendrá acceso al portal web de CrediFlow.
                                 </p>
                             </label>
             </div>

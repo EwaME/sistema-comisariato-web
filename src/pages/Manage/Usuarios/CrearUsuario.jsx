@@ -4,6 +4,7 @@ import { ChevronLeft, Search, User, X } from 'lucide-react';
 import { obtenerUsuarios, asignarRolWebYAuth } from '../../../services/usuariosService';
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from '../../../firebase/firebase';
+import { getAuth } from 'firebase/auth';
 
 export default function CrearUsuario() {
     const navigate = useNavigate();
@@ -18,8 +19,14 @@ export default function CrearUsuario() {
     const [rolAdicional, setRolAdicional] = useState(''); 
     
     const [rolesDisponibles, setRolesDisponibles] = useState([]);
+    const [usuarioActualEmail, setUsuarioActualEmail] = useState("");
 
     useEffect(() => {
+        const auth = getAuth();
+        if (auth.currentUser) {
+            setUsuarioActualEmail(auth.currentUser.email.toLowerCase());
+        }
+
         const cargarDatosIniciales = async () => {
             try {
                 const data = await obtenerUsuarios();
@@ -83,6 +90,8 @@ export default function CrearUsuario() {
             setGuardando(false);
         }
     };
+
+    const esElMismoUsuario = usuarioData && usuarioData.id.toLowerCase() === usuarioActualEmail;
 
     return (
         <div className="p-4 max-w-[1400px] mx-auto bg-[#F8F9FF] min-h-screen">
@@ -201,6 +210,10 @@ export default function CrearUsuario() {
                         <div className="grid grid-cols-2 gap-3">
                             {rolesDisponibles.length === 0 ? (
                                 <p className="text-xs text-gray-400 italic col-span-2">Cargando roles o no hay roles activos...</p>
+                            ) : esElMismoUsuario ? (
+                                <p className="text-xs text-red-500 font-bold col-span-2 bg-red-50 p-4 rounded-xl border border-red-100">
+                                    Por seguridad, no puedes asignar ni modificar tus propios accesos administrativos. Solicita a otro Administrador que lo haga por ti.
+                                </p>
                             ) : (
                                 rolesDisponibles.map(r => (
                                     <button
@@ -220,8 +233,8 @@ export default function CrearUsuario() {
                     </div>
 
                     <div className="flex justify-end pt-6 border-t border-gray-50">
-                        <button type="submit" disabled={!usuarioData || !rolAdicional || guardando} className={`text-white text-[11px] font-bold px-8 py-3.5 rounded-xl uppercase tracking-widest transition-all ${
-                            (!usuarioData || !rolAdicional || guardando) 
+                        <button type="submit" disabled={!usuarioData || !rolAdicional || guardando || esElMismoUsuario} className={`text-white text-[11px] font-bold px-8 py-3.5 rounded-xl uppercase tracking-widest transition-all ${
+                            (!usuarioData || !rolAdicional || guardando || esElMismoUsuario) 
                                 ? 'bg-gray-300 cursor-not-allowed' 
                                 : 'bg-[#020817] hover:bg-black shadow-md'
                         }`}>

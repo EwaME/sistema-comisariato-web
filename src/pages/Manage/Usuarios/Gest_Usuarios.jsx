@@ -20,7 +20,6 @@ import {
 
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "../../../firebase/firebase";
-// IMPORTAMOS getAuth PARA SABER QUIÉN ESTÁ LOGUEADO
 import { getAuth } from "firebase/auth";
 
 export default function Gest_Usuarios() {
@@ -31,7 +30,6 @@ export default function Gest_Usuarios() {
   const [paginaActual, setPaginaActual] = useState(1);
   const itemsPorPagina = 10;
 
-  // NUEVO ESTADO PARA EL USUARIO ACTUAL
   const [usuarioActualEmail, setUsuarioActualEmail] = useState("");
 
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
@@ -57,7 +55,6 @@ export default function Gest_Usuarios() {
   const [procesandoRol, setProcesandoRol] = useState(false);
 
   useEffect(() => {
-    // OBTENEMOS EL USUARIO LOGUEADO AL INICIAR
     const auth = getAuth();
     if (auth.currentUser) {
       setUsuarioActualEmail(auth.currentUser.email.toLowerCase());
@@ -425,8 +422,9 @@ export default function Gest_Usuarios() {
                       ? String(user.rol).split(", ")
                       : ["SIN ROL"];
                   
-                  // AQUI HACEMOS LA VERIFICACION DEL USUARIO LOGUEADO
                   const esElMismoUsuario = user.id.toLowerCase() === usuarioActualEmail;
+                  const soloAppMovil = rolesArray.length === 1 && rolesArray.includes("EMPLEADO");
+                  const disabledRolExtra = esElMismoUsuario || soloAppMovil;
 
                   return (
                     <tr
@@ -523,7 +521,6 @@ export default function Gest_Usuarios() {
                               </span>
                             </div>
                             
-                            {/* BOTON DE ESTADO CON VALIDACION */}
                             <button
                               onClick={() => { if (!esElMismoUsuario) abrirModalEstado(user) }}
                               disabled={esElMismoUsuario}
@@ -537,17 +534,16 @@ export default function Gest_Usuarios() {
                               {activo ? "Desactivar Acceso" : "Activar Acceso"} {esElMismoUsuario && "(Tú)"}
                             </button>
 
-                            {/* BOTON DE ROL EXTRA CON VALIDACION */}
                             {activo && (
                               <button
-                                onClick={() => { if (!esElMismoUsuario) abrirModalSelectorRol(user) }}
-                                disabled={esElMismoUsuario}
+                                onClick={() => { if (!disabledRolExtra) abrirModalSelectorRol(user) }}
+                                disabled={disabledRolExtra}
                                 className={`w-full px-4 py-2 text-xs font-medium text-left transition-colors 
-                                  ${esElMismoUsuario 
+                                  ${disabledRolExtra 
                                     ? "text-gray-400 bg-gray-50 cursor-not-allowed" 
                                     : "text-gray-700 hover:bg-gray-50"}`}
                               >
-                                Modificar Rol Extra {esElMismoUsuario && "(No permitido)"}
+                                Modificar Rol Extra {esElMismoUsuario ? "(Tú)" : soloAppMovil ? "(Solo para Entorno Web)" : ""}
                               </button>
                             )}
                           </div>
@@ -593,7 +589,6 @@ export default function Gest_Usuarios() {
         )}
       </div>
 
-      {/* El resto de tus modales (modalConfirmacion y modalRol) quedan exactamente iguales */}
       {modalConfirmacion && usuarioSeleccionado && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#020817]/40 backdrop-blur-sm p-4">
           <div className="bg-white rounded-[1.5rem] shadow-2xl w-full max-w-md overflow-hidden transform transition-all">
