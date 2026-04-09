@@ -1,9 +1,7 @@
 const { onDocumentUpdated } = require("firebase-functions/v2/firestore");
-// 1. IMPORTANTE: Necesitamos initializeApp y getApps
 const { initializeApp, getApps } = require("firebase-admin/app");
 const { getFirestore, FieldValue } = require("firebase-admin/firestore");
 
-// 2. INICIALIZACIÓN: Verifica si ya existe una app para no duplicar
 if (getApps().length === 0) {
   initializeApp();
 }
@@ -16,17 +14,13 @@ exports.descontarStockAlAprobar = onDocumentUpdated(
     const dataAntes = event.data.before.data();
     const dataDespues = event.data.after.data();
 
-    // 1. Verificamos si el estado cambió a "APROBADO"
     const fueAprobado =
       dataAntes.estado !== "Aprobado" && dataDespues.estado === "Aprobado";
 
-    if (!fueAprobado) {
-      return null;
-    }
+    if (!fueAprobado) return null;
 
     const { productoId, cantidad } = dataDespues;
 
-    // Validación básica de datos
     if (!productoId || !cantidad) {
       console.error(
         "Crédito aprobado sin productoId o cantidad:",
@@ -37,33 +31,47 @@ exports.descontarStockAlAprobar = onDocumentUpdated(
 
     try {
       const productoRef = db.collection("productos").doc(productoId);
+      const configRef = db.collection("configuraciones").doc("config_global");
 
       await db.runTransaction(async (transaction) => {
         const productoDoc = await transaction.get(productoRef);
+        const configDoc = await transaction.get(configRef);
 
         if (!productoDoc.exists) {
           throw new Error("El producto no existe en el inventario");
         }
 
         const stockActual = productoDoc.data().stock || 0;
+        const stockMinimo = configDoc.exists
+          ? configDoc.data().StockMinimoCierre || 0
+          : 0;
 
-        if (stockActual < cantidad) {
-          console.warn(
-            `Stock insuficiente para el producto ${productoId}. Stock: ${stockActual}, Pedido: ${cantidad}`,
+        const stockResultante = stockActual - cantidad;
+
+        const updates = {
+          stock: FieldValue.increment(-cantidad),
+          cantidadVendida: FieldValue.increment(cantidad),
+        };
+
+        if (stockResultante <= stockMinimo) {
+          updates.activo = false;
+          console.log(
+            `Producto ${productoId} desactivado por alcanzar stock mínimo (${stockResultante} <= ${stockMinimo})`,
           );
         }
 
-        // 3. Restamos la cantidad usando FieldValue.increment
-        transaction.update(productoRef, {
-          stock: FieldValue.increment(-cantidad),
-        });
+        if (stockActual < cantidad) {
+          console.warn(
+            `Stock insuficiente para ${productoId}. Stock: ${stockActual}, Restando: ${cantidad}. Quedará en negativo.`,
+          );
+        }
+
+        transaction.update(productoRef, updates);
       });
 
-      console.log(
-        `Stock actualizado para producto ${productoId}. Se restaron ${cantidad} unidades.`,
-      );
+      console.log(`Stock actualizado para producto ${productoId}.`);
     } catch (error) {
-      console.error("Error al actualizar stock:", error);
+      console.error("Error al actualizar stock y estado:", error);
     }
   },
 );

@@ -68,27 +68,16 @@ export const obtenerCreditosPorId = async (idCredito) => {
   }
 };
 
-// export const obtenerCuotasPorCreditoId = async (idCredito) => {
-//   try {
-//     const docRef = doc(db, coleccion, idCredito, "cuotas");
-//     const docSnap = await getDoc(docRef);
-
-//     if (docSnap.exists()) {
-//       return { id: docSnap.id, ...docSnap.data() };
-//     } else {
-//       throw new Error("Las cuotas no existen en la base de datos.");
-//     }
-//   } catch (error) {
-//     console.error("Error al obtener el crédito:", error);
-//     throw error;
-//   }
-// };
-
 export const obtenerCuotasPorCreditoId = async (idCredito) => {
   try {
-    const subcoleccion = collection(db, coleccion, idCredito, "cuotas");
-    const querySnapshot = await getDocs(subcoleccion);
-    return querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    const cuotasRef = collection(db, "cuotas");
+    const q = query(cuotasRef, where("creditoId", "==", idCredito));
+    const querySnapshot = await getDocs(q);
+
+    return querySnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
   } catch (error) {
     console.error("Error al obtener cuotas:", error);
     throw error;

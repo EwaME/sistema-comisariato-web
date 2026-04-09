@@ -49,6 +49,22 @@ export const obtenerReclamoPorId = async (idReclamo) => {
   }
 };
 
+export const obtenerProductoPorId = async (id) => {
+  try {
+    const docRef = doc(db, "productos", id);
+    const docSnap = await getDoc(docRef);
+
+    if (docSnap.exists()) {
+      return { id: docSnap.id, ...docSnap.data() };
+    } else {
+      throw new Error("El producto no existe en la base de datos.");
+    }
+  } catch (error) {
+    console.error("Error al obtener el producto:", error);
+    throw error;
+  }
+};
+
 export const verificarVigencia = (fechaVencimiento) => {
   const hoy = new Date();
 
