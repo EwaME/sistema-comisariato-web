@@ -361,12 +361,17 @@ export default function CrearEmpleado() {
               Nombres
             </label>
             <input
-              readOnly
+              readOnly={isEdit}
+              required
               name="nombres"
               value={formData.nombres}
               onChange={handleChange}
               placeholder="Ej. Edward Antonio"
-              className="w-full bg-gray-100 border border-gray-200 text-sm font-bold text-gray-500 px-4 py-3 rounded-xl cursor-not-allowed"
+              className={`w-full text-sm px-4 py-3 rounded-xl transition-colors outline-none ${
+                isEdit 
+                  ? "bg-gray-100 border border-gray-200 font-bold text-gray-500 cursor-not-allowed" 
+                  : "bg-[#F8F9FF] border border-gray-100 font-medium text-[#020817] focus:ring-2 focus:ring-[#7C3AED]/20 focus:border-[#7C3AED]"
+              }`}
             />
           </div>
           <div>
@@ -374,12 +379,17 @@ export default function CrearEmpleado() {
               Apellidos
             </label>
             <input
-              readOnly
+              readOnly={isEdit}
+              required
               name="apellidos"
               value={formData.apellidos}
               onChange={handleChange}
               placeholder="Ej. Maradiaga Espinal"
-              className="w-full bg-gray-100 border border-gray-200 text-sm font-bold text-gray-500 px-4 py-3 rounded-xl cursor-not-allowed"
+              className={`w-full text-sm px-4 py-3 rounded-xl transition-colors outline-none ${
+                isEdit 
+                  ? "bg-gray-100 border border-gray-200 font-bold text-gray-500 cursor-not-allowed" 
+                  : "bg-[#F8F9FF] border border-gray-100 font-medium text-[#020817] focus:ring-2 focus:ring-[#7C3AED]/20 focus:border-[#7C3AED]"
+              }`}
             />
           </div>
 
@@ -388,13 +398,18 @@ export default function CrearEmpleado() {
               Número de Identidad
             </label>
             <input
-              readOnly
+              readOnly={isEdit}
+              required
               name="dni"
               value={formData.dni}
               onChange={handleChange}
               placeholder="0000-0000-00000"
               maxLength="15"
-              className="w-full bg-gray-100 border border-gray-200 text-sm font-bold text-gray-500 px-4 py-3 rounded-xl cursor-not-allowed"
+              className={`w-full text-sm px-4 py-3 rounded-xl transition-colors outline-none ${
+                isEdit 
+                  ? "bg-gray-100 border border-gray-200 font-bold text-gray-500 cursor-not-allowed" 
+                  : "bg-[#F8F9FF] border border-gray-100 font-medium text-[#020817] focus:ring-2 focus:ring-[#7C3AED]/20 focus:border-[#7C3AED]"
+              }`}
             />
           </div>
 
@@ -409,7 +424,7 @@ export default function CrearEmpleado() {
               onChange={handleChange}
               placeholder="+504 0000-0000"
               maxLength="14"
-              className="w-full bg-[#F8F9FF] border border-gray-100 text-sm font-medium px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/20 focus:border-[#7C3AED]"
+              className="w-full bg-[#F8F9FF] border border-gray-100 text-[#020817] text-sm font-medium px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/20 focus:border-[#7C3AED]"
             />
           </div>
 
@@ -422,7 +437,7 @@ export default function CrearEmpleado() {
               name="departamento"
               value={formData.departamento}
               onChange={handleChange}
-              className="w-full bg-[#F8F9FF] border border-gray-100 text-sm font-medium px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/20 focus:border-[#7C3AED] appearance-none"
+              className="w-full bg-[#F8F9FF] border border-gray-100 text-[#020817] text-sm font-medium px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/20 focus:border-[#7C3AED] appearance-none"
             >
               <option value="">Seleccionar departamento</option>
               {departamentos.map((dep) => (
@@ -442,7 +457,7 @@ export default function CrearEmpleado() {
               name="cargo"
               value={formData.cargo}
               onChange={handleChange}
-              className="w-full bg-[#F8F9FF] border border-gray-100 text-sm font-medium px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/20 focus:border-[#7C3AED] appearance-none"
+              className="w-full bg-[#F8F9FF] border border-gray-100 text-[#020817] text-sm font-medium px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/20 focus:border-[#7C3AED] appearance-none"
             >
               <option value="">Seleccionar cargo</option>
               {cargos.map((car) => (
@@ -459,12 +474,17 @@ export default function CrearEmpleado() {
             </label>
             <input
               type="email"
-              readOnly
+              readOnly={isEdit}
+              required
               name="correo"
               value={formData.correo}
               onChange={handleChange}
               placeholder="usuario@comisariato.com"
-              className="w-full bg-gray-100 border border-gray-200 text-sm font-bold text-gray-500 px-4 py-3 rounded-xl cursor-not-allowed"
+              className={`w-full text-sm px-4 py-3 rounded-xl transition-colors outline-none ${
+                isEdit 
+                  ? "bg-gray-100 border border-gray-200 font-bold text-gray-500 cursor-not-allowed" 
+                  : "bg-[#F8F9FF] border border-gray-100 font-medium text-[#020817] focus:ring-2 focus:ring-[#7C3AED]/20 focus:border-[#7C3AED]"
+              }`}
             />
           </div>
 
@@ -478,7 +498,7 @@ export default function CrearEmpleado() {
               name="fechaIngreso"
               value={formData.fechaIngreso}
               onChange={handleChange}
-              className="w-full bg-[#F8F9FF] border border-gray-100 text-sm text-gray-500 font-medium px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/20 focus:border-[#7C3AED]"
+              className="w-full bg-[#F8F9FF] border border-gray-100 text-sm text-[#020817] font-medium px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/20 focus:border-[#7C3AED]"
             />
           </div>
 
@@ -495,7 +515,7 @@ export default function CrearEmpleado() {
               placeholder="Ej. 15000"
               min="0"
               step="0.01"
-              className="w-full bg-[#F8F9FF] border border-gray-100 text-sm font-medium px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/20 focus:border-[#7C3AED]"
+              className="w-full bg-[#F8F9FF] border border-gray-100 text-sm font-medium text-[#020817] px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/20 focus:border-[#7C3AED]"
             />
           </div>
 
