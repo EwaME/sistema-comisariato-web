@@ -744,7 +744,7 @@ export default function Inventario() {
                     procesandoEstado ||
                     (!productoSeleccionado.activo &&
                       productoSeleccionado.stock <=
-                        configGlobal.StockMinimoCierre) // <-- Nueva validación
+                        configGlobal.StockMinimoCierre)
                   }
                   className={`flex-1 text-white text-[11px] font-bold py-3 rounded-xl shadow-md transition-all tracking-widest uppercase
                                         ${

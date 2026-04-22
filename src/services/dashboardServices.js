@@ -217,3 +217,19 @@ export const obtenerDataModerador = async () => {
     productosConRating,
   };
 };
+
+export const obtenerMetricasProveedor = async () => {
+  const comprasRef = collection(db, "comprasEwa"); 
+
+  const [pendientes, aceptados, rechazados] = await Promise.all([
+    getCountFromServer(query(comprasRef, where("estado", "==", "PENDIENTE"))),
+    getCountFromServer(query(comprasRef, where("estado", "==", "ACEPTADO"))),
+    getCountFromServer(query(comprasRef, where("estado", "==", "RECHAZADO"))),
+  ]);
+
+  return {
+    totalPendientes: pendientes.data().count,
+    totalAceptados: aceptados.data().count,
+    totalRechazados: rechazados.data().count,
+  };
+};
