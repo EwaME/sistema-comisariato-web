@@ -4,9 +4,11 @@
 // Importa la funcion principal para inicializar Firebase
 import { initializeApp } from "firebase/app";
 // Importa el servicio de autenticacion
-import { getAuth } from "firebase/auth";
+import { getAuth, connectAuthEmulator } from "firebase/auth";
 // Importa el servicio de Firestore
-import { getFirestore } from "firebase/firestore";
+import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
+// Importa el servicio de almacenamiento de archivos
+import { getStorage, connectStorageEmulator } from "firebase/storage";
 
 /* Configuración de Firebase
     Debes reemplazar estos valores con los de tu proyecto de Firebase
@@ -37,3 +39,20 @@ export const db = getFirestore(app);
 // App secundaria SOLO para crear usuarios sin cerrar sesión del admin
 const appSecundaria = initializeApp(firebaseConfig, "appSecundaria");
 export const authSecundaria = getAuth(appSecundaria);
+
+/* Entorno de desarrollo: Firebase Emulator Suite
+    Con VITE_USE_EMULATORS=true la app usa Firestore, Auth y Storage locales
+    (contenedor "emulators" de docker-compose.dev.yml) en vez de la nube.
+    En producción esta variable no se define, así que estas líneas no hacen nada.
+    El host es el mismo desde el que se sirvió la página (localhost, IP de la VM...),
+    salvo que se fuerce con VITE_EMULATOR_HOST. */
+if (import.meta.env.VITE_USE_EMULATORS === "true") {
+    const host = import.meta.env.VITE_EMULATOR_HOST || window.location.hostname;
+    const authUrl = `http://${host}:9099`;
+
+    connectFirestoreEmulator(db, host, 8082);
+    connectAuthEmulator(auth, authUrl, { disableWarnings: true });
+    connectAuthEmulator(authSecundaria, authUrl, { disableWarnings: true });
+    // getStorage() sin argumentos (lo usan los servicios) devuelve esta misma instancia
+    connectStorageEmulator(getStorage(app), host, 9199);
+}

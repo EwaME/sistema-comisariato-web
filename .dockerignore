@@ -1,4 +1,4 @@
-node_modules
+**/node_modules
 dist
 dist-ssr
 .git
@@ -9,4 +9,8 @@ dist-ssr
 .env.*
 !.env.example
 
-src/cloudFunctions
+
+# Documentos que no forman parte de la imagen (docs/openapi.yaml SÍ se necesita para el build)
+docs/*.docx
+coverage
+.github

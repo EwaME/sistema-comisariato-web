@@ -1,0 +1,65 @@
+# Entorno de DESARROLLO / PRUEBAS (máquina virtual local con Ubuntu 24.04).
+#
+# No usa ningún proyecto de Firebase en la nube: levanta el Firebase Emulator Suite
+# (Firestore, Auth, Storage y Cloud Functions) en un contenedor y la app apunta a él.
+# Los datos son de prueba, se siembran al arrancar y se pierden al reiniciar el contenedor.
+#
+#   Web            http://localhost:8081
+#   Emulator UI    http://localhost:4000   (ver/editar datos, usuarios y logs de las funciones)
+#
+# Uso:  docker compose -f docker-compose.dev.yml up -d --build      (o:  bash deploy-dev.sh)
+name: crediflow-dev
+
+services:
+  emulators:
+    image: crediflow-emulators:dev
+    container_name: crediflow-dev-emulators
+    build:
+      context: .
+      dockerfile: Dockerfile.emulators
+    # El navegador se conecta directamente a los emuladores, por eso se publican.
+    # Son datos ficticios y sin autenticación: no exponer esta VM a Internet.
+    ports:
+      - "4000:4000"   # Emulator UI
+      - "8082:8082"   # Firestore
+      - "9099:9099"   # Authentication
+      - "9199:9199"   # Storage
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  web:
+    image: crediflow-web:dev
+    container_name: crediflow-dev
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Mismo Dockerfile que producción; solo cambian estas variables
+        VITE_USE_EMULATORS: "true"
+        VITE_FIREBASE_API_KEY: demo-api-key
+        VITE_FIREBASE_AUTH_DOMAIN: localhost
+        VITE_FIREBASE_PROJECT_ID: demo-crediflow
+        VITE_FIREBASE_STORAGE_BUCKET: demo-crediflow.appspot.com
+        VITE_FIREBASE_MESSAGING_SENDER_ID: "0"
+        VITE_FIREBASE_APP_ID: "1:0:web:demo"
+    ports:
+      - "8081:80"
+    depends_on:
+      emulators:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
