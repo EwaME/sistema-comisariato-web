@@ -14,27 +14,16 @@ import { getFirestore } from "firebase/firestore";
     Primero el mío
 */
 
-/* Firebase Pruebas Ewa */
-/*
+/* La configuración se toma de variables de entorno (VITE_FIREBASE_*)
+    para poder usar la misma imagen Docker en distintos entornos
+    sin tener que tocar el código fuente. Ver .env.example */
 const firebaseConfig = {
-    apiKey: "AIzaSyC6-R06FdoD1pTsyZkkHQAa-DVEfQVjlyY",
-    authDomain: "comisariato-unicah-2026.firebaseapp.com",
-    projectId: "comisariato-unicah-2026",
-    storageBucket: "comisariato-unicah-2026.firebasestorage.app",
-    messagingSenderId: "1034222970379",
-    appId: "1:1034222970379:web:fa8a85b5aa805333b6890e"
-};
-*/
-
-/* Firebase conjunto */
-
-const firebaseConfig = {
-    apiKey: "AIzaSyCOyKeo6Ds3qiE1GwB-vwbZWzERWXAAd5s",
-    authDomain: "comisariato-plataform.firebaseapp.com",
-    projectId: "comisariato-plataform",
-    storageBucket: "comisariato-plataform.firebasestorage.app",
-    messagingSenderId: "354733319178",
-    appId: "1:354733319178:web:32f49448acd94a69d5ebf3"
+    apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+    appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
 // Inicializa Firebase
