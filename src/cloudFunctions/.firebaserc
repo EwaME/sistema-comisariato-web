@@ -1,5 +1,6 @@
 {
   "projects": {
-    "default": "comisariato-plataform"
+    "default": "comisariato-plataform",
+    "prod": "comisariato-plataform"
   }
 }

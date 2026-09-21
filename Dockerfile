@@ -19,6 +19,11 @@ ARG VITE_FIREBASE_STORAGE_BUCKET
 ARG VITE_FIREBASE_MESSAGING_SENDER_ID
 ARG VITE_FIREBASE_APP_ID
 
+# Solo el entorno de desarrollo lo define ("true"): apunta la app al Firebase Emulator
+# Suite en vez de a la nube. En producción queda vacío y no tiene ningún efecto.
+ARG VITE_USE_EMULATORS
+ARG VITE_EMULATOR_HOST
+
 RUN npm run build
 
 # ---- Etapa 2: runtime ----

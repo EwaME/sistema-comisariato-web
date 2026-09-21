@@ -1,0 +1,85 @@
+name: CI/CD
+
+# CI corre en cada push y PR hacia main/develop.
+# El despliegue a PRODUCCIÓN (droplet de DigitalOcean) ocurre solo en push a main y únicamente si CI pasó.
+# El entorno de DESARROLLO vive en una VM local que GitHub no puede alcanzar: se actualiza a mano
+# con `bash deploy-dev.sh` (ver DEPLOY.md).
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    name: Lint, pruebas y build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      # TODO: el proyecto arrastra errores de lint anteriores a este pipeline (variables sin usar,
+      # try/catch inútiles). Se deja informativo hasta corregirlos; luego quitar continue-on-error.
+      - name: Lint
+        run: npm run lint
+        continue-on-error: true
+
+      - name: Pruebas con cobertura
+        run: npm run test:coverage
+
+      - name: Build de producción (incluye Swagger UI)
+        run: npm run build
+
+      - name: Verificar que Swagger UI quedó en el build
+        run: test -f dist/api-docs/index.html && test -f dist/api-docs/openapi.yaml
+
+      # Comprueba que el Dockerfile construye, sin necesitar secretos de Firebase
+      - name: Build de la imagen Docker
+        run: docker build -t crediflow-web:ci .
+
+      - name: Subir reporte de cobertura
+        uses: actions/upload-artifact@v4
+        with:
+          name: cobertura
+          path: coverage/
+          if-no-files-found: ignore
+
+  deploy-prod:
+    name: Desplegar a PRODUCCIÓN
+    needs: ci
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    concurrency: deploy-prod
+    environment:
+      name: produccion
+      url: https://crediflow.duckdns.org
+    steps:
+      - name: Actualizar y reconstruir en el droplet
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DO_HOST }}
+          username: ${{ secrets.DO_USER }}
+          key: ${{ secrets.DO_SSH_KEY }}
+          script_stop: true
+          script: |
+            cd ~/crediflow-prod
+            git fetch origin main
+            git reset --hard origin/main
+            docker compose -f docker-compose.yml up -d --build
+            for i in $(seq 1 20); do
+              estado=$(docker inspect -f '{{.State.Health.Status}}' crediflow-prod)
+              [ "$estado" = "healthy" ] && echo "crediflow-prod healthy" && docker image prune -f && exit 0
+              sleep 3
+            done
+            docker logs --tail 50 crediflow-prod
+            exit 1

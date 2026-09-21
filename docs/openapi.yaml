@@ -1,0 +1,2568 @@
+# CrediFlow — contrato de datos (OpenAPI 3.0). Se sirve con Swagger UI en /api-docs.
+# Generado a partir de las colecciones de Firestore usadas en src/services/.
+openapi: 3.0.3
+info:
+  title: CrediFlow — Contrato de datos y API
+  version: 1.0.0
+  description: |-
+    CrediFlow (Sistema Comisariato Web) **no tiene un servidor REST propio**: el frontend React habla directamente con **Firebase** mediante su SDK. Este documento describe ese backend en formato OpenAPI:
+
+    | Referencia | En CrediFlow |
+    |---|---|
+    | Base de datos (PostgreSQL) | **Cloud Firestore** (NoSQL, colecciones y documentos) |
+    | ORM (SQLAlchemy) | SDK de Firestore, encapsulado por entidad en `src/services/` |
+    | Autenticación (JWT) | **Firebase Authentication**: el *ID token* es un JWT firmado |
+    | Backend (FastAPI) | **Cloud Functions** (`descontarStockAlAprobar`) + reglas de seguridad de Firestore |
+
+    Cada colección de Firestore se expone como recurso en la **API REST pública de Firestore** (`firestore.googleapis.com`), por eso las rutas de abajo son exactamente las que el SDK invoca por debajo.
+
+    ### Modelos vs. formato del cable
+    Los *schemas* de la sección inferior (`Producto`, `Credito`…) describen los **campos lógicos** de cada documento tal como los maneja la aplicación. En el cable, la API REST de Firestore los envuelve en `fields` con valores tipados:
+
+    ```json
+    { "fields": { "nombre": {"stringValue": "Arroz 1 kg"}, "stock": {"integerValue": "40"}, "activo": {"booleanValue": true} } }
+    ```
+
+    ### Autenticación y autorización
+    Se envía el ID token de Firebase Auth como `Authorization: Bearer <JWT>`. **Qué puede hacer cada usuario lo deciden las reglas de seguridad de Firestore**, no el cliente; los roles (`roles`, `usuarios.rol`) modelan el acceso a las pantallas.
+
+    ### Entornos
+    Elige el servidor: **producción** (`comisariato-plataform`, Firestore real) o **desarrollo** (Firebase Emulator Suite en la VM local, proyecto `demo-crediflow`, con datos de prueba). Son backends totalmente independientes: no comparten datos, usuarios ni reglas.
+
+    En el emulador no hay token real: para *Try it out* usa `Bearer owner` (el emulador lo trata como administrador).
+servers:
+  - url: https://firestore.googleapis.com/v1/projects/{projectId}/databases/(default)/documents
+    description: Producción — Cloud Firestore
+    variables:
+      projectId:
+        default: comisariato-plataform
+  - url: http://localhost:8082/v1/projects/{projectId}/databases/(default)/documents
+    description: Desarrollo — Firestore Emulator (VM local)
+    variables:
+      projectId:
+        default: demo-crediflow
+tags:
+  - name: Usuarios
+    description: Perfiles de acceso. El ID es el correo y se corresponde con el usuario de Firebase Authentication.
+  - name: Empleados
+    description: Personal del comisariato y su límite de crédito.
+  - name: Organización
+    description: 'Catálogos organizacionales: cargos, departamentos y roles.'
+  - name: Inventario
+    description: Categorías, productos, comentarios y solicitudes de compra a proveedores.
+  - name: Promociones
+    description: Descuentos vigentes sobre el catálogo.
+  - name: Créditos
+    description: Solicitudes de crédito y sus cuotas. Incluye el trigger de Cloud Functions.
+  - name: Reclamos
+    description: Reclamos de garantía de clientes.
+  - name: Sugerencias
+    description: Sugerencias de usuarios (solo lectura).
+  - name: Configuración
+    description: Parámetros globales, plazos de crédito y políticas de garantía.
+  - name: Auditoría
+    description: Bitácora de actividad de la plataforma.
+security:
+  - bearerAuth: []
+paths:
+  /usuarios:
+    get:
+      tags:
+        - Usuarios
+      summary: Listar usuarios
+      description: |-
+        Devuelve los documentos de `usuarios`. Campos lógicos: schema `Usuario`.
+
+        Además del alta, el servicio `cambiarEstadoUsuario` solo cambia `estado`.
+      operationId: listar_usuarios
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/pageSize'
+        - $ref: '#/components/parameters/pageToken'
+        - $ref: '#/components/parameters/orderBy'
+      responses:
+        '200':
+          description: Página de documentos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FirestoreDocumentList'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+    post:
+      tags:
+        - Usuarios
+      summary: Crear en usuarios
+      description: Crea un documento. Con `documentId` se fija el ID (así lo hace la app para `usuarios`); sin él, Firestore lo autogenera.
+      operationId: crear_usuarios
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: documentId
+          in: query
+          required: false
+          schema:
+            type: string
+          description: ID del documento (correo en minúsculas).
+      requestBody:
+        required: true
+        description: 'Documento en el formato del cable. Campos lógicos: schema `Usuario`.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FirestoreDocument'
+      responses:
+        '200':
+          description: Documento creado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FirestoreDocument'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '409':
+          $ref: '#/components/responses/YaExiste'
+  /usuarios/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: ID del documento (correo en minúsculas).
+        schema:
+          type: string
+    get:
+      tags:
+        - Usuarios
+      summary: Obtener documento de usuarios
+      description: 'Campos lógicos: schema `Usuario`.'
+      operationId: obtener_usuarios
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Documento.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FirestoreDocument'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+    patch:
+      tags:
+        - Usuarios
+      summary: Actualizar documento de usuarios
+      description: 'Actualiza solo los campos indicados en `updateMask.fieldPaths` (equivale a `updateDoc` del SDK). Campos lógicos: schema `Usuario`.'
+      operationId: actualizar_usuarios
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: updateMask.fieldPaths
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+          explode: true
+          description: Campos a modificar.
+        - name: currentDocument.exists
+          in: query
+          required: false
+          schema:
+            type: boolean
+          description: '`true` evita crear el documento si no existe.'
+      requestBody:
+        required: true
+        description: 'Documento en el formato del cable. Campos lógicos: schema `Usuario`.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FirestoreDocument'
+      responses:
+        '200':
+          description: Documento actualizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FirestoreDocument'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+  /empleados:
+    get:
+      tags:
+        - Empleados
+      summary: Listar empleados
+      description: |-
+        Devuelve los documentos de `empleados`. Campos lógicos: schema `Empleado`.
+
+        Crear un empleado crea también su perfil en `usuarios` con rol `EMPLEADO` y contraseña temporal. `desactivarEmpleado` pone `INACTIVO` al empleado y a sus usuarios.
+      operationId: listar_empleados
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/pageSize'
+        - $ref: '#/components/parameters/pageToken'
+        - $ref: '#/components/parameters/orderBy'
+      responses:
+        '200':
+          description: Página de documentos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FirestoreDocumentList'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+    post:
+      tags:
+        - Empleados
+      summary: Crear en empleados
+      description: Crea un documento. Con `documentId` se fija el ID (así lo hace la app para `empleados`); sin él, Firestore lo autogenera.
+      operationId: crear_empleados
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: documentId
+          in: query
+          required: false
+          schema:
+            type: string
+          description: ID del documento (empleadoId).
+      requestBody:
+        required: true
+        description: 'Documento en el formato del cable. Campos lógicos: schema `Empleado`.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FirestoreDocument'
+      responses:
+        '200':
+          description: Documento creado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FirestoreDocument'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '409':
+          $ref: '#/components/responses/YaExiste'
+  /empleados/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: ID del documento (empleadoId).
+        schema:
+          type: string
+    get:
+      tags:
+        - Empleados
+      summary: Obtener documento de empleados
+      description: 'Campos lógicos: schema `Empleado`.'
+      operationId: obtener_empleados
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Documento.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FirestoreDocument'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+    patch:
+      tags:
+        - Empleados
+      summary: Actualizar documento de empleados
+      description: 'Actualiza solo los campos indicados en `updateMask.fieldPaths` (equivale a `updateDoc` del SDK). Campos lógicos: schema `Empleado`.'
+      operationId: actualizar_empleados
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: updateMask.fieldPaths
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+          explode: true
+          description: Campos a modificar.
+        - name: currentDocument.exists
+          in: query
+          required: false
+          schema:
+            type: boolean
+          description: '`true` evita crear el documento si no existe.'
+      requestBody:
+        required: true
+        description: 'Documento en el formato del cable. Campos lógicos: schema `Empleado`.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FirestoreDocument'
+      responses:
+        '200':
+          description: Documento actualizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FirestoreDocument'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+  /cargos:
+    get:
+      tags:
+        - Organización
+      summary: Listar cargos
+      description: 'Devuelve los documentos de `cargos`. Campos lógicos: schema `Cargo`.'
+      operationId: listar_cargos
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/pageSize'
+        - $ref: '#/components/parameters/pageToken'
+        - $ref: '#/components/parameters/orderBy'
+      responses:
+        '200':
+          description: Página de documentos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FirestoreDocumentList'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+    post:
+      tags:
+        - Organización
+      summary: Crear en cargos
+      description: Crea un documento. Con `documentId` se fija el ID (así lo hace la app para `cargos`); sin él, Firestore lo autogenera.
+      operationId: crear_cargos
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: documentId
+          in: query
+          required: false
+          schema:
+            type: string
+          description: ID del documento (código en mayúsculas).
+      requestBody:
+        required: true
+        description: 'Documento en el formato del cable. Campos lógicos: schema `Cargo`.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FirestoreDocument'
+      responses:
+        '200':
+          description: Documento creado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FirestoreDocument'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '409':
+          $ref: '#/components/responses/YaExiste'
+  /cargos/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: ID del documento (código en mayúsculas).
+        schema:
+          type: string
+    get:
+      tags:
+        - Organización
+      summary: Obtener documento de cargos
+      description: 'Campos lógicos: schema `Cargo`.'
+      operationId: obtener_cargos
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Documento.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FirestoreDocument'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+    patch:
+      tags:
+        - Organización
+      summary: Actualizar documento de cargos
+      description: 'Actualiza solo los campos indicados en `updateMask.fieldPaths` (equivale a `updateDoc` del SDK). Campos lógicos: schema `Cargo`.'
+      operationId: actualizar_cargos
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: updateMask.fieldPaths
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+          explode: true
+          description: Campos a modificar.
+        - name: currentDocument.exists
+          in: query
+          required: false
+          schema:
+            type: boolean
+          description: '`true` evita crear el documento si no existe.'
+      requestBody:
+        required: true
+        description: 'Documento en el formato del cable. Campos lógicos: schema `Cargo`.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FirestoreDocument'
+      responses:
+        '200':
+          description: Documento actualizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FirestoreDocument'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+  /departamentos:
+    get:
+      tags:
+        - Organización
+      summary: Listar departamentos
+      description: 'Devuelve los documentos de `departamentos`. Campos lógicos: schema `Departamento`.'
+      operationId: listar_departamentos
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/pageSize'
+        - $ref: '#/components/parameters/pageToken'
+        - $ref: '#/components/parameters/orderBy'
+      responses:
+        '200':
+          description: Página de documentos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FirestoreDocumentList'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+    post:
+      tags:
+        - Organización
+      summary: Crear en departamentos
+      description: Crea un documento. Con `documentId` se fija el ID (así lo hace la app para `departamentos`); sin él, Firestore lo autogenera.
+      operationId: crear_departamentos
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: documentId
+          in: query
+          required: false
+          schema:
+            type: string
+          description: ID del documento (código).
+      requestBody:
+        required: true
+        description: 'Documento en el formato del cable. Campos lógicos: schema `Departamento`.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FirestoreDocument'
+      responses:
+        '200':
+          description: Documento creado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FirestoreDocument'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '409':
+          $ref: '#/components/responses/YaExiste'
+  /departamentos/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: ID del documento (código).
+        schema:
+          type: string
+    get:
+      tags:
+        - Organización
+      summary: Obtener documento de departamentos
+      description: 'Campos lógicos: schema `Departamento`.'
+      operationId: obtener_departamentos
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Documento.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FirestoreDocument'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+    patch:
+      tags:
+        - Organización
+      summary: Actualizar documento de departamentos
+      description: 'Actualiza solo los campos indicados en `updateMask.fieldPaths` (equivale a `updateDoc` del SDK). Campos lógicos: schema `Departamento`.'
+      operationId: actualizar_departamentos
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: updateMask.fieldPaths
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+          explode: true
+          description: Campos a modificar.
+        - name: currentDocument.exists
+          in: query
+          required: false
+          schema:
+            type: boolean
+          description: '`true` evita crear el documento si no existe.'
+      requestBody:
+        required: true
+        description: 'Documento en el formato del cable. Campos lógicos: schema `Departamento`.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FirestoreDocument'
+      responses:
+        '200':
+          description: Documento actualizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FirestoreDocument'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+  /roles:
+    get:
+      tags:
+        - Organización
+      summary: Listar roles
+      description: 'Devuelve los documentos de `roles`. Campos lógicos: schema `Rol`.'
+      operationId: listar_roles
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/pageSize'
+        - $ref: '#/components/parameters/pageToken'
+        - $ref: '#/components/parameters/orderBy'
+      responses:
+        '200':
+          description: Página de documentos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FirestoreDocumentList'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+    post:
+      tags:
+        - Organización
+      summary: Crear en roles
+      description: Crea un documento. Con `documentId` se fija el ID (así lo hace la app para `roles`); sin él, Firestore lo autogenera.
+      operationId: crear_roles
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: documentId
+          in: query
+          required: false
+          schema:
+            type: string
+          description: ID del documento (nombre en mayúsculas).
+      requestBody:
+        required: true
+        description: 'Documento en el formato del cable. Campos lógicos: schema `Rol`.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FirestoreDocument'
+      responses:
+        '200':
+          description: Documento creado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FirestoreDocument'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '409':
+          $ref: '#/components/responses/YaExiste'
+  /roles/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: ID del documento (nombre en mayúsculas).
+        schema:
+          type: string
+    get:
+      tags:
+        - Organización
+      summary: Obtener documento de roles
+      description: 'Campos lógicos: schema `Rol`.'
+      operationId: obtener_roles
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Documento.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FirestoreDocument'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+    patch:
+      tags:
+        - Organización
+      summary: Actualizar documento de roles
+      description: 'Actualiza solo los campos indicados en `updateMask.fieldPaths` (equivale a `updateDoc` del SDK). Campos lógicos: schema `Rol`.'
+      operationId: actualizar_roles
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: updateMask.fieldPaths
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+          explode: true
+          description: Campos a modificar.
+        - name: currentDocument.exists
+          in: query
+          required: false
+          schema:
+            type: boolean
+          description: '`true` evita crear el documento si no existe.'
+      requestBody:
+        required: true
+        description: 'Documento en el formato del cable. Campos lógicos: schema `Rol`.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FirestoreDocument'
+      responses:
+        '200':
+          description: Documento actualizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FirestoreDocument'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+  /categorias:
+    get:
+      tags:
+        - Inventario
+      summary: Listar categorias
+      description: 'Devuelve los documentos de `categorias`. Campos lógicos: schema `Categoria`.'
+      operationId: listar_categorias
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/pageSize'
+        - $ref: '#/components/parameters/pageToken'
+        - $ref: '#/components/parameters/orderBy'
+      responses:
+        '200':
+          description: Página de documentos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FirestoreDocumentList'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+    post:
+      tags:
+        - Inventario
+      summary: Crear en categorias
+      description: Crea un documento. Con `documentId` se fija el ID (así lo hace la app para `categorias`); sin él, Firestore lo autogenera.
+      operationId: crear_categorias
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: documentId
+          in: query
+          required: false
+          schema:
+            type: string
+          description: ID del documento (categoriaId).
+      requestBody:
+        required: true
+        description: 'Documento en el formato del cable. Campos lógicos: schema `Categoria`.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FirestoreDocument'
+      responses:
+        '200':
+          description: Documento creado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FirestoreDocument'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '409':
+          $ref: '#/components/responses/YaExiste'
+  /categorias/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: ID del documento (categoriaId).
+        schema:
+          type: string
+    get:
+      tags:
+        - Inventario
+      summary: Obtener documento de categorias
+      description: 'Campos lógicos: schema `Categoria`.'
+      operationId: obtener_categorias
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Documento.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FirestoreDocument'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+    patch:
+      tags:
+        - Inventario
+      summary: Actualizar documento de categorias
+      description: 'Actualiza solo los campos indicados en `updateMask.fieldPaths` (equivale a `updateDoc` del SDK). Campos lógicos: schema `Categoria`.'
+      operationId: actualizar_categorias
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: updateMask.fieldPaths
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+          explode: true
+          description: Campos a modificar.
+        - name: currentDocument.exists
+          in: query
+          required: false
+          schema:
+            type: boolean
+          description: '`true` evita crear el documento si no existe.'
+      requestBody:
+        required: true
+        description: 'Documento en el formato del cable. Campos lógicos: schema `Categoria`.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FirestoreDocument'
+      responses:
+        '200':
+          description: Documento actualizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FirestoreDocument'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+  /productos:
+    get:
+      tags:
+        - Inventario
+      summary: Listar productos
+      description: |-
+        Devuelve los documentos de `productos`. Campos lógicos: schema `Producto`.
+
+        Sin DELETE: se inhabilita con `activo=false`. El stock lo modifican `comprasEwa` (al ingresar) y la Cloud Function (al aprobar un crédito).
+      operationId: listar_productos
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/pageSize'
+        - $ref: '#/components/parameters/pageToken'
+        - $ref: '#/components/parameters/orderBy'
+      responses:
+        '200':
+          description: Página de documentos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FirestoreDocumentList'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+    post:
+      tags:
+        - Inventario
+      summary: Crear en productos
+      description: Crea un documento. Con `documentId` se fija el ID (así lo hace la app para `productos`); sin él, Firestore lo autogenera.
+      operationId: crear_productos
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: documentId
+          in: query
+          required: false
+          schema:
+            type: string
+          description: ID del documento (productoId).
+      requestBody:
+        required: true
+        description: 'Documento en el formato del cable. Campos lógicos: schema `Producto`.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FirestoreDocument'
+      responses:
+        '200':
+          description: Documento creado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FirestoreDocument'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '409':
+          $ref: '#/components/responses/YaExiste'
+  /productos/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: ID del documento (productoId).
+        schema:
+          type: string
+    get:
+      tags:
+        - Inventario
+      summary: Obtener documento de productos
+      description: 'Campos lógicos: schema `Producto`.'
+      operationId: obtener_productos
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Documento.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FirestoreDocument'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+    patch:
+      tags:
+        - Inventario
+      summary: Actualizar documento de productos
+      description: 'Actualiza solo los campos indicados en `updateMask.fieldPaths` (equivale a `updateDoc` del SDK). Campos lógicos: schema `Producto`.'
+      operationId: actualizar_productos
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: updateMask.fieldPaths
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+          explode: true
+          description: Campos a modificar.
+        - name: currentDocument.exists
+          in: query
+          required: false
+          schema:
+            type: boolean
+          description: '`true` evita crear el documento si no existe.'
+      requestBody:
+        required: true
+        description: 'Documento en el formato del cable. Campos lógicos: schema `Producto`.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FirestoreDocument'
+      responses:
+        '200':
+          description: Documento actualizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FirestoreDocument'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+  /comprasEwa:
+    get:
+      tags:
+        - Inventario
+      summary: Listar comprasEwa
+      description: 'Devuelve los documentos de `comprasEwa`. Campos lógicos: schema `SolicitudCompra`.'
+      operationId: listar_comprasEwa
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/pageSize'
+        - $ref: '#/components/parameters/pageToken'
+        - $ref: '#/components/parameters/orderBy'
+      responses:
+        '200':
+          description: Página de documentos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FirestoreDocumentList'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+    post:
+      tags:
+        - Inventario
+      summary: Crear en comprasEwa
+      description: Crea un documento. Con `documentId` se fija el ID (así lo hace la app para `comprasEwa`); sin él, Firestore lo autogenera.
+      operationId: crear_comprasEwa
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: documentId
+          in: query
+          required: false
+          schema:
+            type: string
+          description: ID del documento (autogenerado).
+      requestBody:
+        required: true
+        description: 'Documento en el formato del cable. Campos lógicos: schema `SolicitudCompra`.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FirestoreDocument'
+      responses:
+        '200':
+          description: Documento creado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FirestoreDocument'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '409':
+          $ref: '#/components/responses/YaExiste'
+  /comprasEwa/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: ID del documento (autogenerado).
+        schema:
+          type: string
+    get:
+      tags:
+        - Inventario
+      summary: Obtener documento de comprasEwa
+      description: 'Campos lógicos: schema `SolicitudCompra`.'
+      operationId: obtener_comprasEwa
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Documento.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FirestoreDocument'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+    patch:
+      tags:
+        - Inventario
+      summary: Actualizar documento de comprasEwa
+      description: 'Actualiza solo los campos indicados en `updateMask.fieldPaths` (equivale a `updateDoc` del SDK). Campos lógicos: schema `SolicitudCompra`.'
+      operationId: actualizar_comprasEwa
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: updateMask.fieldPaths
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+          explode: true
+          description: Campos a modificar.
+        - name: currentDocument.exists
+          in: query
+          required: false
+          schema:
+            type: boolean
+          description: '`true` evita crear el documento si no existe.'
+      requestBody:
+        required: true
+        description: 'Documento en el formato del cable. Campos lógicos: schema `SolicitudCompra`.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FirestoreDocument'
+      responses:
+        '200':
+          description: Documento actualizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FirestoreDocument'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+  /promociones:
+    get:
+      tags:
+        - Promociones
+      summary: Listar promociones
+      description: 'Devuelve los documentos de `promociones`. Campos lógicos: schema `Promocion`.'
+      operationId: listar_promociones
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/pageSize'
+        - $ref: '#/components/parameters/pageToken'
+        - $ref: '#/components/parameters/orderBy'
+      responses:
+        '200':
+          description: Página de documentos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FirestoreDocumentList'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+    post:
+      tags:
+        - Promociones
+      summary: Crear en promociones
+      description: Crea un documento. Con `documentId` se fija el ID (así lo hace la app para `promociones`); sin él, Firestore lo autogenera.
+      operationId: crear_promociones
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: documentId
+          in: query
+          required: false
+          schema:
+            type: string
+          description: ID del documento (promocionId).
+      requestBody:
+        required: true
+        description: 'Documento en el formato del cable. Campos lógicos: schema `Promocion`.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FirestoreDocument'
+      responses:
+        '200':
+          description: Documento creado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FirestoreDocument'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '409':
+          $ref: '#/components/responses/YaExiste'
+  /promociones/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: ID del documento (promocionId).
+        schema:
+          type: string
+    get:
+      tags:
+        - Promociones
+      summary: Obtener documento de promociones
+      description: 'Campos lógicos: schema `Promocion`.'
+      operationId: obtener_promociones
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Documento.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FirestoreDocument'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+    patch:
+      tags:
+        - Promociones
+      summary: Actualizar documento de promociones
+      description: 'Actualiza solo los campos indicados en `updateMask.fieldPaths` (equivale a `updateDoc` del SDK). Campos lógicos: schema `Promocion`.'
+      operationId: actualizar_promociones
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: updateMask.fieldPaths
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+          explode: true
+          description: Campos a modificar.
+        - name: currentDocument.exists
+          in: query
+          required: false
+          schema:
+            type: boolean
+          description: '`true` evita crear el documento si no existe.'
+      requestBody:
+        required: true
+        description: 'Documento en el formato del cable. Campos lógicos: schema `Promocion`.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FirestoreDocument'
+      responses:
+        '200':
+          description: Documento actualizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FirestoreDocument'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+  /creditos:
+    get:
+      tags:
+        - Créditos
+      summary: Listar creditos
+      description: 'Devuelve los documentos de `creditos`. Campos lógicos: schema `Credito`.'
+      operationId: listar_creditos
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/pageSize'
+        - $ref: '#/components/parameters/pageToken'
+        - $ref: '#/components/parameters/orderBy'
+      responses:
+        '200':
+          description: Página de documentos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FirestoreDocumentList'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+  /creditos/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: ID del documento (autogenerado (app móvil)).
+        schema:
+          type: string
+    get:
+      tags:
+        - Créditos
+      summary: Obtener documento de creditos
+      description: 'Campos lógicos: schema `Credito`.'
+      operationId: obtener_creditos
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Documento.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FirestoreDocument'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+    patch:
+      tags:
+        - Créditos
+      summary: Actualizar documento de creditos
+      description: |-
+        Actualiza solo los campos indicados en `updateMask.fieldPaths` (equivale a `updateDoc` del SDK). Campos lógicos: schema `Credito`.
+
+        **Cloud Function `descontarStockAlAprobar`** (trigger `onDocumentUpdated` sobre `creditos/{creditoId}`): cuando `estado` pasa a `Aprobado` descuenta `cantidad` del `stock` del producto y suma `cantidadVendida`, en una transacción. Si el stock resultante es ≤ `configuraciones/config_global.StockMinimoCierre`, marca el producto `activo=false`.
+      operationId: actualizar_creditos
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: updateMask.fieldPaths
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+          explode: true
+          description: Campos a modificar.
+        - name: currentDocument.exists
+          in: query
+          required: false
+          schema:
+            type: boolean
+          description: '`true` evita crear el documento si no existe.'
+      requestBody:
+        required: true
+        description: 'Documento en el formato del cable. Campos lógicos: schema `Credito`.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FirestoreDocument'
+      responses:
+        '200':
+          description: Documento actualizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FirestoreDocument'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+      x-firebase-trigger:
+        function: descontarStockAlAprobar
+        event: google.cloud.firestore.document.v1.updated
+        document: creditos/{creditoId}
+  /cuotas:
+    get:
+      tags:
+        - Créditos
+      summary: Listar cuotas
+      description: |-
+        Devuelve los documentos de `cuotas`. Campos lógicos: schema `Cuota`.
+
+        Filtrar por crédito con `:runQuery` (`where creditoId == …`); el listado plano devuelve todas.
+      operationId: listar_cuotas
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/pageSize'
+        - $ref: '#/components/parameters/pageToken'
+        - $ref: '#/components/parameters/orderBy'
+      responses:
+        '200':
+          description: Página de documentos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FirestoreDocumentList'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+  /reclamos:
+    get:
+      tags:
+        - Reclamos
+      summary: Listar reclamos
+      description: 'Devuelve los documentos de `reclamos`. Campos lógicos: schema `Reclamo`.'
+      operationId: listar_reclamos
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/pageSize'
+        - $ref: '#/components/parameters/pageToken'
+        - $ref: '#/components/parameters/orderBy'
+      responses:
+        '200':
+          description: Página de documentos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FirestoreDocumentList'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+  /reclamos/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: ID del documento (autogenerado (app móvil)).
+        schema:
+          type: string
+    get:
+      tags:
+        - Reclamos
+      summary: Obtener documento de reclamos
+      description: 'Campos lógicos: schema `Reclamo`.'
+      operationId: obtener_reclamos
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Documento.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FirestoreDocument'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+    patch:
+      tags:
+        - Reclamos
+      summary: Actualizar documento de reclamos
+      description: 'Actualiza solo los campos indicados en `updateMask.fieldPaths` (equivale a `updateDoc` del SDK). Campos lógicos: schema `Reclamo`.'
+      operationId: actualizar_reclamos
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: updateMask.fieldPaths
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+          explode: true
+          description: Campos a modificar.
+        - name: currentDocument.exists
+          in: query
+          required: false
+          schema:
+            type: boolean
+          description: '`true` evita crear el documento si no existe.'
+      requestBody:
+        required: true
+        description: 'Documento en el formato del cable. Campos lógicos: schema `Reclamo`.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FirestoreDocument'
+      responses:
+        '200':
+          description: Documento actualizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FirestoreDocument'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+  /sugerencias:
+    get:
+      tags:
+        - Sugerencias
+      summary: Listar sugerencias
+      description: 'Devuelve los documentos de `sugerencias`. Campos lógicos: schema `Sugerencia`.'
+      operationId: listar_sugerencias
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/pageSize'
+        - $ref: '#/components/parameters/pageToken'
+        - $ref: '#/components/parameters/orderBy'
+      responses:
+        '200':
+          description: Página de documentos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FirestoreDocumentList'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+  /actividad_logs:
+    get:
+      tags:
+        - Auditoría
+      summary: Listar actividad_logs
+      description: |-
+        Devuelve los documentos de `actividad_logs`. Campos lógicos: schema `ActividadLog`.
+
+        Solo se agrega: la aplicación nunca edita ni borra registros de auditoría.
+      operationId: listar_actividadLogs
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/pageSize'
+        - $ref: '#/components/parameters/pageToken'
+        - $ref: '#/components/parameters/orderBy'
+      responses:
+        '200':
+          description: Página de documentos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FirestoreDocumentList'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+    post:
+      tags:
+        - Auditoría
+      summary: Crear en actividad_logs
+      description: Crea un documento. Con `documentId` se fija el ID (así lo hace la app para `actividad_logs`); sin él, Firestore lo autogenera.
+      operationId: crear_actividadLogs
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: documentId
+          in: query
+          required: false
+          schema:
+            type: string
+          description: ID del documento (autogenerado).
+      requestBody:
+        required: true
+        description: 'Documento en el formato del cable. Campos lógicos: schema `ActividadLog`.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FirestoreDocument'
+      responses:
+        '200':
+          description: Documento creado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FirestoreDocument'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '409':
+          $ref: '#/components/responses/YaExiste'
+  /productos/{productoId}/comentarios:
+    parameters:
+      - name: productoId
+        in: path
+        required: true
+        description: ID del producto.
+        schema:
+          type: string
+    get:
+      tags:
+        - Inventario
+      summary: Listar productos/{productoId}/comentarios
+      description: 'Devuelve los documentos de `productos/{productoId}/comentarios`. Campos lógicos: schema `ComentarioProducto`.'
+      operationId: listar_productosProductoIdComentarios
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/pageSize'
+        - $ref: '#/components/parameters/pageToken'
+        - $ref: '#/components/parameters/orderBy'
+      responses:
+        '200':
+          description: Página de documentos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FirestoreDocumentList'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+  /productos/{productoId}/comentarios/{comentarioId}:
+    parameters:
+      - name: productoId
+        in: path
+        required: true
+        description: ID del producto.
+        schema:
+          type: string
+      - name: comentarioId
+        in: path
+        required: true
+        description: ID del documento.
+        schema:
+          type: string
+    patch:
+      tags:
+        - Inventario
+      summary: Actualizar documento de productos/{productoId}/comentarios
+      description: 'Actualiza solo los campos indicados en `updateMask.fieldPaths` (equivale a `updateDoc` del SDK). Campos lógicos: schema `ComentarioProducto`.'
+      operationId: actualizar_productosProductoIdComentarios
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: updateMask.fieldPaths
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+          explode: true
+          description: Campos a modificar.
+        - name: currentDocument.exists
+          in: query
+          required: false
+          schema:
+            type: boolean
+          description: '`true` evita crear el documento si no existe.'
+      requestBody:
+        required: true
+        description: 'Documento en el formato del cable. Campos lógicos: schema `ComentarioProducto`.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FirestoreDocument'
+      responses:
+        '200':
+          description: Documento actualizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FirestoreDocument'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+  /configuraciones/config_global/plazos:
+    get:
+      tags:
+        - Configuración
+      summary: Listar configuraciones/config_global/plazos
+      description: 'Devuelve los documentos de `configuraciones/config_global/plazos`. Campos lógicos: schema `PlazoCredito`.'
+      operationId: listar_configuracionesConfigGlobalPlazos
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/pageSize'
+        - $ref: '#/components/parameters/pageToken'
+        - $ref: '#/components/parameters/orderBy'
+      responses:
+        '200':
+          description: Página de documentos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FirestoreDocumentList'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+    post:
+      tags:
+        - Configuración
+      summary: Crear en configuraciones/config_global/plazos
+      description: Crea un documento. Con `documentId` se fija el ID (así lo hace la app para `configuraciones/config_global/plazos`); sin él, Firestore lo autogenera.
+      operationId: crear_configuracionesConfigGlobalPlazos
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: documentId
+          in: query
+          required: false
+          schema:
+            type: string
+          description: ID del documento.
+      requestBody:
+        required: true
+        description: 'Documento en el formato del cable. Campos lógicos: schema `PlazoCredito`.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FirestoreDocument'
+      responses:
+        '200':
+          description: Documento creado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FirestoreDocument'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '409':
+          $ref: '#/components/responses/YaExiste'
+  /configuraciones/config_global/plazos/{plazoId}:
+    parameters:
+      - name: plazoId
+        in: path
+        required: true
+        description: ID del documento.
+        schema:
+          type: string
+    delete:
+      tags:
+        - Configuración
+      summary: Eliminar documento de configuraciones/config_global/plazos
+      operationId: eliminar_configuracionesConfigGlobalPlazos
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Documento eliminado (cuerpo vacío).
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+  /configuraciones/config_global/garantias:
+    get:
+      tags:
+        - Configuración
+      summary: Listar configuraciones/config_global/garantias
+      description: 'Devuelve los documentos de `configuraciones/config_global/garantias`. Campos lógicos: schema `GarantiaConfig`.'
+      operationId: listar_configuracionesConfigGlobalGarantias
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/pageSize'
+        - $ref: '#/components/parameters/pageToken'
+        - $ref: '#/components/parameters/orderBy'
+      responses:
+        '200':
+          description: Página de documentos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FirestoreDocumentList'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+    post:
+      tags:
+        - Configuración
+      summary: Crear en configuraciones/config_global/garantias
+      description: Crea un documento. Con `documentId` se fija el ID (así lo hace la app para `configuraciones/config_global/garantias`); sin él, Firestore lo autogenera.
+      operationId: crear_configuracionesConfigGlobalGarantias
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: documentId
+          in: query
+          required: false
+          schema:
+            type: string
+          description: ID del documento.
+      requestBody:
+        required: true
+        description: 'Documento en el formato del cable. Campos lógicos: schema `GarantiaConfig`.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FirestoreDocument'
+      responses:
+        '200':
+          description: Documento creado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FirestoreDocument'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '409':
+          $ref: '#/components/responses/YaExiste'
+  /configuraciones/config_global/garantias/{garantiaId}:
+    parameters:
+      - name: garantiaId
+        in: path
+        required: true
+        description: ID del documento.
+        schema:
+          type: string
+    delete:
+      tags:
+        - Configuración
+      summary: Eliminar documento de configuraciones/config_global/garantias
+      operationId: eliminar_configuracionesConfigGlobalGarantias
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Documento eliminado (cuerpo vacío).
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+  /configuraciones/config_global:
+    get:
+      tags:
+        - Configuración
+      summary: Obtener la configuración global
+      description: 'Campos lógicos: schema `ConfiguracionGlobal`. La app la lee al iniciar sesión (p. ej. `tiempoInactividad`).'
+      operationId: obtener_configuracion_global
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Documento.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FirestoreDocument'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+    patch:
+      tags:
+        - Configuración
+      summary: Actualizar la configuración global
+      description: 'Campos lógicos: schema `ConfiguracionGlobal`.'
+      operationId: actualizar_configuracion_global
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: updateMask.fieldPaths
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+          explode: true
+      requestBody:
+        required: true
+        description: 'Documento en el formato del cable. Campos lógicos: schema `ConfiguracionGlobal`.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FirestoreDocument'
+      responses:
+        '200':
+          description: Documento actualizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FirestoreDocument'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: ID token de Firebase Authentication (`await auth.currentUser.getIdToken()`). Caduca a la hora.
+  parameters:
+    pageSize:
+      name: pageSize
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 300
+      description: Documentos por página.
+    pageToken:
+      name: pageToken
+      in: query
+      schema:
+        type: string
+      description: Token de la página anterior (`nextPageToken`).
+    orderBy:
+      name: orderBy
+      in: query
+      schema:
+        type: string
+        example: fechaRegistro desc
+      description: Campo y dirección de orden.
+  responses:
+    NoAutenticado:
+      description: Falta el token o es inválido / expiró.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/FirestoreError'
+    SinPermiso:
+      description: Las reglas de seguridad de Firestore rechazan la operación (`PERMISSION_DENIED`).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/FirestoreError'
+    NoEncontrado:
+      description: El documento no existe.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/FirestoreError'
+    YaExiste:
+      description: Ya existe un documento con ese ID.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/FirestoreError'
+  schemas:
+    FirestoreValue:
+      type: object
+      description: 'Valor tipado de Firestore. Exactamente una de estas claves: `stringValue`, `integerValue` (como string), `doubleValue`, `booleanValue`, `timestampValue` (RFC 3339), `nullValue`, `arrayValue{values[]}` o `mapValue{fields{}}`.'
+      additionalProperties: true
+      example:
+        stringValue: Arroz 1 kg
+    FirestoreDocument:
+      type: object
+      description: Documento de Firestore en el formato del cable. Los campos lógicos de cada colección están en su schema (p. ej. `Producto`) y aquí viajan dentro de `fields`, codificados como `FirestoreValue`.
+      properties:
+        name:
+          type: string
+          description: 'Ruta completa: `projects/{projectId}/databases/(default)/documents/{colección}/{id}`.'
+          readOnly: true
+        fields:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/FirestoreValue'
+        createTime:
+          type: string
+          format: date-time
+        updateTime:
+          type: string
+          format: date-time
+    FirestoreDocumentList:
+      type: object
+      properties:
+        documents:
+          type: array
+          items:
+            $ref: '#/components/schemas/FirestoreDocument'
+        nextPageToken:
+          type: string
+          description: Enviar como `pageToken` para pedir la siguiente página.
+    FirestoreError:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: integer
+            message:
+              type: string
+            status:
+              type: string
+              description: p. ej. `PERMISSION_DENIED`, `NOT_FOUND`, `UNAUTHENTICATED`.
+    Usuario:
+      description: Perfil de acceso al sistema. El ID del documento es el correo en minúsculas y coincide con el usuario de Firebase Authentication.
+      required:
+        - uid
+        - correo
+        - rol
+        - estado
+      properties:
+        uid:
+          type: string
+          description: Igual al correo en minúsculas.
+        empleadoId:
+          type: string
+          description: Referencia a `empleados/{empleadoId}`.
+        nombre:
+          type: string
+        correo:
+          type: string
+          format: email
+        usuario:
+          type: string
+          description: Nombre de usuario generado a partir de nombres/apellidos/DNI.
+        rol:
+          type: array
+          items:
+            type: string
+          description: Roles asignados (ver colección `roles`). Un empleado siempre incluye `EMPLEADO`.
+        estado:
+          type: string
+          enum:
+            - ACTIVO
+            - INACTIVO
+        plataforma:
+          type: string
+          enum:
+            - APP MÓVIL
+            - WEB Y MÓVIL
+          description: Se eleva a `WEB Y MÓVIL` al asignar un rol web.
+        passwordChanged:
+          type: boolean
+          description: '`false` obliga a cambiar la contraseña temporal en el primer acceso.'
+        fotoUrl:
+          type: string
+        fechaRegistro:
+          type: string
+          format: date-time
+        fechaModificacion:
+          type: string
+          format: date-time
+      type: object
+    Empleado:
+      description: Empleado del comisariato. Su `limiteCredito` acota el crédito total que puede tener activo.
+      required:
+        - empleadoId
+        - nombres
+        - apellidos
+        - dni
+        - correo
+        - estado
+      properties:
+        empleadoId:
+          type: string
+        nombres:
+          type: string
+        apellidos:
+          type: string
+        dni:
+          type: string
+        departamento:
+          type: string
+          description: Nombre del departamento (`departamentos.nombre`).
+        cargo:
+          type: string
+          description: Nombre del cargo (`cargos.nombre`).
+        correo:
+          type: string
+          format: email
+        telefono:
+          type: string
+        fechaIngreso:
+          type: string
+        estado:
+          type: string
+          enum:
+            - ACTIVO
+            - INACTIVO
+        salario:
+          type: number
+        limiteCredito:
+          type: number
+          description: Calculado a partir del salario y `configuraciones.porcSueldo`.
+        fotoUrl:
+          type: string
+        fechaRegistro:
+          type: string
+          format: date-time
+        fechaModificacion:
+          type: string
+          format: date-time
+      type: object
+    Cargo:
+      description: Puesto de trabajo. El ID es el código en mayúsculas.
+      required:
+        - codigo
+        - nombre
+        - estado
+      properties:
+        codigo:
+          type: string
+        nombre:
+          type: string
+        descripcion:
+          type: string
+        estado:
+          type: string
+          enum:
+            - ACTIVO
+            - INACTIVO
+        fechaRegistro:
+          type: string
+          format: date-time
+        fechaModificacion:
+          type: string
+          format: date-time
+      type: object
+    Departamento:
+      description: Departamento organizacional. El ID es el código.
+      required:
+        - codigo
+        - nombre
+        - estado
+      properties:
+        codigo:
+          type: string
+        nombre:
+          type: string
+        descripcion:
+          type: string
+        estado:
+          type: string
+          enum:
+            - ACTIVO
+            - INACTIVO
+        fechaRegistro:
+          type: string
+          format: date-time
+        fechaModificacion:
+          type: string
+          format: date-time
+      type: object
+    Rol:
+      description: Rol de acceso. El ID es el nombre en mayúsculas.
+      required:
+        - nombre
+        - estado
+      properties:
+        nombre:
+          type: string
+        entorno:
+          type: string
+          description: Plataforma donde aplica el rol (web, móvil o ambos).
+        descripcion:
+          type: string
+        estado:
+          type: string
+          enum:
+            - ACTIVO
+            - INACTIVO
+        fechaRegistro:
+          type: string
+          format: date-time
+        fechaModificacion:
+          type: string
+          format: date-time
+      type: object
+    Categoria:
+      description: Categoría de productos. `cantidadProductos` que muestra la interfaz se calcula al vuelo y no se almacena.
+      required:
+        - categoriaId
+        - nombre
+      properties:
+        categoriaId:
+          type: string
+        nombre:
+          type: string
+        descripcion:
+          type: string
+        imagenUrl:
+          type: string
+        estado:
+          type: string
+        fechaRegistro:
+          type: string
+          format: date-time
+        fechaModificacion:
+          type: string
+          format: date-time
+      type: object
+    Producto:
+      description: 'Producto del inventario. Nunca se borra: se inhabilita con `activo=false` (borrado lógico). Cuando un crédito se aprueba, la Cloud Function `descontarStockAlAprobar` descuenta `stock` y suma `cantidadVendida`.'
+      required:
+        - productoId
+        - nombre
+        - precioContado
+        - precioCredito
+        - categoriaId
+        - stock
+        - activo
+      properties:
+        productoId:
+          type: string
+        nombre:
+          type: string
+        nombreNormalizado:
+          type: string
+          description: Nombre en minúsculas y sin espacios extremos, para búsquedas.
+        descripcion:
+          type: string
+        precioContado:
+          type: number
+        precioCredito:
+          type: number
+        categoria:
+          type: string
+          description: Nombre de la categoría (desnormalizado).
+        categoriaId:
+          type: string
+          description: Referencia a `categorias/{categoriaId}`.
+        stock:
+          type: integer
+        cantidadVendida:
+          type: integer
+        activo:
+          type: boolean
+        rate:
+          type: number
+          description: Calificación promedio, calculada a partir de los comentarios.
+        garantiaDias:
+          type: integer
+          description: Excluyente con `garantiaMeses`.
+          nullable: true
+        garantiaMeses:
+          type: integer
+          description: Excluyente con `garantiaDias`.
+          nullable: true
+        imagenFrontalUrl:
+          type: string
+        imagenLateralUrl:
+          type: string
+        imagenTraseraUrl:
+          type: string
+        fechaRegistro:
+          type: string
+          format: date-time
+        fechaModificacion:
+          type: string
+          format: date-time
+      type: object
+    ComentarioProducto:
+      description: Comentario de un cliente sobre un producto (subcolección `productos/{productoId}/comentarios`). La moderación lo oculta con `visible=false`.
+      properties:
+        email:
+          type: string
+        fotoUrl:
+          type: string
+        calificacion:
+          type: integer
+        texto:
+          type: string
+        fecha:
+          type: string
+          format: date-time
+        visible:
+          type: boolean
+        fechaModificacion:
+          type: string
+          format: date-time
+      type: object
+    Promocion:
+      description: Promoción de descuento sobre el catálogo.
+      required:
+        - promocionId
+        - nombre
+        - tipo
+        - valorDescuento
+        - fechaInicio
+        - fechaFin
+        - estado
+      properties:
+        promocionId:
+          type: string
+        nombre:
+          type: string
+        descripcion:
+          type: string
+        tipo:
+          type: string
+          description: Tipo de descuento (porcentaje o monto fijo).
+        valorDescuento:
+          type: number
+        fechaInicio:
+          type: string
+          format: date-time
+        fechaFin:
+          type: string
+          format: date-time
+        estado:
+          type: string
+        fechaRegistro:
+          type: string
+          format: date-time
+        fechaModificacion:
+          type: string
+          format: date-time
+      type: object
+    ItemCompra:
+      type: object
+      required:
+        - productoId
+        - cantidad
+      properties:
+        productoId:
+          type: string
+        nombre:
+          type: string
+        categoria:
+          type: string
+        cantidad:
+          type: integer
+    SolicitudCompra:
+      description: 'Solicitud de reposición de inventario a un proveedor (colección `comprasEwa`, ID autogenerado). Ciclo: `PENDIENTE` → `ACEPTADO` → `INGRESADO`, o `RECHAZADO` con `motivoRechazo`. Al pasar a `INGRESADO` se suma la cantidad al `stock` de cada producto.'
+      required:
+        - estado
+        - items
+      properties:
+        compraId:
+          type: string
+        estado:
+          type: string
+          enum:
+            - PENDIENTE
+            - ACEPTADO
+            - RECHAZADO
+            - INGRESADO
+        idProveedor:
+          type: string
+        nombreProveedor:
+          type: string
+        solicitadoPor:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ItemCompra'
+        motivoRechazo:
+          type: string
+        fecha:
+          type: string
+          format: date-time
+        fechaCreacion:
+          type: string
+          format: date-time
+        fechaEntrega:
+          type: string
+          format: date-time
+      type: object
+    Credito:
+      description: Solicitud de crédito para comprar un producto. La crea la app móvil; la web solo la revisa (`Pendiente` → `En revisión` → `Aprobado`/`Rechazado`). Al pasar a `Aprobado` se dispara la Cloud Function `descontarStockAlAprobar`.
+      required:
+        - estado
+        - productoId
+        - cantidad
+        - cuotaMensual
+        - plazoMeses
+      properties:
+        usuarioId:
+          type: string
+        empleadoId:
+          type: string
+        usuario:
+          type: string
+        productoId:
+          type: string
+          description: Referencia a `productos/{productoId}`.
+        nombreProducto:
+          type: string
+        imagenProductoURL:
+          type: string
+        cantidad:
+          type: integer
+          description: Unidades del producto solicitadas.
+        plazoMeses:
+          type: integer
+        cuotaMensual:
+          type: number
+        cuotasPagadas:
+          type: integer
+        estado:
+          type: string
+          description: '`Pendiente`, `En revisión`, `Aprobado` o `Rechazado`.'
+        revisadoPor:
+          type: string
+        revisorEmail:
+          type: string
+        revisorFotoTemp:
+          type: string
+        Respuesta:
+          type: string
+          description: Observaciones del revisor.
+        fechaRegistro:
+          type: string
+          format: date-time
+        fechaInicioRevision:
+          type: string
+          format: date-time
+        fechaRevision:
+          type: string
+          format: date-time
+      type: object
+    Cuota:
+      description: Cuota mensual de un crédito. La genera la app móvil; la web las consulta filtrando por `creditoId`.
+      required:
+        - creditoId
+      additionalProperties: true
+      properties:
+        creditoId:
+          type: string
+          description: Referencia a `creditos/{creditoId}`.
+      type: object
+    Reclamo:
+      description: Reclamo de garantía de un cliente. Lo crea la app móvil; la web lo revisa (`Pendiente` → `En revisión` → `Revisado`).
+      required:
+        - estado
+      additionalProperties: true
+      properties:
+        solicitante:
+          type: string
+        asunto:
+          type: string
+        estado:
+          type: string
+          enum:
+            - Pendiente
+            - En revisión
+            - Revisado
+        fechaEmision:
+          type: string
+          format: date-time
+        evidenciaUrl:
+          type: string
+        respuesta:
+          type: string
+        revisadoPor:
+          type: string
+        revisorEmail:
+          type: string
+        revisorFotoTemp:
+          type: string
+        fechaInicioRevision:
+          type: string
+          format: date-time
+      type: object
+    Sugerencia:
+      description: Sugerencia enviada por un usuario. La web solo la lista.
+      properties:
+        nombreUsuario:
+          type: string
+        fotoUsuario:
+          type: string
+        asunto:
+          type: string
+        descripcion:
+          type: string
+        fechaRegistro:
+          type: string
+          format: date-time
+      type: object
+    ConfiguracionGlobal:
+      description: 'Parámetros generales del sistema. Único documento: `configuraciones/config_global`.'
+      properties:
+        tiempoInactividad:
+          type: integer
+          description: Minutos de inactividad antes de cerrar la sesión (por defecto 15).
+        porcentajeInteres:
+          type: number
+        porcSueldo:
+          type: number
+          description: Porcentaje del salario que define el límite de crédito.
+        diaFechaCobro:
+          type: integer
+        StockMinimoAviso:
+          type: integer
+          description: Stock a partir del cual se avisa de bajo inventario.
+        StockMinimoCierre:
+          type: integer
+          description: Stock a partir del cual la Cloud Function desactiva el producto.
+        CorreoNotificaciones:
+          type: string
+          format: email
+        mensajeAprobado:
+          type: string
+        mensajeRechazado:
+          type: string
+        mensajeEspera:
+          type: string
+      type: object
+    PlazoCredito:
+      description: Plazo de crédito disponible (subcolección `configuraciones/config_global/plazos`, ID `PLZ-nn`).
+      required:
+        - plazoId
+        - plazoMeses
+      properties:
+        plazoId:
+          type: string
+        plazoMeses:
+          type: integer
+        fechaCreacion:
+          type: string
+          format: date-time
+      type: object
+    GarantiaConfig:
+      description: Política de garantía (subcolección `configuraciones/config_global/garantias`, ID `GAR-nn`).
+      required:
+        - garantiaId
+      properties:
+        garantiaId:
+          type: string
+        diasCobertura:
+          type: integer
+          description: Tiene prioridad sobre `mesesCobertura`.
+        mesesCobertura:
+          type: integer
+      type: object
+    ActividadLog:
+      description: Registro de auditoría. Lo escribe `registrarAuditoria()` en cada creación, edición, activación o eliminación.
+      required:
+        - accion
+        - modulo
+        - descripcion
+      properties:
+        logId:
+          type: string
+          description: '`LOG-` + 6 primeros caracteres del ID del documento.'
+        accion:
+          type: string
+          description: CREACIÓN, EDICIÓN, ACTIVACIÓN, ELIMINACIÓN, INICIO REVISIÓN, APROBADO, ACCESO, ALERTA, EXPORTACIÓN…
+        modulo:
+          type: string
+        descripcion:
+          type: string
+        idReferencia:
+          type: string
+        correo:
+          type: string
+        nombreUsuario:
+          type: string
+        rolUsuario:
+          type: string
+        fechaAccion:
+          type: string
+          format: date-time
+        fecha:
+          type: string
+          description: Fecha legible (es-HN).
+        hora:
+          type: string
+          description: Hora legible (es-HN).
+      type: object

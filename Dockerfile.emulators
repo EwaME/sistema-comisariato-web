@@ -1,0 +1,40 @@
+# Firebase Emulator Suite para el entorno de DESARROLLO (docker-compose.dev.yml).
+# Emula Firestore, Authentication, Storage y Cloud Functions en local, así que el
+# entorno de desarrollo no toca ningún proyecto de Firebase en la nube.
+FROM node:24-trixie-slim
+
+# Firestore/Storage se emulan con Java; curl lo usa el entrypoint para esperar el arranque
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends default-jre-headless curl ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN npm install -g firebase-tools \
+    && firebase --version
+
+WORKDIR /app
+
+# Dependencias de las Cloud Functions primero (aprovecha la cache de capas)
+COPY src/cloudFunctions/functions/package.json src/cloudFunctions/functions/package-lock.json src/cloudFunctions/functions/
+RUN cd src/cloudFunctions/functions && npm ci
+
+# Descarga los binarios de los emuladores ahora, para que el arranque no dependa de la red
+RUN firebase setup:emulators:firestore \
+    && firebase setup:emulators:ui \
+    && (firebase setup:emulators:storage || true)
+
+COPY firebase.json ./
+COPY src/cloudFunctions/functions/index.js src/cloudFunctions/functions/
+COPY docker/seed.mjs docker/emulators-entrypoint.sh ./
+RUN chmod +x emulators-entrypoint.sh
+
+ENV GCLOUD_PROJECT=demo-crediflow \
+    FIREBASE_PROJECT=demo-crediflow \
+    CI=true
+
+# UI 4000 | Firestore 8082 | Auth 9099 | Storage 9199 | Functions 5001
+EXPOSE 4000 8082 9099 9199 5001
+
+HEALTHCHECK --interval=10s --timeout=3s --start-period=60s --retries=12 \
+    CMD test -f /tmp/emulators-ready
+
+ENTRYPOINT ["./emulators-entrypoint.sh"]
