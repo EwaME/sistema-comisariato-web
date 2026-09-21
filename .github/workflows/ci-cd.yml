@@ -64,14 +64,30 @@ jobs:
       name: produccion
       url: https://crediflow.duckdns.org
     steps:
+      # Falla con un mensaje claro si aún no se configuró el acceso al droplet
+      - name: Verificar secretos del despliegue
+        env:
+          DO_HOST: ${{ secrets.DO_HOST }}
+          DO_USER: ${{ secrets.DO_USER }}
+          DO_SSH_KEY: ${{ secrets.DO_SSH_KEY }}
+        run: |
+          faltan=""
+          for v in DO_HOST DO_USER DO_SSH_KEY; do
+            [ -z "${!v}" ] && faltan="$faltan $v"
+          done
+          if [ -n "$faltan" ]; then
+            echo "::error::Faltan secretos del repositorio:$faltan. Créalos en Settings > Secrets and variables > Actions (ver DEPLOY.md, paso 10)."
+            exit 1
+          fi
+
       - name: Actualizar y reconstruir en el droplet
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.DO_HOST }}
           username: ${{ secrets.DO_USER }}
           key: ${{ secrets.DO_SSH_KEY }}
-          script_stop: true
           script: |
+            set -e
             cd ~/crediflow-prod
             git fetch origin main
             git reset --hard origin/main
