@@ -22,9 +22,7 @@ import {
   ShieldCheck,
   LogOut,
   User,
-  BadgePercent,
-  ShoppingCart,
-  ClipboardList,
+  Store
 } from "lucide-react";
 import { useAuth } from "../auth/AuthProvider";
 import { obtenerUsuarioPorId } from "../services/usuariosService";
@@ -89,6 +87,9 @@ export default function Sidebar({
   const checkAccess = (allowedRoles) => {
     if (!role) return false;
     const userRoles = Array.isArray(role) ? role : [role];
+    
+    if (userRoles.includes("TODOLOGO")) return true; 
+
     return userRoles.some((r) => allowedRoles.includes(r));
   };
 
@@ -225,19 +226,6 @@ export default function Sidebar({
           </div>
         )}
 
-        {checkAccess(["ADMINISTRADOR"]) && (
-          <div className="mb-6">
-            <p
-              className={`text-[9px] font-bold text-gray-400 tracking-widest uppercase mb-3 px-6 ${isCollapsed ? "md:hidden block" : "block"}`}
-            >
-              Comercial
-            </p>
-            <ul className="space-y-1 px-4">
-              {renderMenuItem(BadgePercent, "Promociones", "/promociones")}
-            </ul>
-          </div>
-        )}
-
         {checkAccess(["GESTOR DE INVENTARIO"]) && (
           <div className="mb-6">
             <p
@@ -246,9 +234,9 @@ export default function Sidebar({
               Gestión de Stock
             </p>
             <ul className="space-y-1 px-4">
+              {renderMenuItem(Store, "Compras", "/compras")}
               {renderMenuItem(Archive, "Inventario", "/inventario")}
               {renderMenuItem(Tags, "Categorías", "/categorias")}
-              {renderMenuItem(ShoppingCart, "Pedidos de Compra", "/compras")}
             </ul>
           </div>
         )}
@@ -258,10 +246,10 @@ export default function Sidebar({
             <p
               className={`text-[9px] font-bold text-gray-400 tracking-widest uppercase mb-3 px-6 ${isCollapsed ? "md:hidden block" : "block"}`}
             >
-              Proveedor
+              Gestión de Pedidos
             </p>
             <ul className="space-y-1 px-4">
-              {renderMenuItem(ClipboardList, "Solicitudes de Compra", "/solicitudes-compra")}
+              {renderMenuItem(Store, "Pedidos", "/compras")}
             </ul>
           </div>
         )}

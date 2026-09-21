@@ -9,6 +9,8 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [role, setRole] = useState(null); 
     const [loading, setLoading] = useState(true);
+    
+    const [initialLoad, setInitialLoad] = useState(true);
 
     const getUserDataFromFirestore = async (email) => {
         try {
@@ -43,6 +45,7 @@ export const AuthProvider = ({ children }) => {
                 setRole(null);
             }
             setLoading(false);
+            setInitialLoad(false); 
         });
 
         return () => unsubscribe();
@@ -51,9 +54,22 @@ export const AuthProvider = ({ children }) => {
     const login = (email, password) => signInWithEmailAndPassword(auth, email, password);
     const logout = () => signOut(auth);
 
+    if (initialLoad) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC]">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="w-10 h-10 rounded-full border-4 border-t-[#7C3AED] border-[#EAE4F5] animate-spin"></div>
+                    <div className="text-[#020817] font-bold tracking-widest uppercase text-[10px] animate-pulse">
+                        Iniciando CrediFlow...
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <AuthContext.Provider value={{ user, role, login, logout, loading }}>
-            {!loading && children}
+            {children}
         </AuthContext.Provider>
     );
 };

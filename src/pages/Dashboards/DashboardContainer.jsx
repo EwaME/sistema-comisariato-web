@@ -4,6 +4,7 @@ import DashboardAcreditador from "./Dashboard_Acreditador";
 import DashboardAnalistaGlobal from "./Dashboard_Inicio";
 import DashboardInventario from "./Dashboard_Gestor_Inventario";
 import DashboardModerador from "./Dashboard_Moderador";
+import DashboardProveedor from "./Dashboard_Proveedor";
 import { Loader2 } from "lucide-react";
 
 const DashboardContainer = () => {
@@ -42,8 +43,11 @@ const DashboardContainer = () => {
   return (
     <>
       {checkAccess(["ACREDITADOR"]) && <DashboardAcreditador />}{" "}
-      {checkAccess(["ADMINISTRADOR", "ANALISTA"]) && (
+      {checkAccess(["ADMINISTRADOR", "ANALISTA", "TODOLOGO"]) && (
         <DashboardAnalistaGlobal />
+      )}
+      {checkAccess(["PROVEEDOR"]) && (
+        <DashboardProveedor />
       )}
       {checkAccess(["GESTOR DE INVENTARIO"]) && <DashboardInventario />}
       {checkAccess(["MODERADOR"]) && <DashboardModerador />}
@@ -53,6 +57,7 @@ const DashboardContainer = () => {
         "ACREDITADOR",
         "ADMINISTRADOR",
         "ANALISTA",
+        "PROVEEDOR",
       ]) && (
         <div className="flex flex-col items-center justify-center min-h-screen bg-[#F8F9FF] p-8">
           <h2 className="text-xl text-[#020817] font-light italic mb-2">
