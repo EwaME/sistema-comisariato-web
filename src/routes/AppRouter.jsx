@@ -47,6 +47,15 @@ import RevisionReclamo from "../pages/Manage/Reclamos/Gest_Revision.jsx";
 import GuiasyAyudas from "../pages/GuiasyAyudas";
 import DashboardContainer from "../pages/Dashboards/DashboardContainer.jsx";
 
+import Promociones from "../pages/Manage/Promociones/Gest_Promociones";
+import CrearPromocion from "../pages/Manage/Promociones/CrearPromocion";
+
+import Compras from "../pages/Manage/Compras/Gest_Compras";
+import CrearCompra from "../pages/Manage/Compras/CrearCompra";
+import DetalleCompra from "../pages/Manage/Compras/DetalleCompra";
+import SolicitudesCompra from "../pages/Manage/Compras/Gest_SolicitudesCompra";
+import RevisionSolicitud from "../pages/Manage/Compras/RevisionSolicitud";
+
 export default function AppRouter() {
   const TODOS_WEB = [
     "ADMINISTRADOR",
@@ -54,6 +63,7 @@ export default function AppRouter() {
     "ANALISTA",
     "GESTOR DE INVENTARIO",
     "MODERADOR",
+    "PROVEEDOR",
   ];
 
   const ADMIN_ONLY = ["ADMINISTRADOR"];
@@ -75,7 +85,7 @@ export default function AppRouter() {
         }
       >
         <Route index element={<Navigate to="/dashboard" replace />} />
-        
+
         {/* 1. General */}
         <Route
           path="dashboard"
@@ -146,7 +156,93 @@ export default function AppRouter() {
           }
         />
 
-        {/* 4. Gestión de Departamentos */}
+        {/* 4. Gestión de Compras (GESTOR DE INVENTARIO) */}
+        <Route
+          path="compras"
+          element={
+            <ProtectedRoute allowedRoles={["GESTOR DE INVENTARIO"]}>
+              <Compras />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="compras/nuevo"
+          element={
+            <ProtectedRoute allowedRoles={["GESTOR DE INVENTARIO"]}>
+              <CrearCompra />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="compras/editar/:id"
+          element={
+            <ProtectedRoute allowedRoles={["GESTOR DE INVENTARIO"]}>
+              <CrearCompra />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="compras/detalle/:id"
+          element={
+            <ProtectedRoute allowedRoles={["GESTOR DE INVENTARIO"]}>
+              <DetalleCompra />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* 4b. Solicitudes de Compra (PROVEEDOR) */}
+        <Route
+          path="solicitudes-compra"
+          element={
+            <ProtectedRoute allowedRoles={["PROVEEDOR"]}>
+              <SolicitudesCompra />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="solicitudes-compra/revision/:id"
+          element={
+            <ProtectedRoute allowedRoles={["PROVEEDOR"]}>
+              <RevisionSolicitud />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="solicitudes-compra/detalle/:id"
+          element={
+            <ProtectedRoute allowedRoles={["PROVEEDOR"]}>
+              <DetalleCompra />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* 4c. Gestión de Promociones */}
+        <Route
+          path="promociones"
+          element={
+            <ProtectedRoute allowedRoles={ADMIN_ONLY}>
+              <Promociones />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="promociones/nueva"
+          element={
+            <ProtectedRoute allowedRoles={ADMIN_ONLY}>
+              <CrearPromocion />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="promociones/editar/:id"
+          element={
+            <ProtectedRoute allowedRoles={ADMIN_ONLY}>
+              <CrearPromocion />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* 5. Gestión de Departamentos */}
         <Route
           path="departamentos"
           element={

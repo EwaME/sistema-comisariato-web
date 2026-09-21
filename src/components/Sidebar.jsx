@@ -22,6 +22,9 @@ import {
   ShieldCheck,
   LogOut,
   User,
+  BadgePercent,
+  ShoppingCart,
+  ClipboardList,
 } from "lucide-react";
 import { useAuth } from "../auth/AuthProvider";
 import { obtenerUsuarioPorId } from "../services/usuariosService";
@@ -177,6 +180,7 @@ export default function Sidebar({
           "ANALISTA",
           "GESTOR DE INVENTARIO",
           "MODERADOR",
+          "PROVEEDOR",
         ]) && (
           <div className="mb-6">
             <p
@@ -221,6 +225,19 @@ export default function Sidebar({
           </div>
         )}
 
+        {checkAccess(["ADMINISTRADOR"]) && (
+          <div className="mb-6">
+            <p
+              className={`text-[9px] font-bold text-gray-400 tracking-widest uppercase mb-3 px-6 ${isCollapsed ? "md:hidden block" : "block"}`}
+            >
+              Comercial
+            </p>
+            <ul className="space-y-1 px-4">
+              {renderMenuItem(BadgePercent, "Promociones", "/promociones")}
+            </ul>
+          </div>
+        )}
+
         {checkAccess(["GESTOR DE INVENTARIO"]) && (
           <div className="mb-6">
             <p
@@ -231,6 +248,20 @@ export default function Sidebar({
             <ul className="space-y-1 px-4">
               {renderMenuItem(Archive, "Inventario", "/inventario")}
               {renderMenuItem(Tags, "Categorías", "/categorias")}
+              {renderMenuItem(ShoppingCart, "Pedidos de Compra", "/compras")}
+            </ul>
+          </div>
+        )}
+
+        {checkAccess(["PROVEEDOR"]) && (
+          <div className="mb-6">
+            <p
+              className={`text-[9px] font-bold text-gray-400 tracking-widest uppercase mb-3 px-6 ${isCollapsed ? "md:hidden block" : "block"}`}
+            >
+              Proveedor
+            </p>
+            <ul className="space-y-1 px-4">
+              {renderMenuItem(ClipboardList, "Solicitudes de Compra", "/solicitudes-compra")}
             </ul>
           </div>
         )}

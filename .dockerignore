@@ -1,0 +1,12 @@
+node_modules
+dist
+dist-ssr
+.git
+.vscode
+.idea
+*.log
+.env
+.env.*
+!.env.example
+
+src/cloudFunctions
