@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Search, User, X } from 'lucide-react';
 import { obtenerUsuarios, asignarRolWebYAuth } from '../../../services/usuariosService';
+import { asegurarRolesDelSistema } from '../../../services/rolesService';
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from '../../../firebase/firebase';
 import { getAuth } from 'firebase/auth';
@@ -33,6 +34,7 @@ export default function CrearUsuario() {
                 const activos = data.filter(u => u.estado === 'ACTIVO');
                 setUsuariosBase(activos);
 
+                await asegurarRolesDelSistema();
                 const qRoles = query(collection(db, 'roles'), where('estado', '==', 'ACTIVO'));
                 const rolesSnap = await getDocs(qRoles);
                 

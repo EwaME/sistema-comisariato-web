@@ -21,6 +21,7 @@ import {
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "../../../firebase/firebase";
 import { getAuth } from "firebase/auth";
+import { asegurarRolesDelSistema } from "../../../services/rolesService";
 
 export default function Gest_Usuarios() {
   const [usuarios, setUsuarios] = useState([]);
@@ -79,6 +80,7 @@ export default function Gest_Usuarios() {
 
   const cargarRoles = async () => {
     try {
+      await asegurarRolesDelSistema();
       const q = query(collection(db, "roles"), where("estado", "==", "ACTIVO"));
       const querySnapshot = await getDocs(q);
       const rolesFiltrados = querySnapshot.docs

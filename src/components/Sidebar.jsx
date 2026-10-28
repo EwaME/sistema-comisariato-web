@@ -23,8 +23,6 @@ import {
   LogOut,
   User,
   Store,
-  Activity,
-  TrendingUp,
   FileSpreadsheet
 } from "lucide-react";
 import { useAuth } from "../auth/AuthProvider";
@@ -185,8 +183,8 @@ export default function Sidebar({
           "GESTOR DE INVENTARIO",
           "MODERADOR",
           "PROVEEDOR",
-          "SUPERVISOR TECNICO",
-          "GERENTE",
+          "IT",
+          "GERENCIA",
         ]) && (
           <div className="mb-6">
             <p
@@ -200,23 +198,7 @@ export default function Sidebar({
           </div>
         )}
 
-        {checkAccess(["SUPERVISOR TECNICO", "GERENTE", "ADMINISTRADOR"]) && (
-          <div className="mb-6">
-            <p
-              className={`text-[9px] font-bold text-gray-400 tracking-widest uppercase mb-3 px-6 ${isCollapsed ? "md:hidden block" : "block"}`}
-            >
-              Supervisión y Análisis
-            </p>
-            <ul className="space-y-1 px-4">
-              {checkAccess(["SUPERVISOR TECNICO", "ADMINISTRADOR"]) &&
-                renderMenuItem(Activity, "Dashboard Técnico", "/dashboard-tecnico")}
-              {checkAccess(["GERENTE", "ADMINISTRADOR"]) &&
-                renderMenuItem(TrendingUp, "Dashboard Gerencial", "/dashboard-gerencial")}
-            </ul>
-          </div>
-        )}
-
-        {checkAccess(["ADMINISTRADOR", "MODERADOR"]) && (
+        {checkAccess(["ADMINISTRADOR", "GERENCIA", "MODERADOR"]) && (
           <div className="mb-6">
             <p
               className={`text-[9px] font-bold text-gray-400 tracking-widest uppercase mb-3 px-6 ${isCollapsed ? "md:hidden block" : "block"}`}
@@ -224,15 +206,15 @@ export default function Sidebar({
               Administración
             </p>
             <ul className="space-y-1 px-4">
-              {checkAccess(["ADMINISTRADOR"]) &&
+              {checkAccess(["ADMINISTRADOR", "GERENCIA"]) &&
                 renderMenuItem(UserSquare, "Empleados", "/empleados")}
-              {checkAccess(["ADMINISTRADOR", "MODERADOR"]) &&
+              {checkAccess(["ADMINISTRADOR", "GERENCIA", "MODERADOR"]) &&
                 renderMenuItem(Users, "Usuarios", "/usuarios")}
             </ul>
           </div>
         )}
 
-        {checkAccess(["ADMINISTRADOR"]) && (
+        {checkAccess(["ADMINISTRADOR", "GERENCIA"]) && (
           <div className="mb-6">
             <p
               className={`text-[9px] font-bold text-gray-400 tracking-widest uppercase mb-3 px-6 ${isCollapsed ? "md:hidden block" : "block"}`}
@@ -303,7 +285,7 @@ export default function Sidebar({
           </div>
         )}
 
-        {checkAccess(["ADMINISTRADOR", "ANALISTA"]) && (
+        {checkAccess(["ADMINISTRADOR", "GERENCIA", "ANALISTA", "IT"]) && (
           <div className="mb-6">
             <p
               className={`text-[9px] font-bold text-gray-400 tracking-widest uppercase mb-3 px-6 ${isCollapsed ? "md:hidden block" : "block"}`}
@@ -311,10 +293,11 @@ export default function Sidebar({
               Gestión de Sistema
             </p>
             <ul className="space-y-1 px-4">
-              {renderMenuItem(BarChart3, "Reportes", "/reportes")}
-              {checkAccess(["ADMINISTRADOR"]) &&
+              {checkAccess(["ADMINISTRADOR", "GERENCIA", "ANALISTA"]) &&
+                renderMenuItem(BarChart3, "Reportes", "/reportes")}
+              {checkAccess(["ADMINISTRADOR", "GERENCIA"]) &&
                 renderMenuItem(Settings, "Configuraciones", "/configuraciones")}
-              {checkAccess(["ADMINISTRADOR"]) &&
+              {checkAccess(["ADMINISTRADOR", "GERENCIA", "IT"]) &&
                 renderMenuItem(FileSpreadsheet, "Importar Excel", "/importaciones")}
               {renderMenuItem(ShieldCheck, "Auditorías", "/auditorias")}
             </ul>

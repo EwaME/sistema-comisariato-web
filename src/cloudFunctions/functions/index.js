@@ -33,6 +33,14 @@ exports.descontarStockAlAprobar = onDocumentUpdated(
 
     if (!fueAprobado) return null;
 
+    // Los créditos importados desde Excel son históricos: la importación marca ultimaImportacionId y no debe tocar el stock.
+    if (
+      dataDespues.ultimaImportacionId &&
+      dataDespues.ultimaImportacionId !== dataAntes.ultimaImportacionId
+    ) {
+      return null;
+    }
+
     const inicio = Date.now();
     const referencia = event.params.creditoId;
     const { productoId, cantidad } = dataDespues;

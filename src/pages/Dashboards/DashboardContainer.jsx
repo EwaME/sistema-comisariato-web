@@ -53,8 +53,8 @@ const DashboardContainer = () => {
       )}
       {checkAccess(["GESTOR DE INVENTARIO"]) && <DashboardInventario />}
       {checkAccess(["MODERADOR"]) && <DashboardModerador />}
-      {checkAccess(["SUPERVISOR TECNICO"]) && <DashboardTecnico />}
-      {checkAccess(["GERENTE"]) && <DashboardGerencial />}
+      {checkAccess(["IT"]) && <DashboardTecnico />}
+      {checkAccess(["GERENCIA"]) && <DashboardGerencial />}
       {!checkAccess([
         "MODERADOR",
         "GESTOR DE INVENTARIO",
@@ -62,8 +62,8 @@ const DashboardContainer = () => {
         "ADMINISTRADOR",
         "ANALISTA",
         "PROVEEDOR",
-        "SUPERVISOR TECNICO",
-        "GERENTE",
+        "IT",
+        "GERENCIA",
       ]) && (
         <div className="flex flex-col items-center justify-center min-h-screen bg-[#F8F9FF] p-8">
           <h2 className="text-xl text-[#020817] font-light italic mb-2">

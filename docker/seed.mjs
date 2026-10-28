@@ -29,8 +29,8 @@ const ROLES = [
   ["GESTOR DE INVENTARIO", "Administra productos, categorías y compras."],
   ["MODERADOR", "Modera usuarios, sugerencias y comentarios."],
   ["PROVEEDOR", "Atiende las solicitudes de compra."],
-  ["SUPERVISOR TECNICO", "Supervisa el uso y funcionamiento del sistema (dashboard técnico)."],
-  ["GERENTE", "Analiza el desempeño del proceso de créditos e inventario (dashboard gerencial)."],
+  ["IT", "Supervisa el funcionamiento técnico del sistema: dashboard técnico, auditorías e importaciones."],
+  ["GERENCIA", "Mismos permisos que Administración; su dashboard es el gerencial (desempeño de créditos e inventario)."],
   ["TODOLOGO", "Acceso total (solo desarrollo y pruebas)."],
 ];
 
@@ -43,8 +43,8 @@ const USUARIOS = [
   ["inventario@crediflow.test", "Iván Inventario", "GESTOR DE INVENTARIO", "Encargado de Bodega", "Inventario"],
   ["moderador@crediflow.test", "Marta Moderadora", "MODERADOR", "Moderador", "Administración"],
   ["proveedor@crediflow.test", "Pedro Proveedor", "PROVEEDOR", "Proveedor", "Inventario"],
-  ["supervisor@crediflow.test", "Sofía Supervisora", "SUPERVISOR TECNICO", "Supervisor Técnico", "Administración"],
-  ["gerente@crediflow.test", "Gabriel Gerente", "GERENTE", "Gerente", "Gerencia"],
+  ["it@crediflow.test", "Sofía Soporte", "IT", "Supervisor Técnico", "Administración"],
+  ["gerencia@crediflow.test", "Gabriel Gerente", "GERENCIA", "Gerente", "Gerencia"],
 ];
 
 const DEPARTAMENTOS = ["Gerencia", "Administración", "Créditos", "Inventario"];

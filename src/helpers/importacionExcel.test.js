@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import * as XLSX from "xlsx";
-import { TABLAS, parsearFecha, parsearNumero, procesarFilas, resumenDeProceso, resumirImportaciones } from "./importacionExcel";
+import { TABLAS, parsearFecha, parsearNumero, procesarFilas, resumenDeProceso, resumirImportaciones, verificarEncabezados } from "./importacionExcel";
 import { EJEMPLOS } from "./ejemplosImportacion";
 
 const AHORA = new Date(2026, 9, 27, 15, 30);
@@ -216,5 +216,141 @@ describe("resumirImportaciones (indicador del dashboard técnico)", () => {
   it("suma todas las importaciones o filtra por tabla", () => {
     expect(resumirImportaciones(lista, "todas")).toEqual({ importaciones: 3, insertadas: 12, actualizadas: 0, rechazadas: 6, omitidas: 10 });
     expect(resumirImportaciones(lista, "productos")).toEqual({ importaciones: 2, insertadas: 7, actualizadas: 0, rechazadas: 4, omitidas: 9 });
+  });
+});
+
+describe("todos los errores de la fila", () => {
+  it("un producto con varios problemas los reporta juntos, no solo el primero", () => {
+    const mala = { productoId: "PRD-900", nombre: "", categoriaId: "CAT-999", precioContado: -5, precioCredito: "abc", stock: -1, garantiaMeses: "x", activo: "SI", descripcion: "", fechaAlta: "31/02/2026" };
+    const r = importar("productos", [mala], nuevaBase());
+    expect(r.rechazadas).toHaveLength(1);
+    expect(r.rechazadas[0].motivos).toEqual([
+      "nombre es obligatorio",
+      "la categoría CAT-999 no existe",
+      "precioContado debe ser mayor o igual a 0",
+      "precioCredito debe ser un número (valor recibido: “abc”)",
+      "stock debe ser mayor o igual a 0",
+      "garantiaMeses debe ser un número entero (valor recibido: “x”)",
+      expect.stringContaining("fechaAlta inválida"),
+    ]);
+    expect(r.rechazadas[0].motivo).toContain("; ");
+    // cada error indica a qué paso del análisis pertenece y qué campo lo causó
+    expect(r.rechazadas[0].errores.map((e) => `${e.paso}:${e.campo}`)).toEqual([
+      "obligatorio:nombre", "referencia:categoriaId", "regla:precioContado", "formato:precioCredito",
+      "regla:stock", "formato:garantiaMeses", "formato:fechaAlta",
+    ]);
+  });
+
+  it("un crédito con varios problemas los reporta juntos", () => {
+    const mala = { creditoId: "CRD-X1", empleadoId: "EMP-099", productoId: "PRD-777", cantidad: 0, plazoMeses: 12, cuotaMensual: 100, totalCredito: 5000, cuotasPagadas: 20, estado: "Inventado", fechaSolicitud: "", fechaResolucion: "" };
+    const r = importar("creditos", [mala], nuevaBase());
+    const motivos = r.rechazadas[0].motivos;
+    expect(motivos.length).toBe(7);
+    expect(motivos.join("|")).toMatch(/empleado EMP-099 no existe/);
+    expect(motivos.join("|")).toMatch(/producto PRD-777 no existe/);
+    expect(motivos.join("|")).toMatch(/cantidad debe ser mayor o igual a 1/);
+    expect(motivos.join("|")).toMatch(/no coincide con cuotaMensual × plazoMeses/);
+    expect(motivos.join("|")).toMatch(/supera el plazo/);
+    expect(motivos.join("|")).toMatch(/estado inválido/);
+    expect(motivos.join("|")).toMatch(/fechaSolicitud es obligatorio/);
+  });
+
+  it("no inventa errores derivados de un campo que ya falló", () => {
+    const fila = { ...EJEMPLOS.creditos[0], creditoId: "CRD-X2", plazoMeses: "doce", estado: "Liquidado" };
+    const r = importar("creditos", [fila], nuevaBase());
+    expect(r.rechazadas[0].motivos).toEqual(["plazoMeses debe ser un número entero (valor recibido: “doce”)"]);
+  });
+});
+
+describe("producto con el mismo nombre", () => {
+  const existentes = () => new Map([["PRD-001", { nombre: "Refrigeradora 12 pies", nombreNormalizado: "refrigeradora 12 pies" }]]);
+  const fila = (id, nombre) => ({ ...EJEMPLOS.productos[0], productoId: id, nombre });
+  const correr = (filas) => procesarFilas("productos", filas, { ...baseCtx(), existentes: existentes() });
+
+  it("rechaza otro ID con el nombre de uno existente, ignorando tildes, mayúsculas y espacios", () => {
+    const r = correr([fila("PRD-500", "  REFRIGERADORA   12 pies ")]);
+    expect(r.rechazadas[0].motivos).toEqual(["ya existe un producto con el mismo nombre en el sistema (PRD-001)"]);
+  });
+
+  it("el mismo ID con el mismo nombre no es duplicado", () => {
+    const r = correr([fila("PRD-001", "Refrigeradora 12 pies")]);
+    expect(r.rechazadas).toHaveLength(0);
+  });
+
+  it("rechaza el segundo producto del archivo con un nombre ya usado por otro ID del archivo", () => {
+    const r = correr([fila("PRD-501", "Sofá cama"), fila("PRD-502", "sofa cama")]);
+    expect(r.insertar.map((x) => x.id)).toEqual(["PRD-501"]);
+    expect(r.rechazadas[0].motivos).toEqual(["el nombre ya lo usa otro producto de este archivo (PRD-501)"]);
+  });
+
+  it("si la primera fila falló por otra causa, no bloquea el nombre", () => {
+    const r = correr([{ ...fila("PRD-503", "Plancha"), stock: -1 }, fila("PRD-504", "Plancha")]);
+    expect(r.insertar.map((x) => x.id)).toEqual(["PRD-504"]);
+  });
+});
+
+describe("coherencia del crédito", () => {
+  const credito = (extra) => ({ ...EJEMPLOS.creditos[0], creditoId: "CRD-C1", ...extra });
+  it("acepta total = cuota × plazo y tolera el redondeo a centavos", () => {
+    expect(importar("creditos", [credito({ cuotaMensual: 817.33, totalCredito: 9807.96 })], nuevaBase()).rechazadas).toHaveLength(0);
+    expect(importar("creditos", [credito({ cuotaMensual: 817.33, totalCredito: 9808 })], nuevaBase()).rechazadas).toHaveLength(0);
+  });
+  it("rechaza si el total no corresponde a cuota × plazo", () => {
+    const r = importar("creditos", [credito({ totalCredito: 9000 })], nuevaBase());
+    expect(r.rechazadas[0].motivos[0]).toMatch(/9000.*no coincide.*9804/);
+  });
+});
+
+describe("compatibilidad del archivo", () => {
+  const completa = EJEMPLOS.productos[0];
+  const sin = (fila, ...claves) => Object.fromEntries(Object.entries(fila).filter(([k]) => !claves.includes(k)));
+
+  it("es compatible con las columnas de la plantilla, sin importar mayúsculas, tildes ni separadores", () => {
+    const fila = { ...sin(completa, "precioContado"), "Precio Contado": 1 };
+    expect(verificarEncabezados("productos", [fila]).compatible).toBe(true);
+  });
+
+  it("no es compatible si falta una columna obligatoria", () => {
+    const r = verificarEncabezados("productos", [sin(completa, "stock")]);
+    expect(r.compatible).toBe(false);
+    expect(r.faltantes).toEqual(["stock"]);
+  });
+
+  it("no es compatible si una columna viene repetida", () => {
+    const r = verificarEncabezados("productos", [{ ...completa, "Precio Contado": 1 }]);
+    expect(r.compatible).toBe(false);
+    expect(r.repetidas).toEqual(["precioContado"]);
+  });
+
+  it("las columnas opcionales pueden faltar y las ajenas solo se reportan como extras", () => {
+    const base = sin(completa, "descripcion", "fechaAlta", "garantiaMeses", "activo");
+    const r = verificarEncabezados("productos", [{ ...base, Notas: "x" }]);
+    expect(r.compatible).toBe(true);
+    expect(r.extras).toEqual(["Notas"]);
+  });
+
+  it("un encabezado distinto como 'Precio Contado (L)' hace incompatible el archivo", () => {
+    expect(verificarEncabezados("productos", [{ ...sin(completa, "precioContado"), "Precio Contado (L)": 5 }]).compatible).toBe(false);
+  });
+});
+
+describe("advertencias", () => {
+  const fila = (extra) => ({ ...EJEMPLOS.productos[0], productoId: "PRD-ADV", nombre: "Producto de regalo", ...extra });
+
+  it("un precioContado de 0 se importa con una advertencia, sin rechazar la fila", () => {
+    const r = importar("productos", [fila({ precioContado: 0, precioCredito: 0 })], nuevaBase());
+    expect(r.rechazadas).toHaveLength(0);
+    expect(r.insertar).toHaveLength(1);
+    expect(r.advertencias).toEqual([expect.objectContaining({ fila: 2, id: "PRD-ADV", campo: "precioContado", paso: "regla" })]);
+  });
+
+  it("un precioContado negativo sigue siendo un error", () => {
+    const r = importar("productos", [fila({ precioContado: -1 })], nuevaBase());
+    expect(r.rechazadas).toHaveLength(1);
+    expect(r.advertencias).toHaveLength(0);
+  });
+
+  it("precioCredito sigue sin poder ser menor que precioContado", () => {
+    expect(importar("productos", [fila({ precioContado: 100, precioCredito: 50 })], nuevaBase()).rechazadas).toHaveLength(1);
   });
 });

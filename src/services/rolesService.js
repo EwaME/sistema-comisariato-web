@@ -93,3 +93,21 @@ export const desactivarRol = async (idRol) => {
         throw error;
     }
 };
+// Roles que la aplicación necesita para decidir qué ve cada usuario. Si falta alguno en Firestore
+// no aparecería en la lista de asignación, así que se crea (sin tocar los que ya existen).
+const ROLES_DEL_SISTEMA = [
+    ["GERENCIA", "Mismos permisos que Administración; su dashboard principal es el gerencial."],
+    ["IT", "Supervisa el funcionamiento técnico del sistema: dashboard técnico, auditorías e importaciones."],
+];
+
+export const asegurarRolesDelSistema = async () => {
+    for (const [idRol, descripcion] of ROLES_DEL_SISTEMA) {
+        try {
+            const existente = await getDoc(doc(db, coleccion, idRol));
+            if (!existente.exists()) await crearRol(idRol, { nombre: idRol, entorno: "WEB", descripcion });
+        } catch (error) {
+            // un usuario sin permiso de escritura sobre roles (p. ej. MODERADOR) simplemente no los crea
+            console.warn(`No se pudo comprobar el rol ${idRol}:`, error);
+        }
+    }
+};
