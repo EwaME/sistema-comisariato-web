@@ -8,6 +8,20 @@ if (getApps().length === 0) {
 
 const db = getFirestore();
 
+// Cada ejecución real (crédito recién aprobado) queda en logs_sistema para el dashboard técnico.
+const registrarEjecucion = async (datos) => {
+  try {
+    await db.collection("logs_sistema").add({
+      origen: "cloud_function",
+      operacion: "descontarStockAlAprobar",
+      fecha: FieldValue.serverTimestamp(),
+      ...datos,
+    });
+  } catch (error) {
+    console.error("No se pudo registrar la ejecución:", error);
+  }
+};
+
 exports.descontarStockAlAprobar = onDocumentUpdated(
   "creditos/{creditoId}",
   async (event) => {
@@ -19,6 +33,8 @@ exports.descontarStockAlAprobar = onDocumentUpdated(
 
     if (!fueAprobado) return null;
 
+    const inicio = Date.now();
+    const referencia = event.params.creditoId;
     const { productoId, cantidad } = dataDespues;
 
     if (!productoId || !cantidad) {
@@ -26,6 +42,12 @@ exports.descontarStockAlAprobar = onDocumentUpdated(
         "Crédito aprobado sin productoId o cantidad:",
         event.params.creditoId,
       );
+      await registrarEjecucion({
+        exito: false,
+        referencia,
+        duracionMs: Date.now() - inicio,
+        mensaje: "Crédito aprobado sin productoId o cantidad",
+      });
       return null;
     }
 
@@ -70,8 +92,15 @@ exports.descontarStockAlAprobar = onDocumentUpdated(
       });
 
       console.log(`Stock actualizado para producto ${productoId}.`);
+      await registrarEjecucion({ exito: true, referencia, duracionMs: Date.now() - inicio });
     } catch (error) {
       console.error("Error al actualizar stock y estado:", error);
+      await registrarEjecucion({
+        exito: false,
+        referencia,
+        duracionMs: Date.now() - inicio,
+        mensaje: String(error.message || error).slice(0, 300),
+      });
     }
   },
 );

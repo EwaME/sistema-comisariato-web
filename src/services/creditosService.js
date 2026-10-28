@@ -1,3 +1,4 @@
+import { conMetrica } from "./metricasService";
 import {
   collection,
   getDoc,
@@ -120,7 +121,7 @@ export const revisionState = async (idCredito, emailRevisor) => {
   }
 };
 
-export const actualizarRevisionCredito = async (
+const actualizarRevisionCreditoSinMedir = async (
   idDocumento,
   estado,
   respuestaRevisor,
@@ -257,3 +258,4 @@ export const obtenerCreditosActivosPorEmpleadoId = async (empleadoId) => {
     throw error;
   }
 };
+export const actualizarRevisionCredito = conMetrica("actualizarRevisionCredito", actualizarRevisionCreditoSinMedir);

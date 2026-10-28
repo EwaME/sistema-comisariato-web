@@ -1,3 +1,4 @@
+import { conMetrica } from "./metricasService";
 import { collection, getDocs, doc, getDoc, setDoc, updateDoc, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase/firebase"; 
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
@@ -31,7 +32,7 @@ export const obtenerProductoPorId = async (idProducto) => {
     }
 };
 
-export const crearProducto = async (datosProducto) => {
+const crearProductoSinMedir = async (datosProducto) => {
     try {
         const idGenerado = datosProducto.productoId; 
         const docRef = doc(db, coleccion, idGenerado);
@@ -173,3 +174,4 @@ export const escucharProductosRealTime = (callback) => {
         console.error("Error al escuchar productos en tiempo real:", error);
     });
 };
+export const crearProducto = conMetrica("crearProducto", crearProductoSinMedir);

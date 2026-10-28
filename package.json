@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "ejemplos:excel": "node scripts/generar-ejemplos-excel.mjs"
   },
   "dependencies": {
     "@emailjs/browser": "^4.4.1",
