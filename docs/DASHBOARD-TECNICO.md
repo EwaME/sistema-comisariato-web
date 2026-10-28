@@ -1,6 +1,6 @@
 # Dashboard técnico
 
-Pantalla: `/dashboard-tecnico` (roles `SUPERVISOR TECNICO` y `ADMINISTRADOR`). Se actualiza en vivo; el filtro de período y el selector de operación recalculan los indicadores, y cada tarjeta o gráfico abre un modal con los registros que explican la cifra.
+Pantalla: Dashboard principal del rol `IT` (`/dashboard`). Se actualiza en vivo; el filtro de período y el selector de operación recalculan los indicadores, y cada tarjeta o gráfico abre un modal con los registros que explican la cifra.
 Código: `src/helpers/kpisTecnicos.js` (cálculo), `src/services/dashboardTecnicoService.js` (lectura en tiempo real), `src/services/metricasService.js` (medición), `src/pages/Dashboards/DashboardTecnico.jsx`.
 
 ## Indicadores
@@ -40,6 +40,6 @@ El proyecto no tiene una API HTTP propia: la app habla directo con Firestore y F
 | Actualización en vivo | Al crear un registro de login fallido desde fuera de la página, la tarjeta pasó de 6 a 7 sin recargar y volvió a 6 al borrarlo | (misma corrida) |
 | Cloud Function con éxito y con fallo | Crédito aprobado con producto válido: stock 25 a 23 y registro de éxito (363 ms). Con producto inexistente: registro de fallo "El producto no existe en el inventario" | Consulta a `logs_sistema` |
 | Error de servidor provocado | Se cortó la conexión al confirmar una importación: falla con `unavailable`, **no escribe nada** y la medición quedó registrada como error | `docs/evidencias-tecnico/t-0-error-sin-conexion.png` |
-| Acceso por rol | `SUPERVISOR TECNICO` entra; `GERENTE` recibe "Acceso Denegado" | ver `docs/evidencias-importacion/` |
+| Acceso por rol | `IT` ve este dashboard como principal; `GERENCIA` y `ADMINISTRADOR` ya no lo ven | pendiente de repetir con los roles nuevos |
 
 Limitación: los logins fallidos solo se registran si las reglas de Firestore permiten escribir en `logs_sistema` sin sesión; si no, la medición se pierde, pero el intento sigue quedando en `actividad_logs`.

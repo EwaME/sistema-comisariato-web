@@ -14,7 +14,9 @@ import {
   Inbox,
   Lock,
   Users,
+  FileSpreadsheet,
 } from "lucide-react";
+import DrawerImportarExcel from "../../../components/DrawerImportarExcel";
 import { Link, useNavigate } from "react-router-dom";
 
 export default function Gest_Creditos() {
@@ -24,6 +26,7 @@ export default function Gest_Creditos() {
   const [historial, setHistorial] = useState([]);
   const [listaEspera, setListaEspera] = useState([]);
   const [cargando, setCargando] = useState(true);
+  const [drawerImportar, setDrawerImportar] = useState(false);
 
   const [pagEspera, setPagEspera] = useState(1);
   const itemsPorPagEspera = 4;
@@ -137,6 +140,14 @@ export default function Gest_Creditos() {
           </p>
         </div>
 
+        <div className="flex flex-col sm:flex-row items-center gap-4">
+        <button
+          onClick={() => setDrawerImportar(true)}
+          className="bg-white border border-gray-200 text-[#020817] text-[11px] font-bold px-5 py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors shadow-sm uppercase tracking-widest whitespace-nowrap"
+        >
+          <FileSpreadsheet size={14} className="text-[#7C3AED]" /> Importar Excel
+        </button>
+
         {/* CARD DE PENDIENTES CON TOOLTIP */}
         <div className="group relative flex items-center gap-5 bg-white p-5 rounded-[1.5rem] border border-gray-100 shadow-sm transition-all hover:shadow-2xl hover:shadow-purple-100 cursor-pointer">
           <div className="w-14 h-14 rounded-[1rem] bg-[#020817] flex items-center justify-center text-white font-black text-xl shadow-lg">
@@ -174,6 +185,7 @@ export default function Gest_Creditos() {
               </div>
             </div>
           )}
+        </div>
         </div>
       </div>
 
@@ -447,6 +459,13 @@ export default function Gest_Creditos() {
           </div>
         </main>
       </div>
+
+      <DrawerImportarExcel
+        abierto={drawerImportar}
+        alCerrar={() => setDrawerImportar(false)}
+        tablas={["creditos", "cuotas"]}
+        modulo="Gestión de Créditos"
+      />
     </div>
   );
 }

@@ -84,7 +84,7 @@ describe("conflictos al importar sobre datos que ya existen", () => {
     expect(Object.keys(c001.cambios)).toEqual(["precioCredito", "stock"]);
   });
 
-  it("créditos: 1 insertada, 3 conflictos, 1 rechazada y 1 omitida; pasar a Aprobado advierte del descuento de stock", () => {
+  it("créditos: 1 insertada, 3 conflictos, 1 rechazada y 1 omitida; pasar a Aprobado no advierte de stock (son históricos)", () => {
     const r = importar("creditos", EJEMPLOS_CONFLICTOS.creditos, conBaseImportada());
     expect(resumenDeProceso(r)).toEqual({ totalFilas: 6, insertadas: 1, conflictos: 3, rechazadas: 1, omitidas: 1 });
     const aprobacion = r.conflictos.find((c) => c.id === "CRD-001");
@@ -92,7 +92,7 @@ describe("conflictos al importar sobre datos que ya existen", () => {
       { campo: "estado", actual: "Pendiente", nuevo: "Aprobado" },
       { campo: "fechaResolucion", actual: "—", nuevo: "03/10/2026" },
     ]);
-    expect(aprobacion.advertencias[0]).toMatch(/descontará del inventario/);
+    expect(aprobacion.advertencias).toEqual([]);
     expect(r.conflictos.find((c) => c.id === "CRD-H03").advertencias).toEqual([]);
     expect(r.conflictos.find((c) => c.id === "CRD-H01").campos.map((x) => x.campo)).toEqual(["cuotaMensual", "totalCredito"]);
   });

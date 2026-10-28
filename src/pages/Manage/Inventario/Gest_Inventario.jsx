@@ -13,7 +13,9 @@ import {
   X,
   Settings,
   Trophy,
+  FileSpreadsheet,
 } from "lucide-react";
+import DrawerImportarExcel from "../../../components/DrawerImportarExcel";
 import { Link } from "react-router-dom";
 import {
   obtenerProductos,
@@ -33,6 +35,7 @@ export default function Inventario() {
   });
 
   const [categoriasDb, setCategoriasDb] = useState([]);
+  const [drawerImportar, setDrawerImportar] = useState(false);
 
   const [busqueda, setBusqueda] = useState("");
   const [paginaActual, setPaginaActual] = useState(1);
@@ -333,6 +336,13 @@ export default function Inventario() {
                   </button>
                 </div>
               )}
+
+              <button
+                onClick={() => setDrawerImportar(true)}
+                className="bg-white border border-gray-200 text-[#020817] text-[11px] font-bold px-5 py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors shadow-sm w-full md:w-auto uppercase tracking-widest whitespace-nowrap"
+              >
+                <FileSpreadsheet size={14} className="text-[#7C3AED]" /> Importar Excel
+              </button>
 
               <Link
                 to="/inventario/nuevo"
@@ -769,6 +779,13 @@ export default function Inventario() {
           </div>
         </div>
       )}
+
+      <DrawerImportarExcel
+        abierto={drawerImportar}
+        alCerrar={() => setDrawerImportar(false)}
+        tablas={["productos"]}
+        modulo="Gestión de Productos"
+      />
     </div>
   );
 }

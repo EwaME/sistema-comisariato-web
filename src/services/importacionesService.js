@@ -4,6 +4,7 @@ import { collection, doc, getDocs, getDocsFromServer, getDocFromServer, setDoc, 
 import { db } from "../firebase/firebase";
 import { registrarAuditoria } from "./auditoriasService";
 import { TABLAS, procesarFilas, resumenDeProceso } from "../helpers/importacionExcel";
+import { EJEMPLOS } from "../helpers/ejemplosImportacion";
 
 const COLECCION_LOG = "importaciones";
 const TAMANO_LOTE = 400;
@@ -15,6 +16,14 @@ export const leerExcel = async (archivo) => {
   const hoja = libro.Sheets[libro.SheetNames[0]];
   if (!hoja) throw new Error("El archivo no tiene hojas.");
   return XLSX.utils.sheet_to_json(hoja, { defval: null, raw: true });
+};
+
+export const descargarPlantilla = (tabla) => {
+  const cabeceras = TABLAS[tabla].columnas.map((c) => c.clave);
+  const hoja = XLSX.utils.json_to_sheet([EJEMPLOS[tabla][0]], { header: cabeceras, cellDates: true });
+  const libro = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(libro, hoja, tabla);
+  XLSX.writeFile(libro, `plantilla_${tabla}.xlsx`, { cellDates: true });
 };
 
 // Siempre desde el servidor: sin conexión una lectura de caché vacía saltaría la detección de duplicados.
@@ -53,11 +62,12 @@ async function cargarContexto(tabla) {
 export const simularImportacion = async (tabla, filas) => {
   const ctx = { ...(await cargarContexto(tabla)), ahora: new Date(), importacionId: "SIMULACION" };
   const r = procesarFilas(tabla, filas, ctx);
-  return { ...resumenDeProceso(r), conflictos: r.conflictos, rechazadas: r.rechazadas, omitidas: r.omitidas };
+  return { ...resumenDeProceso(r), conflictos: r.conflictos, rechazadas: r.rechazadas, omitidas: r.omitidas, advertencias: r.advertencias };
 };
 
 // `actualizar` = IDs de filas en conflicto que el usuario decidió aplicar; el resto conserva el dato actual.
-const ejecutarImportacionSinMedir = async ({ tabla, filas, archivo, correo, actualizar = [] }) => {
+// `modulo` = módulo de auditoría; si viene de un módulo (Inventario, Créditos) el registro cae en su misma bitácora.
+const ejecutarImportacionSinMedir = async ({ tabla, filas, archivo, correo, actualizar = [], modulo = "Importación Excel" }) => {
   const refLog = doc(collection(db, COLECCION_LOG));
   const ctx = { ...(await cargarContexto(tabla)), ahora: new Date(), importacionId: refLog.id };
   const r = procesarFilas(tabla, filas, ctx);
@@ -100,6 +110,7 @@ const ejecutarImportacionSinMedir = async ({ tabla, filas, archivo, correo, actu
   await setDoc(refLog, {
     importacionId: refLog.id,
     tabla,
+    modulo,
     archivo,
     usuario: correo,
     fecha: serverTimestamp(),
@@ -114,7 +125,7 @@ const ejecutarImportacionSinMedir = async ({ tabla, filas, archivo, correo, actu
 
   await registrarAuditoria(
     "IMPORTACIÓN",
-    "Importación Excel",
+    modulo,
     `${TABLAS[tabla].etiqueta}: ${insertadas} insertadas, ${actualizadas} actualizadas, ${resumen.rechazadas} rechazadas, ${resumen.omitidas} omitidas (archivo ${archivo})`,
     refLog.id,
   );
