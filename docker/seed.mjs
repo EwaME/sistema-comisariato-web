@@ -29,6 +29,8 @@ const ROLES = [
   ["GESTOR DE INVENTARIO", "Administra productos, categorías y compras."],
   ["MODERADOR", "Modera usuarios, sugerencias y comentarios."],
   ["PROVEEDOR", "Atiende las solicitudes de compra."],
+  ["SUPERVISOR TECNICO", "Supervisa el uso y funcionamiento del sistema (dashboard técnico)."],
+  ["GERENTE", "Analiza el desempeño del proceso de créditos e inventario (dashboard gerencial)."],
   ["TODOLOGO", "Acceso total (solo desarrollo y pruebas)."],
 ];
 
@@ -41,10 +43,12 @@ const USUARIOS = [
   ["inventario@crediflow.test", "Iván Inventario", "GESTOR DE INVENTARIO", "Encargado de Bodega", "Inventario"],
   ["moderador@crediflow.test", "Marta Moderadora", "MODERADOR", "Moderador", "Administración"],
   ["proveedor@crediflow.test", "Pedro Proveedor", "PROVEEDOR", "Proveedor", "Inventario"],
+  ["supervisor@crediflow.test", "Sofía Supervisora", "SUPERVISOR TECNICO", "Supervisor Técnico", "Administración"],
+  ["gerente@crediflow.test", "Gabriel Gerente", "GERENTE", "Gerente", "Gerencia"],
 ];
 
 const DEPARTAMENTOS = ["Gerencia", "Administración", "Créditos", "Inventario"];
-const CARGOS = ["Gerente General", "Administrador", "Analista de Crédito", "Analista", "Encargado de Bodega", "Moderador", "Proveedor"];
+const CARGOS = ["Gerente General", "Administrador", "Analista de Crédito", "Analista", "Encargado de Bodega", "Moderador", "Proveedor", "Supervisor Técnico", "Gerente"];
 const CATEGORIAS = [
   ["CAT-001", "Electrodomésticos", "Línea blanca y pequeños electrodomésticos"],
   ["CAT-002", "Hogar", "Muebles y artículos para el hogar"],
@@ -128,19 +132,36 @@ async function sembrar() {
   set("creditos/CRD-001", {
     usuarioId: "admin@crediflow.test", empleadoId: "EMP-002", usuario: "admin",
     productoId: "PRD-002", nombreProducto: "Licuadora 600W", imagenProductoURL: "",
-    cantidad: 2, plazoMeses: 6, cuotaMensual: 480, cuotasPagadas: 0,
-    estado: "Pendiente", fechaRegistro: hace(1),
+    cantidad: 2, plazoMeses: 6, cuotaMensual: 480, totalCredito: 2880, cuotasPagadas: 0,
+    estado: "Pendiente", fechaRegistro: new Date(2026, 9, 1, 12),
   });
   set("creditos/CRD-002", {
     usuarioId: "analista@crediflow.test", empleadoId: "EMP-004", usuario: "analista",
     productoId: "PRD-003", nombreProducto: "Colchón matrimonial ortopédico", imagenProductoURL: "",
-    cantidad: 1, plazoMeses: 12, cuotaMensual: 508, cuotasPagadas: 0,
+    cantidad: 1, plazoMeses: 12, cuotaMensual: 508, totalCredito: 6096, cuotasPagadas: 0,
     estado: "Pendiente", fechaRegistro: hace(2),
   });
   set("reclamos/RCL-001", {
     solicitante: "Ana Administradora", asunto: "El producto llegó con un defecto de fábrica",
     estado: "Pendiente", fechaEmision: hace(3), evidenciaUrl: "",
   });
+  set("reclamos/RCL-002", {
+    solicitante: "Carlos Acreditador", asunto: "La garantía no cubrió la reparación",
+    estado: "Revisado", fechaEmision: hace(20), evidenciaUrl: "",
+  });
+  set("reclamos/RCL-003", {
+    solicitante: "Laura Analista", asunto: "Cobro duplicado de una cuota",
+    estado: "En revisión", fechaEmision: hace(6), evidenciaUrl: "",
+  });
+  const iso = (fecha) => fecha.toISOString().slice(0, 10);
+  const promocion = (n, nombre, estado, inicio, fin, descuento) =>
+    set(`promociones/PROM-00${n}`, {
+      promocionId: `PROM-00${n}`, nombre, descripcion: `${nombre} — promoción de prueba.`,
+      tipo: "DESCUENTO_PORCENTAJE", valorDescuento: descuento, fechaInicio: iso(inicio), fechaFin: iso(fin), estado, ...fechas,
+    });
+  promocion(1, "Mes del hogar", "ACTIVO", hace(30), hace(-60), 10);
+  promocion(2, "Descuento de verano", "ACTIVO", hace(120), hace(30), 15);
+  promocion(3, "Liquidación de inventario", "INACTIVO", hace(10), hace(-20), 20);
   set("sugerencias/SUG-001", {
     nombreUsuario: "Ana Administradora", fotoUsuario: "", asunto: "Más métodos de pago",
     descripcion: "Sería útil poder pagar cuotas desde la aplicación.", fechaRegistro: hace(4),

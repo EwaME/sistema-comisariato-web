@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { auth, db } from "../firebase/firebase";
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
+import { medirOperacion } from "../services/metricasService";
 
 const AuthContext = createContext();
 
@@ -51,7 +52,8 @@ export const AuthProvider = ({ children }) => {
         return () => unsubscribe();
     }, []);
 
-    const login = (email, password) => signInWithEmailAndPassword(auth, email, password);
+    const login = (email, password) =>
+        medirOperacion("login", () => signInWithEmailAndPassword(auth, email, password), { correo: email.toLowerCase() });
     const logout = () => signOut(auth);
 
     if (initialLoad) {

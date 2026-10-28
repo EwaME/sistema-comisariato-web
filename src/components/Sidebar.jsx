@@ -22,7 +22,10 @@ import {
   ShieldCheck,
   LogOut,
   User,
-  Store
+  Store,
+  Activity,
+  TrendingUp,
+  FileSpreadsheet
 } from "lucide-react";
 import { useAuth } from "../auth/AuthProvider";
 import { obtenerUsuarioPorId } from "../services/usuariosService";
@@ -182,6 +185,8 @@ export default function Sidebar({
           "GESTOR DE INVENTARIO",
           "MODERADOR",
           "PROVEEDOR",
+          "SUPERVISOR TECNICO",
+          "GERENTE",
         ]) && (
           <div className="mb-6">
             <p
@@ -191,6 +196,22 @@ export default function Sidebar({
             </p>
             <ul className="space-y-1 px-4">
               {renderMenuItem(LayoutDashboard, "Dashboard", "/dashboard")}
+            </ul>
+          </div>
+        )}
+
+        {checkAccess(["SUPERVISOR TECNICO", "GERENTE", "ADMINISTRADOR"]) && (
+          <div className="mb-6">
+            <p
+              className={`text-[9px] font-bold text-gray-400 tracking-widest uppercase mb-3 px-6 ${isCollapsed ? "md:hidden block" : "block"}`}
+            >
+              Supervisión y Análisis
+            </p>
+            <ul className="space-y-1 px-4">
+              {checkAccess(["SUPERVISOR TECNICO", "ADMINISTRADOR"]) &&
+                renderMenuItem(Activity, "Dashboard Técnico", "/dashboard-tecnico")}
+              {checkAccess(["GERENTE", "ADMINISTRADOR"]) &&
+                renderMenuItem(TrendingUp, "Dashboard Gerencial", "/dashboard-gerencial")}
             </ul>
           </div>
         )}
@@ -293,6 +314,8 @@ export default function Sidebar({
               {renderMenuItem(BarChart3, "Reportes", "/reportes")}
               {checkAccess(["ADMINISTRADOR"]) &&
                 renderMenuItem(Settings, "Configuraciones", "/configuraciones")}
+              {checkAccess(["ADMINISTRADOR"]) &&
+                renderMenuItem(FileSpreadsheet, "Importar Excel", "/importaciones")}
               {renderMenuItem(ShieldCheck, "Auditorías", "/auditorias")}
             </ul>
           </div>
