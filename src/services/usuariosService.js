@@ -1,3 +1,4 @@
+import { conMetrica } from "./metricasService";
 import { collection, getDocs, doc, setDoc, updateDoc, getDoc } from "firebase/firestore";
 import { getAuth, createUserWithEmailAndPassword, signOut } from "firebase/auth";
 import { initializeApp } from "firebase/app";
@@ -71,7 +72,7 @@ export const crearUsuarioBaseEmpleado = async (empleadoData) => {
     return nuevoUsuario;
 };
 
-export const asignarRolWebYAuth = async (empleadoData, nuevoRolAdicional) => {
+const asignarRolWebYAuthSinMedir = async (empleadoData, nuevoRolAdicional) => {
     const emailUsuario = (empleadoData.correo || empleadoData.id).toLowerCase();
     const usuarioRef = doc(db, coleccion, emailUsuario);
     
@@ -183,3 +184,4 @@ export const obtenerUsuarioPorId = async (idDocumento) => {
         throw error;
     }
 };
+export const asignarRolWebYAuth = conMetrica("asignarRolWebYAuth", asignarRolWebYAuthSinMedir);

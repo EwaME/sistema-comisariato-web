@@ -39,6 +39,7 @@ import Sugerencias from "../pages/Manage/Gest_Sugerencias";
 import Configuraciones from "../pages/Manage/GestionSistema/Gest_Configuraciones";
 import Auditorias from "../pages/Manage/GestionSistema/Auditorias";
 import Reportes from "../pages/Manage/GestionSistema/Gest_Reportes";
+import ImportarExcel from "../pages/Manage/GestionSistema/ImportarExcel";
 
 import Creditos from "../pages/Manage/Creditos/Gest_Creditos";
 import RevisionCredito from "../pages/Manage/Creditos/Gest_Revision";
@@ -49,10 +50,12 @@ import RevisionReclamo from "../pages/Manage/Reclamos/Gest_Revision.jsx";
 
 import GuiasyAyudas from "../pages/GuiasyAyudas";
 import DashboardContainer from "../pages/Dashboards/DashboardContainer.jsx";
+import DashboardTecnico from "../pages/Dashboards/DashboardTecnico.jsx";
+import DashboardGerencial from "../pages/Dashboards/DashboardGerencial.jsx";
 
 export default function AppRouter() {
   // 🔥 Definimos los grupos de acceso incluyendo al TODOLOGO en todos lados
-  const TODOS_WEB = ["ADMINISTRADOR", "ACREDITADOR", "ANALISTA", "GESTOR DE INVENTARIO", "MODERADOR", "PROVEEDOR", "TODOLOGO"];
+  const TODOS_WEB = ["ADMINISTRADOR", "ACREDITADOR", "ANALISTA", "GESTOR DE INVENTARIO", "MODERADOR", "PROVEEDOR", "SUPERVISOR TECNICO", "GERENTE", "TODOLOGO"];
   const ADMIN_ONLY = ["ADMINISTRADOR", "TODOLOGO"];
   const ADMIN_MOD = ["ADMINISTRADOR", "MODERADOR", "TODOLOGO"];
   const STOCK_ALL = ["PROVEEDOR", "GESTOR DE INVENTARIO", "TODOLOGO"];
@@ -60,6 +63,8 @@ export default function AppRouter() {
   const ACREDITADOR_ONLY = ["ACREDITADOR", "TODOLOGO"];
   const ADMIN_ANALISTA = ["ADMINISTRADOR", "ANALISTA", "TODOLOGO"];
   const MODERADOR_ONLY = ["MODERADOR", "TODOLOGO"];
+  const TECNICO_ACCESS = ["SUPERVISOR TECNICO", "ADMINISTRADOR", "TODOLOGO"];
+  const GERENCIAL_ACCESS = ["GERENTE", "ADMINISTRADOR", "TODOLOGO"];
 
   return (
     <Routes>
@@ -75,6 +80,8 @@ export default function AppRouter() {
         {/* 1. General */}
         <Route path="dashboard" element={ <ProtectedRoute allowedRoles={TODOS_WEB}><DashboardContainer /></ProtectedRoute> } />
         <Route path="perfil" element={ <ProtectedRoute allowedRoles={TODOS_WEB}><MiPerfil /></ProtectedRoute> } />
+        <Route path="dashboard-tecnico" element={ <ProtectedRoute allowedRoles={TECNICO_ACCESS}><DashboardTecnico /></ProtectedRoute> } />
+        <Route path="dashboard-gerencial" element={ <ProtectedRoute allowedRoles={GERENCIAL_ACCESS}><DashboardGerencial /></ProtectedRoute> } />
 
         {/* 2. Administración y Moderación */}
         <Route path="usuarios" element={ <ProtectedRoute allowedRoles={ADMIN_MOD}><Usuarios /></ProtectedRoute> } />
@@ -125,6 +132,7 @@ export default function AppRouter() {
         <Route path="configuraciones" element={ <ProtectedRoute allowedRoles={ADMIN_ONLY}><Configuraciones /></ProtectedRoute> } />
         <Route path="auditorias" element={ <ProtectedRoute allowedRoles={ADMIN_ANALISTA}><Auditorias /></ProtectedRoute> } />
         <Route path="reportes" element={ <ProtectedRoute allowedRoles={ADMIN_ANALISTA}><Reportes /></ProtectedRoute> } />
+        <Route path="importaciones" element={ <ProtectedRoute allowedRoles={ADMIN_ONLY}><ImportarExcel /></ProtectedRoute> } />
 
         {/* 10. Comunidad */}
         <Route path="sugerencias" element={ <ProtectedRoute allowedRoles={MODERADOR_ONLY}><Sugerencias /></ProtectedRoute> } />
